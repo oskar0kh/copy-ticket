@@ -1,0 +1,29 @@
+# docker-compose.yml
+
+version: '3.8' # docker-compose 버전
+
+services:
+  # 서비스 이름 (자유롭게 지정 가능, 여기서는 'db'로)
+  db:
+    image: postgres:15 # 사용할 PostgreSQL 이미지 (15 버전 권장)
+    container_name: copy_ticket_postgres_container # 도커에서 보일 컨테이너 이름
+    
+    # Spring Boot (PC)에서 접속할 포트 설정
+    # "PC포트:컨테이너포트"
+    ports:
+      - "5432:5432" 
+    
+    # PostgreSQL 서버 환경설정
+    environment:
+      POSTGRES_USER: kunhyung
+      POSTGRES_PASSWORD: 1234
+      POSTGRES_DB: copy_ticket_db
+    
+    # DB 데이터를 영속적으로 저장하기 위한 볼륨 설정
+    # (컨테이너가 삭제되어도 데이터는 보존됨)
+    volumes:
+      - postgres_volume:/var/lib/postgresql/data
+
+# 위에서 참조한 'postgres_volume' 볼륨을 정의
+volumes:
+  postgres_volume:
