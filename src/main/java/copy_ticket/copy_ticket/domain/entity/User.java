@@ -25,10 +25,11 @@ public class User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @Column(name = "id")
+    private Long idx;
 
-    @Column(nullable = false, unique = true, length = 255)
-    private String username;
+    @Column(name = "username", nullable = false, unique = true, length = 255)
+    private String id;
 
     @Column(nullable = false, length = 255)
     private String password;
@@ -47,4 +48,15 @@ public class User {
 
     @Column(name = "last_entered_url_at")
     private Instant lastEnteredUrlAt;
+
+    public static User createForSignup(String id, String encodedPassword, String name) {
+        User user = new User();
+        Instant now = Instant.now();
+        user.setId(id);
+        user.setPassword(encodedPassword);
+        user.setName(name);
+        user.setCreatedAt(now);
+        user.setUpdatedAt(now);
+        return user;
+    }
 }

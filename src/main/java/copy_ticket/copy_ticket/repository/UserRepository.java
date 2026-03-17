@@ -9,9 +9,9 @@ import java.util.Optional;
 
 public interface UserRepository extends JpaRepository<User, Long> {
 
-    // 로그인 시, 사용자 이름으로 User 엔티티 조회하는 메서드
-    Optional<User> findByUsername(String username);
+    // 로그인 시, 사용자 아이디로 User 엔티티 조회하는 메서드
+    Optional<User> findById(String id);
 
-    // 회원가입 시, 사용자 이름 중복 체크하는 메서드
-    boolean existsByUsername(String username);
+    // 회원가입 시, 사용자 아이디 중복 체크하는 메서드
+    boolean existsById(String id);
 }
