@@ -1,5 +1,6 @@
 package copy_ticket.copy_ticket.domain.entity;
 
+import copy_ticket.copy_ticket.config.time.KstDateTimeUtils;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -28,7 +29,7 @@ public class User {
     @Column(name = "id")
     private Long idx;
 
-    @Column(name = "username", nullable = false, unique = true, length = 255)
+    @Column(name = "username", nullable = false, length = 255)
     private String id;
 
     @Column(nullable = false, length = 255)
@@ -43,6 +44,9 @@ public class User {
     @Column(name = "updated_at")
     private Instant updatedAt;
 
+    @Column(name = "deleted_at")
+    private Instant deletedAt;
+
     @Column(name = "last_entered_url", columnDefinition = "TEXT")
     private String lastEnteredUrl;
 
@@ -51,12 +55,13 @@ public class User {
 
     public static User createForSignup(String id, String encodedPassword, String name) {
         User user = new User();
-        Instant now = Instant.now();
+        Instant now = KstDateTimeUtils.nowInstant();
         user.setId(id);
         user.setPassword(encodedPassword);
         user.setName(name);
         user.setCreatedAt(now);
         user.setUpdatedAt(now);
+        user.setDeletedAt(null);
         return user;
     }
 }

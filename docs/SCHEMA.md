@@ -42,6 +42,7 @@
 | updated_at | TIMESTAMP | NULL, DEFAULT now() | 수정 시각 |
 | last_entered_url | TEXT | NULL | 가장 최근에 입력한 URL (덮어쓰기) |
 | last_entered_url_at | TIMESTAMP | NULL | 일정 시간 지나면 URL 비우기용 |
+| deleted_at | TIMESTAMP | NULL | 회원 삭제 시, 삭제 시간 기록 (Soft Delete) |
 
 ---
 

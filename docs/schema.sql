@@ -7,14 +7,18 @@
 -- ---------------------------------------------------------------------------
 CREATE TABLE users (
     id              BIGSERIAL PRIMARY KEY,
-    username        VARCHAR(255) NOT NULL UNIQUE,
+    username        VARCHAR(255) NOT NULL,
     password        VARCHAR(255) NOT NULL,
     name            VARCHAR(100) NOT NULL,
+    last_entered_url    TEXT,
+    last_entered_url_at TIMESTAMP,
     created_at      TIMESTAMP NOT NULL DEFAULT now(),
     updated_at      TIMESTAMP DEFAULT now(),
-    last_entered_url    TEXT,
-    last_entered_url_at TIMESTAMP
+    deleted_at      TIMESTAMP
 );
+
+-- 'username(ID)'에 대해서 parital unique index 걸기 (soft delete된 계정은 재사용 허용)
+CREATE UNIQUE INDEX uq_users_username_active ON users(username) WHERE deleted_at IS NULL;
 
 -- ---------------------------------------------------------------------------
 -- 2. performances — 공연 정보

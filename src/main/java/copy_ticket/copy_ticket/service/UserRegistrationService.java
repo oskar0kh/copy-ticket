@@ -21,8 +21,8 @@ public class UserRegistrationService {
     @Transactional
     public void register(SignupRequestDto request) {
 
-        // ID 중복 체크
-        if (userRepository.existsById(request.getId())) {
+        // 활성 사용자 기준 ID 중복 체크 (soft delete된 계정은 재사용 허용)
+        if (userRepository.existsByIdAndDeletedAtIsNull(request.getId())) {
             throw new IllegalArgumentException("이미 사용 중인 아이디입니다.");
         }
 

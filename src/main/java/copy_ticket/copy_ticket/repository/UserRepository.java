@@ -12,6 +12,10 @@ public interface UserRepository extends JpaRepository<User, Long> {
     // 로그인 시, 사용자 아이디로 User 엔티티 조회하는 메서드
     Optional<User> findById(String id);
 
+    Optional<User> findByIdAndDeletedAtIsNull(String id);
+
     // 회원가입 시, 사용자 아이디 중복 체크하는 메서드
     boolean existsById(String id);
+
+    boolean existsByIdAndDeletedAtIsNull(String id);
 }

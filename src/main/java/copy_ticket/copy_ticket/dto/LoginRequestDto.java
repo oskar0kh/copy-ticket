@@ -15,7 +15,7 @@ public class LoginRequestDto {
     private String id;
 
     @NotBlank(message = "비밀번호를 입력해 주세요.")
-    @Size(min = 8, max = 30, message = "비밀번호는 8자 이상 30자 이하로 입력해 주세요.")
+    @Size(min = 4, max = 20, message = "비밀번호는 4자 이상 20자 이하로 입력해 주세요.")
     private String password;
 
     public String getId() {

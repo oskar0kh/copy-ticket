@@ -1,8 +1,10 @@
 package copy_ticket.copy_ticket.service;
 
+import copy_ticket.copy_ticket.config.time.KstDateTimeUtils;
 import copy_ticket.copy_ticket.domain.entity.User;
 import copy_ticket.copy_ticket.dto.AuthUserResponseDto;
 import copy_ticket.copy_ticket.dto.LoginRequestDto;
+import copy_ticket.copy_ticket.dto.WithdrawRequestDto;
 import copy_ticket.copy_ticket.repository.UserRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -18,6 +20,7 @@ import org.springframework.security.web.authentication.logout.SecurityContextLog
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 @Service
@@ -65,7 +68,7 @@ public class AuthService {
             securityContextRepository.saveContext(context, request, response);
 
             // 5. 인증 성공했으면, DB에서 users 테이블 조회해서 response DTO로 변환하여 반환
-            User user = userRepository.findById(authentication.getName())
+                User user = userRepository.findByIdAndDeletedAtIsNull(authentication.getName())
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "인증된 사용자를 찾을 수 없습니다."));
 
             return AuthUserResponseDto.from(user);
@@ -83,9 +86,32 @@ public class AuthService {
     }
 
     public AuthUserResponseDto currentUser(Authentication authentication) {
-        User user = userRepository.findById(authentication.getName())
+        User user = userRepository.findByIdAndDeletedAtIsNull(authentication.getName())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "인증된 사용자를 찾을 수 없습니다."));
 
         return AuthUserResponseDto.from(user);
+    }
+
+    @Transactional
+    public void withdraw(
+            WithdrawRequestDto withdrawRequest,
+            HttpServletRequest request,
+            HttpServletResponse response,
+            Authentication authentication
+    ) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "로그인 상태가 아닙니다.");
+        }
+
+        User user = userRepository.findByIdAndDeletedAtIsNull(authentication.getName())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "인증된 사용자를 찾을 수 없습니다."));
+
+        if (!withdrawRequest.isConfirmed()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "회원 탈퇴 확인이 필요합니다.");
+        }
+
+        user.setDeletedAt(KstDateTimeUtils.nowInstant());
+        user.setUpdatedAt(KstDateTimeUtils.nowInstant());
+        new SecurityContextLogoutHandler().logout(request, response, authentication);
     }
 }

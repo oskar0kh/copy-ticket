@@ -46,22 +46,24 @@ Phase 8  마이페이지(예매 내역) + 락 TTL 비정상 종료 처리
 | 순서 | 작업 | 설명 |
 |------|------|------|
 | 0-1 | 패키지 구조 | `controller`, `service`, `repository`, `domain/entity`, `dto`, `config` 등 계층 분리 |
-| 0-2 | DB 스키마 설계 및 Entity 구현 | User, Performance, Seat, Booking, User 입력 URL 관련 Entity 구현 (→ `docs/SCHEMA.md` 참고) |
+| 0-2 | DB 스키마 설계 및 Entity 구현 | 'users/seats/performances/bookings' DB Schema 설계, Schema에 맞게 Entity 코드 구현 |
 
-**산출물:** DB Schema, ER Diagram, Entity
+**산출물:** DB Schema, ER Diagram, 'User, Seat, Performance, Booking' Entity 코드
 
 ---
 
-## 4. Phase 1 — 로그인 / 회원가입
+## 4. Phase 1 — 로그인/회원가입 API 및 UI, URL 입력 UI 구현 (프론트엔드 + 백엔드)
 
-**목표:** “로그인 후 URL 입력” 플로우를 위한 인증 구현.
+**목표:** 로그인/회원가입 API/UI 구현, 
 
 | 순서 | 작업 | 설명 |
 |------|------|------|
-| 1-1 | Spring Security 설정 | 의존성 추가, 로그인/로그아웃 URL, 세션 기반 인증, BCrypt 비밀번호 인코더 |
-| 1-2 | 회원가입 API/페이지 | 이메일(또는 아이디), 비밀번호, 이름 — 유효성 검사, 중복 체크 |
-| 1-3 | 로그인 페이지 | Thymeleaf 로그인 폼, 실패 시 메시지, 성공 시 메인(URL 입력)으로 리다이렉트 |
-| 1-4 | 인증 상태 연동 | `SecurityContext` / `@AuthenticationPrincipal`로 현재 사용자 조회 |
+| 1-1 | Spring Security 설정 | 의존성 추가, 로그인/로그아웃 URL, 세션 기반 인증, BCrypt 비밀번호 인코더 설정, `SecurityContext` / `@AuthenticationPrincipal`로 현재 사용자 조회 |
+| 1-2 | 'users' 테이블(User 엔티티) 접근용 Repository 코드 구현(UserRepository) |
+| 1-3 | 로그인/회원가입 API 구현(/api/signup, /api/login, /api/logout, /api/auth/me) |
+| 1-4 | 로그인/회원가입용 인증 Request/Response DTO 구현 |
+| 1-5 | 로그인/회원가입 UI 구현 | 아이디, 비밀번호, 이름 — 유효성 검사, 중복 체크, 실패 시 메시지, 성공 시 메인(URL 입력) UI로 리다이렉트 | (프론트)
+| 1-6 | 메인 화면(URL)
 
 **산출물:** `/signup`, `/login`, `/logout`, 로그인 후 메인(URL 입력) 화면 진입
 
