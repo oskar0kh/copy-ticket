@@ -11,7 +11,7 @@
 ```
 ┌─────────────┐                    ┌─────────────────┐
 │   users     │────────────────────│  performances   │
-│ (last_entered_url)               │  (created_by)   │
+│             │                    │  (created_by)   │
 └──────┬──────┘                    └────────┬────────┘
        │                                   │
        │   ┌─────────────────┐             │
@@ -40,8 +40,6 @@
 | name | VARCHAR(100) | NOT NULL | 이름 |
 | created_at | TIMESTAMP | NOT NULL, DEFAULT now() | 가입 시각 |
 | updated_at | TIMESTAMP | NULL, DEFAULT now() | 수정 시각 |
-| last_entered_url | TEXT | NULL | 가장 최근에 입력한 URL (덮어쓰기) |
-| last_entered_url_at | TIMESTAMP | NULL | 일정 시간 지나면 URL 비우기용 |
 | deleted_at | TIMESTAMP | NULL | 회원 삭제 시, 삭제 시간 기록 (Soft Delete) |
 
 ---
@@ -57,7 +55,7 @@
 **인덱스**
 
 - `(reservation_open_at)` — 스케줄/버튼 활성화 조회용
-- `(source_url)` — 재진입 시 `users.last_entered_url`로 공연 조회할 때 `WHERE source_url = ?` 사용 가능
+- `(source_url)` — URL로 공연 조회할 때 `WHERE source_url = ?` 사용
 
 | 컬럼명 | 타입 | 제약 | 설명 |
 |--------|------|------|------|
@@ -164,7 +162,7 @@
 ## 5. 시퀀스/플로우와 테이블 매핑
 
 1. **로그인** → `users`
-2. **URL 입력·저장·복원** → `users.last_entered_url` 덮어쓰기, 파싱 후 `performances` 생성/조회
+2. **URL 입력** → 파싱 후 `performances` 생성/조회
 3. **UI 표시** → `performances` + 프론트엔드 템플릿(`template_code`로 매핑)
 4. **예매 오픈 시각** → `performances.reservation_open_at`
 5. **예매 클릭 → 대기열** → Kafka + Redis
