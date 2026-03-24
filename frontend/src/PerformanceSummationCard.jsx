@@ -21,7 +21,7 @@ export default function PerformanceDetails({ initialUrl }) {
       return;
     }
 
-    const interparkUrlPattern = /^https?:\/\/tickets\.interpark\.com\/goods\/\d+/;
+    const interparkUrlPattern = /^https?:\/\/tickets\.interpark\.com\/goods\/\d{8}$/;
 
     if (!interparkUrlPattern.test(urlToparse)) {
       setError('유효한 인터파크 티켓 URL을 입력해주세요');

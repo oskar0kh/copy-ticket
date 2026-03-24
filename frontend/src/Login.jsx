@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { login, logout, signup, withdrawAccount } from "./api/auth";
+import { login, logout, signup, withdrawAccount, me } from "./api/auth";
 import MainPage from "./MainPage";
 
 const initialSignup = { id: "", password: "", name: "" };
@@ -55,6 +55,22 @@ export default function Login() {
         window.clearTimeout(toastTimerRef.current);
       }
     };
+  }, []);
+
+  // 페이지 로드 시 현재 인증 상태 확인
+  useEffect(() => {
+    async function checkAuthStatus() {
+      try {
+        const currentUser = await me();
+        setUser(currentUser);
+        setView("main");
+      } catch (err) {
+        // 인증되지 않았거나 만료된 세션, 로그인 화면 유지
+        setView("auth");
+      }
+    }
+
+    checkAuthStatus();
   }, []);
 
   useEffect(() => {
@@ -185,7 +201,6 @@ export default function Login() {
     }
 
     setLastInputUrl(trimmedUrl);
-    showToast("URL 저장 API는 아직 구현 전입니다. 입력 UI만 동작합니다.", "success");
   }
 
   return (
