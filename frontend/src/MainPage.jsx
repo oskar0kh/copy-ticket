@@ -1,12 +1,20 @@
 import React, { useState } from "react";
+import PerformanceDetails from "./PerformanceDetails";
 
 export default function MainPage({ user, loading, lastInputUrl, onSubmitUrl, onLogout, onWithdraw }) {
   const [url, setUrl] = useState(lastInputUrl || "");
   const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
+  const [showResults, setShowResults] = useState(false);
 
   function handleSubmit(event) {
     event.preventDefault();
     onSubmitUrl(url);
+    setShowResults(true); // handleSubmit이 호출되면, showResults를 true로 설정하여 PerformanceDetails 컴포넌트를 보여줌
+  }
+
+  function handleBackToInput() {
+    setShowResults(false);
+    setUrl("");
   }
 
   async function handleConfirmWithdraw() {
@@ -23,9 +31,12 @@ export default function MainPage({ user, loading, lastInputUrl, onSubmitUrl, onL
       <header className="main-header">
         <div>
           <p className="tag">COPY TICKET</p>
-          <h1>URL 입력 메인 화면</h1>
+          <h1>{showResults ? "공연 정보" : "URL 입력 메인 화면"}</h1>
           <p className="main-subtitle">
-            아래에서 예매 URL을 입력해 주세요.
+            {showResults
+              ? "인터파크에서 가져온 공연 정보입니다."
+              : "아래에서 인터파크 콘서트 URL을 입력해 주세요."
+            }
           </p>
         </div>
 
@@ -61,37 +72,48 @@ export default function MainPage({ user, loading, lastInputUrl, onSubmitUrl, onL
         </div>
       </header>
 
-      <section className="url-card">
-        <h2>예매 URL 입력</h2>
-        <p>
-          URL 저장 API는 아직 연결하지 않았습니다. 지금은 입력 UI와 화면 흐름만
-          구현된 상태입니다.
-        </p>
-
-        <form className="url-form" onSubmit={handleSubmit}>
-          <label>
-            URL
-            <input
-              type="url"
-              placeholder="https://example.com/ticket"
-              value={url}
-              onChange={(event) => setUrl(event.target.value)}
-              required
-            />
-          </label>
-
-          <button type="submit" disabled={loading}>
-            {loading ? "처리 중..." : "URL 입력 확인"}
-          </button>
-        </form>
-
-        {lastInputUrl && (
-          <div className="url-preview">
-            <strong>마지막 입력 URL</strong>
-            <p>{lastInputUrl}</p>
+      {/* showResults가 true일 때, PerformanceDetails 컴포넌트를 표시 */}
+      {showResults ? (
+        <div>
+          <PerformanceDetails initialUrl={url} /> {/* 입력한 URL을 PerformanceDetails.jsx로 전달 */}
+          <div style={{ textAlign: "center", marginTop: "40px", marginBottom: "40px" }}>
+            <button onClick={handleBackToInput} className="ghost" style={{ padding: "10px 20px" }}>
+              ← 다른 URL 입력하기
+            </button>
           </div>
-        )}
-      </section>
+        </div>
+      ) : (
+        <section className="url-card">
+          <h2>인터파크 콘서트 URL 입력</h2>
+          <p>
+            인터파크 티켓의 콘서트 상세 페이지 URL을 입력하면 공연 정보를 자동으로 가져옵니다.
+          </p>
+
+          <form className="url-form" onSubmit={handleSubmit}> {/* '정보 가져오기' 폼 */}
+            <label>
+              URL
+              <input
+                type="url"
+                placeholder="예시: https://tickets.interpark.com/goods/00000000"
+                value={url}
+                onChange={(event) => setUrl(event.target.value)}
+                required
+              />
+            </label>
+
+            <button type="submit" disabled={loading}> {/* 버튼 클릭하면, handleSubmit 함수가 호출됨 */}
+              {loading ? "처리 중..." : "정보 가져오기"}
+            </button>
+          </form>
+
+          {lastInputUrl && (
+            <div className="url-preview">
+              <strong>마지막 입력 URL</strong>
+              <p>{lastInputUrl}</p>
+            </div>
+          )}
+        </section>
+      )}
 
       {isWithdrawModalOpen && (
         <div className="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="withdraw-modal-title">

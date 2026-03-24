@@ -1,0 +1,240 @@
+/* Performance section styles */
+.performance-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 40px 20px;
+}
+
+/* Input Section */
+.performance-input-section {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 12px;
+  padding: 40px;
+  margin-bottom: 40px;
+  color: white;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.performance-input-section h2 {
+  margin-top: 0;
+  margin-bottom: 24px;
+  font-size: 28px;
+  font-weight: 600;
+}
+
+.form-group {
+  margin-bottom: 16px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 12px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 6px;
+  font-size: 14px;
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  transition: all 0.3s ease;
+}
+
+.form-group input::placeholder {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.form-group input:focus {
+  outline: none;
+  background: rgba(255, 255, 255, 0.2);
+  border-color: white;
+}
+
+.form-group input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.performance-input-section button {
+  width: 100%;
+  padding: 12px 24px;
+  background: white;
+  color: #667eea;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.performance-input-section button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.performance-input-section button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.error-message {
+  margin-top: 16px;
+  padding: 12px;
+  background: rgba(255, 0, 0, 0.2);
+  border-left: 4px solid #ff6b6b;
+  border-radius: 4px;
+  color: #ffeeee;
+  font-size: 14px;
+}
+
+/* Performance Details */
+.performance-details {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: 40px;
+  align-items: start;
+}
+
+.performance-poster {
+  position: sticky;
+  top: 20px;
+}
+
+.performance-poster img {
+  width: 100%;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  object-fit: cover;
+}
+
+.poster-placeholder {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  background: #f0f0f0;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #999;
+  font-size: 14px;
+  text-align: center;
+  padding: 20px;
+}
+
+.performance-info h1 {
+  margin-top: 0;
+  margin-bottom: 24px;
+  font-size: 32px;
+  color: #1a1a1a;
+  line-height: 1.3;
+}
+
+.description {
+  margin-bottom: 28px;
+}
+
+.description h3 {
+  margin-top: 0;
+  margin-bottom: 12px;
+  color: #333;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.description p {
+  color: #555;
+  line-height: 1.6;
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.info-item {
+  display: flex;
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #eee;
+  align-items: flex-start;
+}
+
+.info-item:last-of-type {
+  border-bottom: none;
+}
+
+.info-item .label {
+  font-weight: 600;
+  color: #667eea;
+  min-width: 100px;
+  margin-right: 12px;
+}
+
+.info-item span {
+  color: #555;
+  line-height: 1.4;
+}
+
+.schedules {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.schedules li {
+  padding: 8px 0;
+  color: #555;
+}
+
+.button-link {
+  display: inline-block;
+  margin-top: 24px;
+  padding: 12px 32px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  text-decoration: none;
+  border-radius: 6px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  text-align: center;
+}
+
+.button-link:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.metadata {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid #eee;
+  color: #999;
+  font-size: 12px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .performance-details {
+    grid-template-columns: 1fr;
+  }
+
+  .performance-poster {
+    position: static;
+  }
+
+  .performance-info h1 {
+    font-size: 24px;
+  }
+
+  .performance-input-section {
+    padding: 24px;
+  }
+
+  .performance-container {
+    padding: 20px 12px;
+  }
+}
