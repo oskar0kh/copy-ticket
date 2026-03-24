@@ -2,7 +2,7 @@ package copy_ticket.copy_ticket.service;
 
 import com.microsoft.playwright.*;
 import com.microsoft.playwright.options.LoadState;
-import copy_ticket.copy_ticket.dto.PerformanceDto;
+import copy_ticket.copy_ticket.dto.PerformanceResponseDto;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -18,7 +18,7 @@ public class InterparkService {
      * @param url Interpark 상품 URL (예: https://tickets.interpark.com/goods/26003042)
      * @return 파싱된 공연 정보
      */
-    public PerformanceDto parseInterParkUrl(String url) {
+    public PerformanceResponseDto parseInterParkUrl(String url) {
         log.info("Starting to parse Interpark URL: {}", url);
 
         // 1. Playwright 객체를 생성하고, URL을 랜더링 할 headless 브라우저(화면 안뜨는 브라우저), 컨택스트, 페이지 생성
@@ -39,7 +39,7 @@ public class InterparkService {
             String content = page.content();
 
             // 5. HTML 필터링을 통해 핵심 공연 정보 추출
-            PerformanceDto result = htmlPerformanceFilter(content, url);
+            PerformanceResponseDto result = htmlPerformanceFilter(content, url);
 
             log.info("Successfully parsed performance: {}", result.getTitle());
             return result;
@@ -53,8 +53,8 @@ public class InterparkService {
     /**
      * HTML 콘텐츠에서 fallback JSON 부분을 추출하고 공연 정보를 파싱합니다
      */
-    private PerformanceDto htmlPerformanceFilter(String htmlContent, String sourceUrl) {
-        PerformanceDto.PerformanceDtoBuilder builder = PerformanceDto.builder()
+    private PerformanceResponseDto htmlPerformanceFilter(String htmlContent, String sourceUrl) {
+        PerformanceResponseDto.PerformanceResponseDtoBuilder builder = PerformanceResponseDto.builder()
                 .sourceUrl(sourceUrl)
                 .parsedAt(LocalDateTime.now());
 
@@ -106,14 +106,14 @@ public class InterparkService {
             if (posterIdx != -1) {
                 int startIdx = posterIdx + "\"posterImageUrl\":\"".length();
                 int endIdx = fallbackJson.indexOf("\"", startIdx);
-                String posterImageUrl = fallbackJson.substring(startIdx, endIdx);
+                String imageUrl = fallbackJson.substring(startIdx, endIdx);
 
                 // URL 프로토콜 추가 (상대경로인 경우)
-                if (posterImageUrl.startsWith("//")) {
-                    posterImageUrl = "https:" + posterImageUrl;
+                if (imageUrl.startsWith("//")) {
+                    imageUrl = "https:" + imageUrl;
                 }
-                builder.posterImageUrl(posterImageUrl);
-                log.debug("Extracted poster image URL: {}", posterImageUrl);
+                builder.imageUrl(imageUrl);
+                log.debug("Extracted image URL: {}", imageUrl);
             }
 
         } catch (Exception e) {

@@ -45,7 +45,7 @@ export default function MainPage({ user, loading, lastInputUrl, onSubmitUrl, onL
             <tbody>
               <tr>
                 <th>계정</th>
-                <td>{user ? `${user.name} (${user.id})` : "로그인 사용자"}</td>
+                <td>{user ? `${user.name}` : "로그인 사용자"}</td>
               </tr>
               <tr>
                 <th>로그아웃</th>

@@ -6,14 +6,14 @@ export const performanceApi = {
   /**
    * Interpark 콘서트 URL을 파싱하고 공연 정보를 반환
    * URL을 파라미터로 받고, 백엔드 API로 POST 요청을 보내서 공연 정보를 받아옴
-   * 
+   *
    * @param {string} url - 인터파크 티켓 URL
-   * @returns {Promise<Object>} 공연 정보 객체
+   * @returns {Promise<Object>} PerformanceResponseDto 객체
    * @throws {Error} API 요청 실패 시 에러 발생
    */
   parseInterParkUrl: async (url) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/performance/parse`, { // 백엔드 API 엔드포인트에 맞게 수정
+      const response = await fetch(`${API_BASE_URL}/performance/parse`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -33,4 +33,36 @@ export const performanceApi = {
       throw error;
     }
   },
+
+  /**
+   * 파싱된 공연 정보를 DB에 저장
+   * 사용자당 최대 5개까지만 저장 (5개 초과 시 가장 오래된 것을 soft delete)
+   *
+   * @param {Object} performanceData - 파싱된 공연 정보 객체
+   * @returns {Promise<Object>} 저장된 공연 정보 (id, title, message)
+   * @throws {Error} API 요청 실패 시 에러 발생
+   */
+  savePerformance: async (performanceData) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/performance/save`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include', // 세션 쿠키 포함해서 POST API 요청 전송 (인증 확인)
+        body: JSON.stringify(performanceData),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || '공연 정보 저장에 실패했습니다');
+      }
+
+      return await response.json(); // 성공 시 저장된 공연 정보 반환
+    } catch (error) {
+      console.error('Performance save error:', error);
+      throw error;
+    }
+  },
 };
+

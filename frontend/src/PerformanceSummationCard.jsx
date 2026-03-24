@@ -7,6 +7,7 @@ export default function PerformanceDetails({ initialUrl }) {
   const [performance, setPerformance] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (initialUrl) {
@@ -46,8 +47,25 @@ export default function PerformanceDetails({ initialUrl }) {
     await parseUrl(url);
   };
 
-  // 예매 오픈 시간 포맷팅
-  const formatReservationTime = (dateStr) => {
+  // 공연 정보 저장 및 티켓팅 페이지로 이동
+  const handleBooking = async () => {
+    if (!performance) return;
+
+    setSaving(true);
+    try {
+      await performanceApi.savePerformance(performance);
+
+      // 저장 성공 후 티켓팅 페이지로 리다이렉트
+      window.location.href = `/ticketing/${performance.goodsCode}`;
+    } catch (err) {
+      setError(err.message || '공연 정보 저장에 실패했습니다');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // 예매 시간 포맷팅
+  const formatDateTime = (dateStr) => {
     if (!dateStr) return '정보 없음';
     try {
       const date = new Date(dateStr);
@@ -57,7 +75,6 @@ export default function PerformanceDetails({ initialUrl }) {
         day: '2-digit',
         hour: '2-digit',
         minute: '2-digit',
-        second: '2-digit',
       }).replace(/\./g, '-').replace(' ', ' ');
     } catch {
       return dateStr;
@@ -97,9 +114,9 @@ export default function PerformanceDetails({ initialUrl }) {
         <div className="performance-details">
           {/* Left: Poster */}
           <div className="performance-poster">
-            {performance.posterImageUrl ? (
+            {performance.imageUrl ? (
               <img
-                src={performance.posterImageUrl}
+                src={performance.imageUrl}
                 alt={performance.title}
                 onError={(e) => {
                   e.target.src = 'https://via.placeholder.com/320x426?text=Poster';
@@ -117,69 +134,42 @@ export default function PerformanceDetails({ initialUrl }) {
             {/* Title */}
             <h1>{performance.title || '제목 미정'}</h1>
 
-            {/* Description */}
-            {performance.description && (
-              <div className="description">
-                <h3>공연 설명</h3>
-                <p>{performance.description}</p>
-              </div>
-            )}
-
             {/* Venue, Price */}
-            <div className="performance-info-section">
-              <h3>기본 정보</h3>
-              {performance.venue && (
-                <div className="info-item">
-                  <span className="label">공연장</span>
-                  <span>{performance.venue}</span>
-                </div>
-              )}
-              {performance.priceRange && (
-                <div className="info-item">
-                  <span className="label">가격</span>
-                  <span>{performance.priceRange}</span>
-                </div>
-              )}
-            </div>
-
-            {/* Schedules */}
-            {performance.schedules && performance.schedules.length > 0 && (
+            {performance.placeName && (
               <div className="performance-info-section">
-                <h3>공연 일정</h3>
-                <ul className="schedules">
-                  {performance.schedules.map((schedule, idx) => (
-                    <li key={idx}>
-                      {schedule.startDateTime}
-                      {schedule.runtimeMinutes && ` (${schedule.runtimeMinutes}분)`}
-                    </li>
-                  ))}
-                </ul>
+                <h3>공연장</h3>
+                <p>{performance.placeName}</p>
               </div>
             )}
 
-            {/* Reservation Open Time */}
-            {performance.reservationOpenAt && (
+            {/* Play Date Info */}
+            {performance.playDate && (
+              <div className="performance-info-section">
+                <h3>공연 날짜</h3>
+                <p>{performance.playDate}</p>
+              </div>
+            )}
+
+            {/* Reservation Time */}
+            {performance.startDate && (
               <div className="reservation-section">
-                <span className="label">예매 오픈</span>
-                <span>{formatReservationTime(performance.reservationOpenAt)}</span>
+                <span className="label">예매 시작</span>
+                <span>{performance.startDate}</span>
               </div>
             )}
 
             {/* Button */}
-            {performance.reservationUrl ? (
-              <a
-                href={performance.reservationUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="button-link"
-              >
-                예매하기 →
-              </a>
-            ) : (
-              <button className="button-link" disabled style={{ cursor: 'not-allowed', opacity: 0.6 }}>
-                예매 불가
-              </button>
-            )}
+            <button
+              className="button-link"
+              onClick={handleBooking}
+              disabled={saving}
+              style={{
+                cursor: saving ? 'not-allowed' : 'pointer',
+                opacity: saving ? 0.6 : 1
+              }}
+            >
+              {saving ? '저장 중...' : '예매 연습하기'}
+            </button>
 
             {/* Metadata */}
             <div className="metadata">

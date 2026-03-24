@@ -34,8 +34,8 @@
 
 | 컬럼명 | 타입 | 제약 | 설명 |
 |--------|------|------|------|
-| id | BIGSERIAL | PK | 회원 식별자 |
-| username | VARCHAR(255) | NOT NULL, UNIQUE | 로그인 아이디 |
+| idx | BIGSERIAL | PK | 회원 식별자 |
+| id | VARCHAR(255) | NOT NULL, UNIQUE | 로그인 아이디 |
 | password | VARCHAR(255) | NOT NULL | BCrypt 해시 비밀번호 |
 | name | VARCHAR(100) | NOT NULL | 이름 |
 | created_at | TIMESTAMP | NOT NULL, DEFAULT now() | 가입 시각 |
@@ -48,27 +48,42 @@
 
 **공연 정보 저장 테이블**
 
-- URL HTML 파싱 후, "제목·이미지·설명·예매 오픈 시각" 저장
-- 기존에 만들어 둔 UI 템플릿에 이 정보만 넣어서 표시
-- `reservation_open_at`으로 해당 시간에 예매 버튼 활성화
+- URL HTML 파싱 후, 인터파크 공연 상세 정보 저장
+- 사용자당 최대 5개의 공연 정보만 저장 (soft delete로 초과분 관리)
+- "예매하기" 버튼 클릭 시 DB에 저장
+
+**저장 정책**
+
+- 파싱 후 UI 표시: DB 저장 안함 (메모리/응답만)
+- "예매하기" 클릭 → `/api/performance/save` POST 요청 시 DB 저장
+- 사용자당 5개 초과 시: 가장 오래된 공연 soft delete 후 새로 저장
 
 **인덱스**
 
-- `(reservation_open_at)` — 스케줄/버튼 활성화 조회용
-- `(source_url)` — URL로 공연 조회할 때 `WHERE source_url = ?` 사용
+- `(start_date)` — 예매 시작 시간 조회용
+- `(source_url)` — URL로 공연 조회할 때 사용
+- `(goods_code)` — 인터파크 상품 코드로 공연 조회
 
 | 컬럼명 | 타입 | 제약 | 설명 |
 |--------|------|------|------|
 | id | BIGSERIAL | PK | 공연 식별자 |
 | source_url | VARCHAR(2048) | NOT NULL | 사용자가 입력한 원본 URL |
-| title | VARCHAR(500) | NOT NULL | 공연 제목 (파싱) |
-| image_url | VARCHAR(2048) | NULL | 포스터/이미지 URL (파싱) |
-| description | TEXT | NULL | 공연 설명 (파싱) |
-| reservation_open_at | TIMESTAMP | NULL | 예매 열리는 시각 (파싱) — 자동 예매 버튼용 |
-| template_code | VARCHAR(50) | NOT NULL | 사용할 UI 템플릿 (site_templates.code 또는 enum) |
+| title | VARCHAR(500) | NOT NULL | 공연 제목 |
+| image_url | VARCHAR(2048) | NULL | 포스터/이미지 URL |
+| start_date | VARCHAR(12) | NULL | 예매 시작 시간 (YYYYMMDDHHMM) |
+| end_date | VARCHAR(12) | NULL | 예매 종료 시간 (YYYYMMDDHHMM) |
+| link | VARCHAR(2048) | NULL | 공연 URL (인터파크) |
+| goods_code | VARCHAR(50) | UNIQUE | 인터파크 상품 코드 |
+| goods_name | VARCHAR(500) | NULL | 인터파크 상품명 |
+| place_code | VARCHAR(50) | NULL | 공연장 코드 |
+| place_name | VARCHAR(500) | NULL | 공연장명 |
+| play_date | VARCHAR(50) | NULL | 공연 날짜 범위 (예: "26-06-07 ~ 26-06-07") |
+| play_start_date | TIMESTAMP | NULL | 공연 시작일 |
+| play_end_date | TIMESTAMP | NULL | 공연 종료일 |
 | created_by | BIGINT | NULL, FK → users(id) | URL을 입력한 사용자 |
 | created_at | TIMESTAMP | NOT NULL, DEFAULT now() | 생성 시각 |
 | updated_at | TIMESTAMP | NOT NULL, DEFAULT now() | 수정 시각 |
+| deleted_at | TIMESTAMP | NULL | 소프트 삭제 시각 (최대 5개 초과 시 가장 오래된 것 삭제) |
 
 ---
 
@@ -152,8 +167,8 @@
 
 | 테이블 | 역할 |
 |--------|------|
-| **users** | 회원 (로그인/회원가입, 예매 주체, 최근 입력 URL 저장) |
-| **performances** | 공연 정보 (URL 파싱 결과 + 예매 오픈 시각) |
+| **users** | 회원 (로그인/회원가입, 예매 주체) |
+| **performances** | 공연 정보 (URL 파싱 결과, 사용자당 최대 5개) |
 | **seats** | 공연별 좌석, 상태(AVAILABLE/LOCKED/BOOKED) |
 | **bookings** | 예매 내역 (마이페이지, 결제 확정) |
 
@@ -162,14 +177,16 @@
 ## 5. 시퀀스/플로우와 테이블 매핑
 
 1. **로그인** → `users`
-2. **URL 입력** → 파싱 후 `performances` 생성/조회
-3. **UI 표시** → `performances` + 프론트엔드 템플릿(`template_code`로 매핑)
-4. **예매 오픈 시각** → `performances.reservation_open_at`
-5. **예매 클릭 → 대기열** → Kafka + Redis
-6. **좌석 선택 → 결제 페이지** → Redis 락, `seats.status` = LOCKED, `seats.locked_by_user_id`
-7. **결제 완료** → `seats.status` = BOOKED, `bookings` COMPLETED, Redis 락 해제
-8. **비정상 종료** → Redis TTL 5분; 필요 시 스케줄로 `seats` LOCKED → AVAILABLE
-9. **마이페이지** → `bookings` + `performances` + `seats` 조인
+2. **URL 입력** → HTML 파싱 (응답만 반환, DB 저장 안함)
+3. **PerformanceSummationCard 표시** → 파싱 결과를 프론트엔드에서 카드로 표시
+4. **"예매하기" 버튼 클릭** → `/api/performance/save` POST 요청
+5. **DB 저장** → `performances` 생성 (사용자당 5개 초과 시 가장 오래된 것 soft delete)
+6. **좌석 선택 페이지** → `seats` 조회 및 선택
+7. **대기열** → Kafka + Redis
+8. **좌석 선점** → Redis 락, `seats.status` = LOCKED, `seats.locked_by_user_id`
+9. **결제 완료** → `seats.status` = BOOKED, `bookings` COMPLETED, Redis 락 해제
+10. **비정상 종료** → Redis TTL 5분; 필요 시 스케줄로 `seats` LOCKED → AVAILABLE
+11. **마이페이지** → `bookings` + `performances` + `seats` 조인
 
 ---
 
@@ -177,5 +194,6 @@
 
 | 항목 | 제안 | 이유 |
 |------|------|------|
-| **performances** | `source_url` UNIQUE | 같은 URL로 공연을 하나만 두고 재사용하려면 UNIQUE로 중복 생성 방지. URL이 사이트마다 달라질 수 있으면 생략. |
+| **performances.goods_code** | UNIQUE (이미 적용) | 같은 공연을 중복으로 저장하지 않기 위해 인터파크 상품 코드로 유일성 보장 |
+| **performances.deleted_at** | soft delete (이미 적용) | 사용자당 5개 초과 시 가장 오래된 공연을 삭제하되, 히스토리 유지 가능 |
 | **bookings** | `cancelled_at` (TIMESTAMP NULL) | CANCELLED 상태일 때 취소 시각을 남기면 이후 통계/이력 분석에 유리. 필수는 아님. |

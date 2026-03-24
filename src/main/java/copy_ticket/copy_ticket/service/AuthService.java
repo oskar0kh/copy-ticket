@@ -68,7 +68,7 @@ public class AuthService {
             securityContextRepository.saveContext(context, request, response);
 
             // 5. 인증 성공했으면, DB에서 users 테이블 조회해서 response DTO로 변환하여 반환
-                User user = userRepository.findByIdAndDeletedAtIsNull(authentication.getName())
+                User user = userRepository.findByUserIdAndDeletedAtIsNull(authentication.getName())
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "인증된 사용자를 찾을 수 없습니다."));
 
             return AuthUserResponseDto.from(user);
@@ -86,7 +86,7 @@ public class AuthService {
     }
 
     public AuthUserResponseDto currentUser(Authentication authentication) {
-        User user = userRepository.findByIdAndDeletedAtIsNull(authentication.getName())
+        User user = userRepository.findByUserIdAndDeletedAtIsNull(authentication.getName())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "인증된 사용자를 찾을 수 없습니다."));
 
         return AuthUserResponseDto.from(user);
@@ -103,8 +103,8 @@ public class AuthService {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "로그인 상태가 아닙니다.");
         }
 
-        User user = userRepository.findByIdAndDeletedAtIsNull(authentication.getName())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "인증된 사용자를 찾을 수 없습니다."));
+        User user = userRepository.findByUserIdAndDeletedAtIsNull(authentication.getName())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "인증된 사용자를 찾을 수 없습니다"));
 
         if (!withdrawRequest.isConfirmed()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "회원 탈퇴 확인이 필요합니다.");

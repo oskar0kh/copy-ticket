@@ -1,10 +1,7 @@
 package copy_ticket.copy_ticket.domain.entity;
 
-import copy_ticket.copy_ticket.domain.enums.TemplateCode;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -13,7 +10,6 @@ import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -22,17 +18,18 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 
 /**
- * 공연 정보 — URL HTML 파싱 후 제목·이미지·설명·예매 오픈 시각 저장
- * reservation_open_at으로 해당 시간에 예매 버튼 활성화
+ * 공연 정보 — URL HTML 파싱 후 저장
+ * 사용자당 최대 5개까지만 저장 가능 (soft delete로 관리)
  */
 @Entity
 @Table(name = "performances", indexes = {
-        @Index(name = "idx_performances_reservation_open_at", columnList = "reservation_open_at"),
-        @Index(name = "idx_performances_source_url", columnList = "source_url")
+        @Index(name = "idx_performances_reservation_open_at", columnList = "start_date"),
+        @Index(name = "idx_performances_source_url", columnList = "source_url"),
+        @Index(name = "idx_performances_goods_code", columnList = "goods_code")
 })
 @Getter
 @Setter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@NoArgsConstructor
 public class Performance {
 
     @Id
@@ -48,15 +45,35 @@ public class Performance {
     @Column(name = "image_url", length = 2048)
     private String imageUrl;
 
-    @Column(columnDefinition = "TEXT")
-    private String description;
+    @Column(name = "start_date", length = 12)
+    private String startDate;
 
-    @Column(name = "reservation_open_at")
-    private LocalDateTime reservationOpenAt;
+    @Column(name = "end_date", length = 12)
+    private String endDate;
 
-    @Column(name = "template_code", nullable = false, length = 50)
-    @Enumerated(EnumType.STRING)
-    private TemplateCode templateCode;
+    @Column(length = 2048)
+    private String link;
+
+    @Column(name = "goods_code", unique = true, length = 50)
+    private String goodsCode;
+
+    @Column(name = "goods_name", length = 500)
+    private String goodsName;
+
+    @Column(name = "place_code", length = 50)
+    private String placeCode;
+
+    @Column(name = "place_name", length = 500)
+    private String placeName;
+
+    @Column(name = "play_date", length = 50)
+    private String playDate;
+
+    @Column(name = "play_start_date")
+    private LocalDateTime playStartDate;
+
+    @Column(name = "play_end_date")
+    private LocalDateTime playEndDate;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by")
@@ -67,4 +84,8 @@ public class Performance {
 
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
+
+    @Column(name = "deleted_at")
+    private Instant deletedAt;
 }
+
