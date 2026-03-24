@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import PerformanceDetails from "./PerformanceDetails";
+import PerformanceSummationCard from "./PerformanceSummationCard";
 
 export default function MainPage({ user, loading, lastInputUrl, onSubmitUrl, onLogout, onWithdraw }) {
   const [url, setUrl] = useState(lastInputUrl || "");
@@ -9,7 +9,7 @@ export default function MainPage({ user, loading, lastInputUrl, onSubmitUrl, onL
   function handleSubmit(event) {
     event.preventDefault();
     onSubmitUrl(url);
-    setShowResults(true); // handleSubmit이 호출되면, showResults를 true로 설정하여 PerformanceDetails 컴포넌트를 보여줌
+    setShowResults(true); // handleSubmit이 호출되면, showResults를 true로 설정하여 PerformanceSummationCard 컴포넌트를 보여줌
   }
 
   function handleBackToInput() {
@@ -72,10 +72,10 @@ export default function MainPage({ user, loading, lastInputUrl, onSubmitUrl, onL
         </div>
       </header>
 
-      {/* showResults가 true일 때, PerformanceDetails 컴포넌트를 표시 */}
+      {/* showResults가 true일 때, PerformanceSummationCard 컴포넌트를 표시 */}
       {showResults ? (
         <div>
-          <PerformanceDetails initialUrl={url} /> {/* 입력한 URL을 PerformanceDetails.jsx로 전달 */}
+          <PerformanceSummationCard initialUrl={url} /> {/* 입력한 URL을 PerformanceSummationCard.jsx로 전달 */}
           <div style={{ textAlign: "center", marginTop: "40px", marginBottom: "40px" }}>
             <button onClick={handleBackToInput} className="ghost" style={{ padding: "10px 20px" }}>
               ← 다른 URL 입력하기

@@ -4,15 +4,9 @@ import com.microsoft.playwright.*;
 import com.microsoft.playwright.options.LoadState;
 import copy_ticket.copy_ticket.dto.PerformanceDto;
 import lombok.extern.slf4j.Slf4j;
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Element;
-import org.jsoup.select.Elements;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 
 @Slf4j
 @Service
@@ -44,11 +38,8 @@ public class InterparkService {
             // 4. 완전히 렌더링 된 HTML 수집
             String content = page.content();
 
-            // 5. Jsoup으로 파싱 후 document 객체로 변환
-            Document doc = Jsoup.parse(content);
-
-            // 6. extractPerformanceInfo 메서드로 객체 전달 -> HTML 구조 분석 및 정보 추출
-            PerformanceDto result = extractPerformanceInfo(doc, url);
+            // 5. HTML 필터링을 통해 핵심 공연 정보 추출
+            PerformanceDto result = htmlPerformanceFilter(content, url);
 
             log.info("Successfully parsed performance: {}", result.getTitle());
             return result;
@@ -60,296 +51,99 @@ public class InterparkService {
     }
 
     /**
-     * Jsoup Document에서 공연 정보를 추출하는 메서드
+     * HTML 콘텐츠에서 fallback JSON 부분을 추출하고 공연 정보를 파싱합니다
      */
-    private PerformanceDto extractPerformanceInfo(Document doc, String sourceUrl) {
+    private PerformanceDto htmlPerformanceFilter(String htmlContent, String sourceUrl) {
         PerformanceDto.PerformanceDtoBuilder builder = PerformanceDto.builder()
                 .sourceUrl(sourceUrl)
                 .parsedAt(LocalDateTime.now());
 
-        // 1. 페이지 제목 (기본 제목으로 사용)
-        String pageTitle = doc.title();
-        log.debug("Page title: {}", pageTitle);
+        try {
+            // 1. URL에서 goodsCode 추출 (예: https://tickets.interpark.com/goods/26003042)
+            String urlGoodsCode = extractGoodsCodeFromUrl(sourceUrl);
+            log.debug("Extracted goods code from URL: {}", urlGoodsCode);
 
-        // 2. Meta 태그에서 OG 정보 추출 (있으면)
-        String ogTitle = doc.selectFirst("meta[property=og:title]") != null
-                ? doc.selectFirst("meta[property=og:title]").attr("content")
-                : null;
-        String ogImage = doc.selectFirst("meta[property=og:image]") != null
-                ? doc.selectFirst("meta[property=og:image]").attr("content")
-                : null;
-        String ogDescription = doc.selectFirst("meta[property=og:description]") != null
-                ? doc.selectFirst("meta[property=og:description]").attr("content")
-                : null;
+            // 2. HTML에서 "fallback": 부분 찾기
+            int fallbackIdx = htmlContent.indexOf("\"fallback\":");
+            if (fallbackIdx == -1) {
+                log.warn("Could not find fallback section in HTML");
+                builder.title("공연 정보 없음");
+                return builder.build();
+            }
 
-        if (ogTitle != null) builder.title(ogTitle);
-        if (ogImage != null) builder.posterImageUrl(ogImage);
-        if (ogDescription != null) builder.description(ogDescription);
+            // 3. fallback 이후의 JSON 부분 추출
+            String fallbackJson = htmlContent.substring(fallbackIdx);
 
-        // 3. 주요 제목 요소 탐색 (OG 태그가 없는 경우)
-        if (builder.build().getTitle() == null) {
-            Element h1 = doc.selectFirst("h1");
-            if (h1 != null) {
-                builder.title(h1.text());
-            } else {
-                Element h2 = doc.selectFirst("h2");
-                if (h2 != null) {
-                    builder.title(h2.text());
+            // 4. goodsCode 찾기
+            int goodsCodeIdx = fallbackJson.indexOf("\"goodsCode\":\"");
+            if (goodsCodeIdx != -1) {
+                int startIdx = goodsCodeIdx + "\"goodsCode\":\"".length();
+                int endIdx = fallbackJson.indexOf("\"", startIdx);
+                String goodsCode = fallbackJson.substring(startIdx, endIdx);
+
+                log.debug("Extracted goods code from fallback: {}", goodsCode);
+
+                // URL의 goodsCode와 비교
+                if (urlGoodsCode != null && !urlGoodsCode.equals(goodsCode)) {
+                    log.warn("Goods code mismatch: URL={}, fallback={}", urlGoodsCode, goodsCode);
                 } else {
-                    builder.title(pageTitle);
+                    log.info("Goods code matched: {}", goodsCode);
                 }
             }
-        }
 
-        // 4. 이미지 탐색 (포스터 후보)
-        if (builder.build().getPosterImageUrl() == null) {
-            Elements images = doc.select("img");
-            if (!images.isEmpty()) {
-                String posterUrl = images.stream()
-                        .filter(img -> {
-                            String src = img.attr("src");
-                            String alt = img.attr("alt");
-                            String cls = img.attr("class");
-                            return src.contains("poster") || alt.contains("poster") ||
-                                    cls.contains("poster") || cls.contains("image") ||
-                                    src.contains("goods");
-                        })
-                        .findFirst()
-                        .map(img -> img.attr("src"))
-                        .orElse(null);
-
-                if (posterUrl == null && !images.isEmpty()) {
-                    posterUrl = images.get(0).attr("src");
-                }
-
-                if (posterUrl != null && !posterUrl.isEmpty()) {
-                    builder.posterImageUrl(posterUrl);
-                }
+            // 5. goodsName 찾기
+            int goodsNameIdx = fallbackJson.indexOf("\"goodsName\":\"");
+            if (goodsNameIdx != -1) {
+                int startIdx = goodsNameIdx + "\"goodsName\":\"".length();
+                int endIdx = fallbackJson.indexOf("\"", startIdx);
+                String goodsName = fallbackJson.substring(startIdx, endIdx);
+                builder.title(goodsName);
+                log.debug("Extracted goods name: {}", goodsName);
             }
-        }
 
-        // 5. 설명 텍스트 탐색
-        if (builder.build().getDescription() == null) {
-            Element description = doc.selectFirst("p");
-            if (description != null) {
-                builder.description(description.text());
+            // 6. posterImageUrl 찾기
+            int posterIdx = fallbackJson.indexOf("\"posterImageUrl\":\"");
+            if (posterIdx != -1) {
+                int startIdx = posterIdx + "\"posterImageUrl\":\"".length();
+                int endIdx = fallbackJson.indexOf("\"", startIdx);
+                String posterImageUrl = fallbackJson.substring(startIdx, endIdx);
+
+                // URL 프로토콜 추가 (상대경로인 경우)
+                if (posterImageUrl.startsWith("//")) {
+                    posterImageUrl = "https:" + posterImageUrl;
+                }
+                builder.posterImageUrl(posterImageUrl);
+                log.debug("Extracted poster image URL: {}", posterImageUrl);
             }
-        }
 
-        // 6. 공연장 정보 추출
-        String venue = extractVenue(doc);
-        if (venue != null) {
-            builder.venue(venue);
-            log.debug("Extracted venue: {}", venue);
-        }
-
-        // 7. 가격 정보 추출
-        String priceRange = extractPriceRange(doc);
-        if (priceRange != null) {
-            builder.priceRange(priceRange);
-            log.debug("Extracted price range: {}", priceRange);
-        }
-
-        // 8. 공연 일정 추출
-        List<PerformanceDto.PerformanceSchedule> schedules = extractSchedules(doc);
-        if (!schedules.isEmpty()) {
-            builder.schedules(schedules);
-            log.debug("Extracted {} schedules", schedules.size());
-        }
-
-        // 9. 예매 오픈 시간 추출
-        LocalDateTime reservationOpenAt = extractReservationOpenAt(doc);
-        if (reservationOpenAt != null) {
-            builder.reservationOpenAt(reservationOpenAt);
-            log.debug("Extracted reservation open time: {}", reservationOpenAt);
-        }
-
-        // 10. 예매 URL 추출
-        String reservationUrl = extractReservationUrl(doc);
-        if (reservationUrl != null) {
-            builder.reservationUrl(reservationUrl);
-            log.debug("Extracted reservation URL: {}", reservationUrl);
+        } catch (Exception e) {
+            log.error("Error filtering HTML performance data", e);
         }
 
         return builder.build();
     }
 
     /**
-     * 문서에서 공연 일정을 추출합니다.
+     * URL에서 goods code 추출 (예: https://tickets.interpark.com/goods/26003042 -> 26003042)
      */
-    private List<PerformanceDto.PerformanceSchedule> extractSchedules(Document doc) {
-        List<PerformanceDto.PerformanceSchedule> schedules = new ArrayList<>();
-
-        // 1. 특정 클래스에서 날짜 찾기
-        Elements dateElements = doc.select("[class*='date'], [class*='time'], [class*='schedule'], [class*='performance']");
-
-        for (Element element : dateElements) {
-            String text = element.text().trim();
-            if (text.isEmpty()) continue;
-
-            // 2. 텍스트에서 날짜 패턴 찾기 (예: "2024.03.15 19:00")
-            String datePattern = "(\\d{4})\\.(\\d{1,2})\\.(\\d{1,2})\\s+(\\d{1,2}):(\\d{2})";
-            java.util.regex.Pattern pattern = java.util.regex.Pattern.compile(datePattern);
-            java.util.regex.Matcher matcher = pattern.matcher(text);
-
-            while (matcher.find() && schedules.size() < 10) {
-                try {
-                    int year = Integer.parseInt(matcher.group(1));
-                    int month = Integer.parseInt(matcher.group(2));
-                    int day = Integer.parseInt(matcher.group(3));
-                    int hour = Integer.parseInt(matcher.group(4));
-                    int minute = Integer.parseInt(matcher.group(5));
-
-                    LocalDateTime dateTime = LocalDateTime.of(year, month, day, hour, minute);
-
-                    PerformanceDto.PerformanceSchedule schedule = PerformanceDto.PerformanceSchedule.builder()
-                            .startDateTime(dateTime)
-                            .runtimeMinutes("정보없음")
-                            .build();
-
-                    if (!schedules.contains(schedule)) {
-                        schedules.add(schedule);
-                        log.debug("Extracted schedule: {}", dateTime);
-                    }
-                } catch (Exception e) {
-                    log.debug("Failed to parse schedule: {}", text, e);
+    private String extractGoodsCodeFromUrl(String url) {
+        try {
+            // /goods/ 이후의 숫자 추출
+            int goodsIdx = url.indexOf("/goods/");
+            if (goodsIdx != -1) {
+                int startIdx = goodsIdx + "/goods/".length();
+                int endIdx = url.indexOf("/", startIdx);
+                if (endIdx == -1) {
+                    endIdx = url.indexOf("?", startIdx);
                 }
-            }
-        }
-
-        return schedules;
-    }
-
-    /**
-     * 문서에서 공연장 정보를 추출합니다.
-     */
-    private String extractVenue(Document doc) {
-        // 1. 특정 클래스/속성 탐색
-        Element venueElement = doc.selectFirst("[class*='venue'], [class*='hall'], [class*='location'], [class*='place']");
-        if (venueElement != null && !venueElement.text().isEmpty()) {
-            return venueElement.text().trim();
-        }
-
-        // 2. Meta 태그에서 탐색
-        Element metaVenue = doc.selectFirst("meta[name='venue'], meta[property='venue']");
-        if (metaVenue != null) {
-            return metaVenue.attr("content");
-        }
-
-        // 3. dt/dd 구조에서 탐색 (전형적인 정보 제시 패턴)
-        Elements dts = doc.select("dt, th");
-        for (Element dt : dts) {
-            String text = dt.text().toLowerCase();
-            if (text.contains("공연장") || text.contains("장소") || text.contains("venue")) {
-                Element dd = dt.nextElementSibling();
-                if (dd != null) {
-                    return dd.text().trim();
+                if (endIdx == -1) {
+                    endIdx = url.length();
                 }
+                return url.substring(startIdx, endIdx);
             }
+        } catch (Exception e) {
+            log.debug("Error extracting goods code from URL: {}", url, e);
         }
-
-        return null;
-    }
-
-    /**
-     * 문서에서 가격 정보를 추출합니다.
-     */
-    private String extractPriceRange(Document doc) {
-        // 1. 특정 클래스 탐색
-        Element priceElement = doc.selectFirst("[class*='price'], [class*='amount'], [class*='cost']");
-        if (priceElement != null && !priceElement.text().isEmpty()) {
-            return priceElement.text().trim();
-        }
-
-        // 2. Meta 태그에서 탐색
-        Element metaPrice = doc.selectFirst("meta[name='price'], meta[property='price']");
-        if (metaPrice != null) {
-            return metaPrice.attr("content");
-        }
-
-        // 3. dt/dd 구조에서 탐색
-        Elements dts = doc.select("dt, th");
-        for (Element dt : dts) {
-            String text = dt.text().toLowerCase();
-            if (text.contains("가격") || text.contains("금액") || text.contains("price")) {
-                Element dd = dt.nextElementSibling();
-                if (dd != null) {
-                    return dd.text().trim();
-                }
-            }
-        }
-
-        // 4. 텍스트에서 가격 패턴 찾기 (숫자 + 원)
-        String pricePattern = "(\\d{1,3}(?:,\\d{3})*원|\\d+원)";
-        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile(pricePattern);
-        java.util.regex.Matcher matcher = pattern.matcher(doc.body().text());
-        if (matcher.find()) {
-            return matcher.group(1);
-        }
-
-        return null;
-    }
-
-    /**
-     * 문서에서 예매 오픈 시간을 추출합니다.
-     */
-    private LocalDateTime extractReservationOpenAt(Document doc) {
-        // 1. Meta 태그에서 탐색
-        Element metaOpenAt = doc.selectFirst("meta[name='reservation-open-at'], meta[property='reservation-open-at']");
-        if (metaOpenAt != null) {
-            try {
-                return LocalDateTime.parse(metaOpenAt.attr("content"));
-            } catch (Exception e) {
-                log.debug("Failed to parse reservation open time from meta tag");
-            }
-        }
-
-        // 2. 특정 클래스에서 탐색
-        Elements openElements = doc.select("[class*='open'], [class*='start'], [class*='reservation']");
-        for (Element elem : openElements) {
-            String text = elem.text().toLowerCase();
-            if (text.contains("예매") && (text.contains("시작") || text.contains("오픈"))) {
-                String datePattern = "(\\d{4})(?:\\.(\\d{1,2}))?(?:\\.(\\d{1,2}))?\\s+(\\d{1,2}):(\\d{2})";
-                java.util.regex.Pattern pattern = java.util.regex.Pattern.compile(datePattern);
-                java.util.regex.Matcher matcher = pattern.matcher(elem.text());
-
-                if (matcher.find()) {
-                    try {
-                        int year = Integer.parseInt(matcher.group(1));
-                        int month = matcher.group(2) != null ? Integer.parseInt(matcher.group(2)) : 1;
-                        int day = matcher.group(3) != null ? Integer.parseInt(matcher.group(3)) : 1;
-                        int hour = Integer.parseInt(matcher.group(4));
-                        int minute = Integer.parseInt(matcher.group(5));
-
-                        return LocalDateTime.of(year, month, day, hour, minute);
-                    } catch (Exception e) {
-                        log.debug("Failed to parse reservation open time");
-                    }
-                }
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * 문서에서 예매 URL을 추출합니다.
-     */
-    private String extractReservationUrl(Document doc) {
-        // 1. 예매 버튼 찾기
-        Elements buttons = doc.select("a[href*='reservation'], a[href*='booking'], button, a");
-        for (Element button : buttons) {
-            String text = button.text().toLowerCase();
-            String href = button.attr("href");
-            if ((text.contains("예매") || text.contains("booking")) && !href.isEmpty()) {
-                if (href.startsWith("http")) {
-                    return href;
-                } else if (href.startsWith("/")) {
-                    return "https://tickets.interpark.com" + href;
-                }
-            }
-        }
-
         return null;
     }
 }
