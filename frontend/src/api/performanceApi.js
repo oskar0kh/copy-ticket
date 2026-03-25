@@ -121,6 +121,35 @@ export const performanceApi = {
       throw error;
     }
   },
+
+  /**
+   * 공연 삭제 (soft delete)
+   *
+   * @param {number} performanceId - 삭제할 공연 ID
+   * @returns {Promise<Object>} 삭제 결과 ({ message })
+   * @throws {Error} API 요청 실패 시 에러 발생
+   */
+  deletePerformance: async (performanceId) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/performance/${performanceId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include', // 세션 쿠키 포함해서 요청 전송 (인증 확인)
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || '공연 삭제에 실패했습니다');
+      }
+
+      return await response.json(); // 삭제 결과 반환
+    } catch (error) {
+      console.error('Performance delete error:', error);
+      throw error;
+    }
+  },
 };
 
 

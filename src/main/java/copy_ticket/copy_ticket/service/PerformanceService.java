@@ -141,6 +141,40 @@ public class PerformanceService {
     }
 
     /**
+     * 공연을 soft delete로 삭제
+     * 보안: 삭제하려는 사용자가 해당 공연의 소유자인지 확인
+     *
+     * @param performanceId 삭제할 공연 ID
+     * @param userId 삭제를 요청한 사용자 ID
+     * @throws RuntimeException 공연을 찾을 수 없거나 권한이 없는 경우
+     */
+    @Transactional
+    public void deletePerformance(Long performanceId, String userId) {
+        User user = userRepository.findByUserIdAndDeletedAtIsNull(userId)
+                .orElseThrow(() -> new RuntimeException("User not found: " + userId));
+
+        Performance performance = performanceRepository.findById(performanceId)
+                .orElseThrow(() -> new RuntimeException("Performance not found: " + performanceId));
+
+        // 보안 확인: 삭제하려는 공연이 해당 사용자의 것인지 확인
+        if (!performance.getCreatedBy().getId().equals(user.getId())) {
+            throw new RuntimeException("Unauthorized access to performance");
+        }
+
+        // 이미 삭제된 공연은 삭제할 수 없음
+        if (performance.getDeletedAt() != null) {
+            throw new RuntimeException("Performance is already deleted");
+        }
+
+        // Soft delete: deleted_at 설정, goods_code를 null로 설정 (unique 제약 회피), updated_at 업데이트
+        Instant now = Instant.now();
+        performance.setDeletedAt(now);
+        performance.setUpdatedAt(now);
+        performance.setGoodsCode(null);
+        performanceRepository.save(performance);
+    }
+
+    /**
      * DTO: 공연 목록 아이템 (ID + title + goodsCode)
      */
     public static class PerformanceListItemDto {

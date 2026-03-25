@@ -291,24 +291,32 @@ body {
   cursor: not-allowed;
 }
 
-.saved-perf-meta {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-left: auto;
-  font-size: 0.75rem;
-  color: var(--muted);
+.saved-perf-delete-btn {
   flex-shrink: 0;
-}
-
-.saved-perf-arrow {
+  width: 28px !important;
+  height: 28px !important;
+  padding: 0 !important;
+  margin-left: 0.5rem;
+  background: none !important;
+  border: none !important;
+  color: #dc2626;
+  font-size: 1.25rem;
+  font-weight: 300;
+  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 20px;
-  height: 20px;
-  color: #9ca3af;
-  font-size: 0.875rem;
+  transition: color 0.16s ease, background-color 0.16s ease;
+}
+
+.saved-perf-delete-btn:hover {
+  color: #991b1b;
+  background: #fef2f2 !important;
+}
+
+.saved-perf-delete-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
 }
 
 .brand-panel {
