@@ -7,6 +7,7 @@ export default function MainPage({ user, loading, lastInputUrl, onSubmitUrl, onL
   const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const [showPerformanceDetails, setShowPerformanceDetails] = useState(false);
+  const [performanceData, setPerformanceData] = useState(null);
 
   function handleSubmit(event) {
     event.preventDefault();
@@ -17,10 +18,12 @@ export default function MainPage({ user, loading, lastInputUrl, onSubmitUrl, onL
   function handleBackToInput() {
     setShowResults(false);
     setShowPerformanceDetails(false);
+    setPerformanceData(null);
     setUrl("");
   }
 
-  function handleNavigateToPerformanceDetails() {
+  function handleNavigateToPerformanceDetails(performance) {
+    setPerformanceData(performance);
     setShowResults(false);
     setShowPerformanceDetails(true);
   }
@@ -85,7 +88,7 @@ export default function MainPage({ user, loading, lastInputUrl, onSubmitUrl, onL
       {/* showResults가 true일 때, PerformanceSummationCard 컴포넌트를 표시 */}
       {showPerformanceDetails ? (
         <div>
-          <PerformanceDetails user={user} onLogout={onLogout} />
+          <PerformanceDetails user={user} onLogout={onLogout} performanceData={performanceData} />
           <div style={{ textAlign: "center", marginTop: "40px", marginBottom: "40px" }}>
             <button onClick={handleBackToInput} className="ghost" style={{ padding: "10px 20px" }}>
               ← 다른 URL 입력하기
