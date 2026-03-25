@@ -46,13 +46,23 @@ export default function PerformanceDetails({ initialUrl, onBookingSuccess }) {
     await parseUrl(url);
   };
 
-  // 예매 상세 페이지로 이동 (DB 저장 없음)
+  // 예매 상세 페이지로 이동하고 동시에 DB 저장
   const handleBooking = async () => {
     if (!performance) return;
 
-    // 공연 정보와 함께 콜백 실행 (PerformanceDetails로 이동)
-    if (onBookingSuccess) {
-      onBookingSuccess(performance);
+    try {
+      // 공연 정보를 DB에 저장
+      await performanceApi.savePerformance(performance);
+
+      // 저장 완료 후 콜백 실행 (PerformanceDetails로 이동)
+      if (onBookingSuccess) {
+        onBookingSuccess(performance);
+      }
+    } catch (error) {
+      // 저장 실패해도 PerformanceDetails로 이동하도록 (선택사항)
+      console.error('Performance save error:', error);
+      // 필요하면 사용자에게 에러 메시지 표시
+      alert('공연 정보 저장에 실패했습니다: ' + error.message);
     }
   };
 
@@ -135,7 +145,12 @@ export default function PerformanceDetails({ initialUrl, onBookingSuccess }) {
             )}
 
             {/* Play Date Info */}
-            {performance.playDate && (
+            {performance.playStartDate && performance.playEndDate ? (
+              <div className="performance-info-section">
+                <h3>공연 날짜</h3>
+                <p>{performance.playStartDate} ~ {performance.playEndDate}</p>
+              </div>
+            ) : performance.playDate && (
               <div className="performance-info-section">
                 <h3>공연 날짜</h3>
                 <p>{performance.playDate}</p>

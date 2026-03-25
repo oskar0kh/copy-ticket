@@ -43,6 +43,6 @@ public class PerformanceSaveRequestDto {
 
     // 공연 일정
     private String playDate;                     // 공연 날짜 범위 (예: "26-06-07 ~ 26-06-07")
-    private LocalDateTime playStartDate;         // 공연 시작일
-    private LocalDateTime playEndDate;           // 공연 종료일
+    private String playStartDate;                // 공연 시작일 (YYYY.MM.DD)
+    private String playEndDate;                  // 공연 종료일 (YYYY.MM.DD)
 }

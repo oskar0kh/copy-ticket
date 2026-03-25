@@ -64,5 +64,63 @@ export const performanceApi = {
       throw error;
     }
   },
+
+  /**
+   * 사용자의 저장된 공연 목록 조회
+   *
+   * @returns {Promise<Array>} 저장된 공연의 목록 (id, title, goodsCode 포함)
+   * @throws {Error} API 요청 실패 시 에러 발생
+   */
+  getPerformanceList: async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/performance/list`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include', // 세션 쿠키 포함해서 요청 전송 (인증 확인)
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || '공연 목록 조회에 실패했습니다');
+      }
+
+      return await response.json(); // 공연 목록 배열 반환
+    } catch (error) {
+      console.error('Performance list error:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * 특정 공연 정보 조회 (DB에서 저장된 정보)
+   *
+   * @param {number} performanceId - 공연 ID
+   * @returns {Promise<Object>} 공연 상세 정보 (PerformanceResponseDto)
+   * @throws {Error} API 요청 실패 시 에러 발생
+   */
+  getPerformanceById: async (performanceId) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/performance/${performanceId}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include', // 세션 쿠키 포함해서 요청 전송 (인증 확인)
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || '공연 정보 조회에 실패했습니다');
+      }
+
+      return await response.json(); // 공연 정보 객체 반환
+    } catch (error) {
+      console.error('Performance detail error:', error);
+      throw error;
+    }
+  },
 };
+
 
