@@ -1,9 +1,36 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './styles/PerformanceDetails.css';
 
-const PerformanceDetails = ({ user, onLogout }) => {
-  const [selectedDate, setSelectedDate] = useState(7);
+const PerformanceDetails = ({ user, onLogout, performanceData }) => {
+  const [selectedDate, setSelectedDate] = useState(null);
   const [currentMonth, setCurrentMonth] = useState({ year: 2026, month: 6 });
+
+  // performanceData가 있으면 초기 월/년을 공연 시작일로 설정
+  useEffect(() => {
+    console.log('=== PerformanceDetails Debug ===');
+    console.log('performanceData:', performanceData);
+    if (performanceData) {
+      console.log('Fields:');
+      console.log('  title:', performanceData.title);
+      console.log('  placeName:', performanceData.placeName);
+      console.log('  startDate (예매 시작):', performanceData.startDate);
+      console.log('  endDate (예매 종료):', performanceData.endDate);
+      console.log('  playDate:', performanceData.playDate);
+      console.log('  playStartDate:', performanceData.playStartDate);
+      console.log('  playEndDate:', performanceData.playEndDate);
+      console.log('  goodsName:', performanceData.goodsName);
+      console.log('  imageUrl:', performanceData.imageUrl);
+    }
+
+    if (performanceData?.playStartDate) {
+      const startDate = new Date(performanceData.playStartDate);
+      console.log('Calendar init with playStartDate:', startDate);
+      setCurrentMonth({
+        year: startDate.getFullYear(),
+        month: startDate.getMonth() + 1
+      });
+    }
+  }, [performanceData]);
 
   const handleLogout = async () => {
     if (onLogout) {
@@ -37,11 +64,57 @@ const PerformanceDetails = ({ user, onLogout }) => {
     return days;
   };
 
+  // 날짜가 공연 가능 범위 내에 있는지 확인
+  const isDateSelectable = (day) => {
+    if (!day || !performanceData?.playStartDate || !performanceData?.playEndDate) {
+      return true;
+    }
+
+    const dateToCheck = new Date(currentMonth.year, currentMonth.month - 1, day);
+    const startDate = new Date(performanceData.playStartDate);
+    const endDate = new Date(performanceData.playEndDate);
+
+    // 날짜 비교는 시간을 무시하고 날짜 부분만 비교
+    const checkDateAtMidnight = new Date(dateToCheck.getFullYear(), dateToCheck.getMonth(), dateToCheck.getDate());
+    const startDateAtMidnight = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+    const endDateAtMidnight = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+
+    return checkDateAtMidnight >= startDateAtMidnight && checkDateAtMidnight <= endDateAtMidnight;
+  };
+
   const calendarDays = generateCalendarDays();
   const weekDays = ['일', '월', '화', '수', '목', '금', '토'];
   const today = new Date().getDate();
   const isCurrentMonth = currentMonth.month === new Date().getMonth() + 1 &&
                          currentMonth.year === new Date().getFullYear();
+
+  // 공연 기간 문자열 포맷팅 (playDate 또는 playStartDate ~ playEndDate)
+  const getPerformanceDateDisplay = () => {
+    // 1. 이미 포맷팅된 playDate가 있으면 사용 (예: "26-05-02 ~ 26-05-03")
+    if (performanceData?.playDate) {
+      return performanceData.playDate;
+    }
+
+    // 2. playStartDate, playEndDate가 있으면 포맷팅해서 표시
+    if (performanceData?.playStartDate && performanceData?.playEndDate) {
+      const startDate = new Date(performanceData.playStartDate);
+      const endDate = new Date(performanceData.playEndDate);
+
+      const formatDate = (date) => {
+        const year = String(date.getFullYear()).slice(-2);
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      };
+
+      const startStr = formatDate(startDate);
+      const endStr = formatDate(endDate);
+
+      return startStr === endStr ? startStr : `${startStr} ~ ${endStr}`;
+    }
+
+    return '';
+  };
 
   return (
     <div className="perf-page-wrapper">
@@ -70,9 +143,9 @@ const PerformanceDetails = ({ user, onLogout }) => {
                 <span className="badge-item green">안심예매 ⓘ</span>
                 <span className="badge-item red">예매대기 ⓘ</span>
               </div>
-              <h1 className="perf-main-title">레이베이 내한공연</h1>
-              <p className="perf-sub-title">Laufey: A Matter of Time Tour in Seoul</p>
-              <div className="perf-rank-line">콘서트 주간 56위</div>
+              <h1 className="perf-main-title">{performanceData?.title || '레이베이 내한공연'}</h1>
+              <p className="perf-sub-title">{performanceData?.goodsName || 'Laufey: A Matter of Time Tour in Seoul'}</p>
+              <div className="perf-rank-line">콘서트 주간 00위</div>
             </section>
 
             {/* 2. 메인 콘텐츠 섹션 */}
@@ -80,36 +153,36 @@ const PerformanceDetails = ({ user, onLogout }) => {
               <div className="perf-info-top-row">
                 <div className="poster-box">
                   <img
-                    src="https://ticketimage.interpark.com/Play/image/large/24/24005142_p.gif"
-                    alt="Laufey"
+                    src={performanceData?.imageUrl || "Default Poster"}
+                    alt={performanceData?.title || "Default Title"}
                     className="poster-img"
                   />
                   <div className="poster-footer">
-                    <span>♡ 티켓캐스트 567</span>
+                    <span>♡ 티켓캐스트 000</span>
                   </div>
                 </div>
 
                 <div className="info-details-table">
                 <div className="info-item">
                   <span className="label">장소</span>
-                  <span className="value">킨텍스 제2전시장 9홀</span>
+                  <span className="value">{performanceData?.placeName || '킨텍스 XX홀'}</span>
                 </div>
                 <div className="info-item">
                   <span className="label">공연기간</span>
-                  <span className="value">2026.06.07</span>
+                  <span className="value">{getPerformanceDateDisplay() || '20xx.xx.xx'}</span>
                 </div>
                 <div className="info-item">
                   <span className="label">관람연령</span>
-                  <span className="value">만 7세이상</span>
+                  <span className="value">만 X세이상</span>
                 </div>
                 <div className="info-item price-item">
                   <span className="label">가격</span>
                   <div className="value">
                     <button className="btn-view-price">전체가격보기 ▾</button>
                     <ul className="price-stack">
-                      <li><span className="grade">ORCHESTRA PIT</span> <span className="amt">314,000원</span></li>
-                      <li><span className="grade">OPERA STALL</span> <span className="amt">338,000원</span></li>
-                      <li><span className="grade">스탠딩석</span> <span className="amt">154,000원</span></li>
+                      <li><span className="grade">ORCHESTRA PIT</span> <span className="amt">999,999원</span></li>
+                      <li><span className="grade">OPERA STALL</span> <span className="amt">999,9990원</span></li>
+                      <li><span className="grade">스탠딩석</span> <span className="amt">99,999원</span></li>
                     </ul>
                   </div>
                 </div>
@@ -126,11 +199,11 @@ const PerformanceDetails = ({ user, onLogout }) => {
                 </div>
                 <div className="info-item">
                     <span className="label">배송</span>
-                    <span className="value">2026년 05월 18일 일괄 배송되는 상품입니다.</span>
+                    <span className="value">2026년 XX월 XX일 일괄 배송되는 상품입니다.</span>
                 </div>
                 <div className="info-item">
                     <span className="label">유의사항</span>
-                    <span className="value benefit-link">2026년 00월 00일 00시 00분~2026년 00월 00일 23시 59분까지<br></br>무통장입금 결제가 불가능합니다.</span>
+                    <span className="value benefit-link">2026년 XX월 XX일 XX시 XX분~2026년 XX월 XX일 XX시 XX분까지<br></br>무통장입금 결제가 불가능합니다.</span>
                 </div>
                 </div>
               </div>
@@ -173,15 +246,19 @@ const PerformanceDetails = ({ user, onLogout }) => {
                   </div>
 
                   <div className="cal-grid">
-                    {calendarDays.map((day, index) => (
-                      <div
-                        key={index}
-                        className={`cal-day ${!day ? 'empty' : ''} ${day === selectedDate ? 'selected' : ''} ${day && isCurrentMonth && day < today ? 'past' : ''}`}
-                        onClick={() => day && setSelectedDate(day)}
-                      >
-                        {day}
-                      </div>
-                    ))}
+                    {calendarDays.map((day, index) => {
+                      const selectable = isDateSelectable(day);
+                      return (
+                        <div
+                          key={index}
+                          className={`cal-day ${!day ? 'empty' : ''} ${day === selectedDate ? 'selected' : ''} ${!selectable ? 'disabled' : ''}`}
+                          onClick={() => day && selectable && setSelectedDate(day)}
+                          style={{ cursor: selectable && day ? 'pointer' : 'not-allowed' }}
+                        >
+                          {day}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
 

@@ -7,7 +7,6 @@ export default function PerformanceDetails({ initialUrl, onBookingSuccess }) {
   const [performance, setPerformance] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (initialUrl) {
@@ -47,22 +46,13 @@ export default function PerformanceDetails({ initialUrl, onBookingSuccess }) {
     await parseUrl(url);
   };
 
-  // 공연 정보 저장 및 PerformanceDetails 페이지로 이동
+  // 예매 상세 페이지로 이동 (DB 저장 없음)
   const handleBooking = async () => {
     if (!performance) return;
 
-    setSaving(true);
-    try {
-      await performanceApi.savePerformance(performance);
-
-      // 저장 성공 후 공연 상세 페이지로 이동
-      if (onBookingSuccess) {
-        onBookingSuccess();
-      }
-    } catch (err) {
-      setError(err.message || '공연 정보 저장에 실패했습니다');
-    } finally {
-      setSaving(false);
+    // 공연 정보와 함께 콜백 실행 (PerformanceDetails로 이동)
+    if (onBookingSuccess) {
+      onBookingSuccess(performance);
     }
   };
 
@@ -164,13 +154,11 @@ export default function PerformanceDetails({ initialUrl, onBookingSuccess }) {
             <button
               className="button-link"
               onClick={handleBooking}
-              disabled={saving}
               style={{
-                cursor: saving ? 'not-allowed' : 'pointer',
-                opacity: saving ? 0.6 : 1
+                cursor: 'pointer'
               }}
             >
-              {saving ? '저장 중...' : '예매 연습하기'}
+              예매 연습하기
             </button>
 
             {/* Metadata */}
