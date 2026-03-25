@@ -51,7 +51,7 @@ public class InterparkService {
     }
 
     /**
-     * HTML 콘텐츠에서 fallback JSON 부분을 추출하고 공연 정보를 파싱합니다
+     * HTML 콘텐츠에서 fallback JSON 부분을 추출하고 공연 정보 파싱하는 메서드
      */
     private PerformanceResponseDto htmlPerformanceFilter(String htmlContent, String sourceUrl) {
         PerformanceResponseDto.PerformanceResponseDtoBuilder builder = PerformanceResponseDto.builder()
@@ -83,7 +83,7 @@ public class InterparkService {
 
                 log.debug("Extracted goods code from fallback: {}", goodsCode);
 
-                // URL의 goodsCode와 비교
+                // URL의 goodsCode와 비교 (goodsCode가 URL에서 추출한 것과 일치하는지 확인)
                 if (urlGoodsCode != null && !urlGoodsCode.equals(goodsCode)) {
                     log.warn("Goods code mismatch: URL={}, fallback={}", urlGoodsCode, goodsCode);
                 } else {
@@ -91,7 +91,7 @@ public class InterparkService {
                 }
             }
 
-            // 5. goodsName 찾기
+            // 5. goodsName 찾기 (공연 제목)
             int goodsNameIdx = fallbackJson.indexOf("\"goodsName\":\"");
             if (goodsNameIdx != -1) {
                 int startIdx = goodsNameIdx + "\"goodsName\":\"".length();
@@ -101,7 +101,7 @@ public class InterparkService {
                 log.debug("Extracted goods name: {}", goodsName);
             }
 
-            // 6. posterImageUrl 찾기
+            // 6. posterImageUrl 찾기 (포스터 이미지 URL)
             int posterIdx = fallbackJson.indexOf("\"posterImageUrl\":\"");
             if (posterIdx != -1) {
                 int startIdx = posterIdx + "\"posterImageUrl\":\"".length();

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { performanceApi } from './api/performanceApi';
-import './styles/Performance.css';
+import './styles/PerformanceSummationCard.css';
 
-export default function PerformanceDetails({ initialUrl }) {
+export default function PerformanceDetails({ initialUrl, onBookingSuccess }) {
   const [url, setUrl] = useState(initialUrl || '');
   const [performance, setPerformance] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -47,7 +47,7 @@ export default function PerformanceDetails({ initialUrl }) {
     await parseUrl(url);
   };
 
-  // 공연 정보 저장 및 티켓팅 페이지로 이동
+  // 공연 정보 저장 및 PerformanceDetails 페이지로 이동
   const handleBooking = async () => {
     if (!performance) return;
 
@@ -55,8 +55,10 @@ export default function PerformanceDetails({ initialUrl }) {
     try {
       await performanceApi.savePerformance(performance);
 
-      // 저장 성공 후 티켓팅 페이지로 리다이렉트
-      window.location.href = `/ticketing/${performance.goodsCode}`;
+      // 저장 성공 후 공연 상세 페이지로 이동
+      if (onBookingSuccess) {
+        onBookingSuccess();
+      }
     } catch (err) {
       setError(err.message || '공연 정보 저장에 실패했습니다');
     } finally {

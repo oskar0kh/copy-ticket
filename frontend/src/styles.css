@@ -25,7 +25,7 @@ body {
 
 .page {
   min-height: 100vh;
-  padding: 28px 16px;
+  padding: 1.75rem 1rem;
   display: grid;
   place-items: center;
   position: relative;
@@ -33,15 +33,15 @@ body {
 
 .toast {
   position: fixed;
-  top: 20px;
+  top: 1.25rem;
   left: 50%;
   transform: translateX(-50%);
-  min-width: 240px;
-  max-width: min(420px, calc(100vw - 24px));
+  min-width: 15rem;
+  max-width: min(26.25rem, calc(100vw - 1.5rem));
   border: 1px solid transparent;
-  border-radius: 12px;
-  padding: 12px 14px;
-  font-size: 14px;
+  border-radius: 0.75rem;
+  padding: 0.75rem 0.875rem;
+  font-size: 0.875rem;
   font-weight: 600;
   box-shadow: 0 14px 30px rgba(16, 24, 40, 0.14);
   z-index: 30;
@@ -63,7 +63,7 @@ body {
 @keyframes toast-in {
   from {
     opacity: 0;
-    transform: translate(-50%, -6px);
+    transform: translate(-50%, -0.375rem);
   }
 
   to {
@@ -73,43 +73,48 @@ body {
 }
 
 .auth-shell {
-  width: min(920px, 100%);
+  width: min(57.5rem, 100%);
   display: grid;
   grid-template-columns: 1fr 1fr;
   border: 1px solid var(--line);
-  border-radius: 18px;
+  border-radius: 1.125rem;
   overflow: hidden;
   background: var(--surface);
   box-shadow: 0 12px 30px rgba(16, 24, 40, 0.08);
 }
 
 .auth-shell.auth-single {
-  width: min(620px, 100%);
+  width: min(38.75rem, 100%);
   grid-template-columns: 1fr;
 }
 
 .main-shell {
-  width: min(920px, 100%);
+  width: min(57.5rem, 100%);
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 1.125rem;
+}
+
+.main-shell.full-width {
+  width: 100%;
+  max-width: none;
 }
 
 .main-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 14px;
+  gap: 0.875rem;
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 16px;
-  padding: 24px;
+  border-radius: 1rem;
+  padding: 1.5rem;
   box-shadow: 0 12px 30px rgba(16, 24, 40, 0.08);
 }
 
 .main-header h1 {
-  margin: 10px 0 8px;
-  font-size: 30px;
+  margin: 0.625rem 0 0.5rem;
+  font-size: 1.875rem;
   line-height: 1.2;
 }
 
@@ -122,23 +127,23 @@ body {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 8px;
+  gap: 0.5rem;
 }
 
 .account-table {
   border-collapse: collapse;
-  min-width: 300px;
+  min-width: 18.75rem;
   background: #fff;
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: 0.625rem;
   overflow: hidden;
 }
 
 .account-table th,
 .account-table td {
   border-bottom: 1px solid var(--line);
-  padding: 10px 12px;
-  font-size: 14px;
+  padding: 0.625rem 0.75rem;
+  font-size: 0.875rem;
   text-align: left;
 }
 
@@ -148,7 +153,7 @@ body {
 }
 
 .account-table th {
-  width: 86px;
+  width: 5.375rem;
   background: #f8fafc;
   color: #475467;
   font-weight: 700;
@@ -156,28 +161,28 @@ body {
 
 .user-badge {
   margin: 0;
-  font-size: 13px;
+  font-size: 0.8125rem;
   color: #344054;
   border: 1px solid var(--line);
   border-radius: 999px;
-  padding: 6px 10px;
+  padding: 0.375rem 0.625rem;
   background: #f8fafc;
 }
 
 .url-card {
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 16px;
-  padding: 24px;
+  border-radius: 1rem;
+  padding: 1.5rem;
   box-shadow: 0 12px 30px rgba(16, 24, 40, 0.08);
 }
 
 .url-card h2 {
-  margin: 0 0 8px;
+  margin: 0 0 0.5rem;
 }
 
 .url-card > p {
-  margin: 0 0 18px;
+  margin: 0 0 1.125rem;
   color: var(--muted);
   line-height: 1.6;
 }
@@ -185,21 +190,21 @@ body {
 .url-form {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 0.875rem;
 }
 
 .url-form label {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 0.5rem;
   font-weight: 600;
 }
 
 .url-form input {
   border: 1px solid var(--line);
-  border-radius: 10px;
-  padding: 11px 12px;
-  font-size: 15px;
+  border-radius: 0.625rem;
+  padding: 0.6875rem 0.75rem;
+  font-size: 0.9375rem;
   background: #fff;
 }
 
@@ -210,25 +215,25 @@ body {
 }
 
 .url-preview {
-  margin-top: 16px;
+  margin-top: 1rem;
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: 0.625rem;
   background: #f8fafc;
-  padding: 12px;
+  padding: 0.75rem;
 }
 
 .url-preview strong {
-  font-size: 13px;
+  font-size: 0.8125rem;
 }
 
 .url-preview p {
-  margin: 6px 0 0;
+  margin: 0.375rem 0 0;
   word-break: break-all;
   color: #344054;
 }
 
 .brand-panel {
-  padding: 36px;
+  padding: 2.25rem;
   background: #fafafa;
   border-right: 1px solid var(--line);
 }
@@ -238,21 +243,21 @@ body {
 }
 
 .auth-controls {
-  margin-top: 24px;
+  margin-top: 1.5rem;
 }
 
 .tag {
   display: inline-block;
   margin: 0;
   letter-spacing: 0.08em;
-  font-size: 11px;
+  font-size: 0.6875rem;
   color: var(--muted);
   font-weight: 600;
 }
 
 .brand-panel h1 {
-  margin: 14px 0 10px;
-  font-size: 32px;
+  margin: 0.875rem 0 0.625rem;
+  font-size: 2rem;
   line-height: 1.25;
   font-weight: 700;
 }
@@ -264,25 +269,25 @@ body {
 }
 
 .session-box {
-  margin-top: 24px;
+  margin-top: 1.5rem;
   border: 1px solid var(--line);
-  border-radius: 12px;
-  padding: 16px;
+  border-radius: 0.75rem;
+  padding: 1rem;
   background: #fff;
 }
 
 .session-box p {
-  margin: 8px 0 12px;
+  margin: 0.5rem 0 0.75rem;
   color: #344054;
 }
 
 .session-actions {
   display: flex;
-  gap: 8px;
+  gap: 0.5rem;
 }
 
 .form-panel {
-  padding: 32px;
+  padding: 2rem;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -291,17 +296,17 @@ body {
 .mode-switch {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  margin-bottom: 16px;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
 }
 
 button {
   border: 1px solid transparent;
-  border-radius: 10px;
+  border-radius: 0.625rem;
   background: var(--primary);
   color: #fff;
   font-weight: 600;
-  padding: 11px 14px;
+  padding: 0.6875rem 0.875rem;
   cursor: pointer;
   transition: background-color 0.16s ease, border-color 0.16s ease;
 }
@@ -349,10 +354,10 @@ button.danger:hover {
 
 .notice {
   border: 1px solid transparent;
-  border-radius: 10px;
-  padding: 11px 12px;
-  margin-bottom: 14px;
-  font-size: 14px;
+  border-radius: 0.625rem;
+  padding: 0.6875rem 0.75rem;
+  margin-bottom: 0.875rem;
+  font-size: 0.875rem;
 }
 
 .notice.success {
@@ -370,21 +375,21 @@ button.danger:hover {
 .auth-form {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 0.875rem;
 }
 
 .auth-form label {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 0.5rem;
   font-weight: 600;
 }
 
 .auth-form input {
   border: 1px solid var(--line);
-  border-radius: 10px;
-  padding: 11px 12px;
-  font-size: 15px;
+  border-radius: 0.625rem;
+  padding: 0.6875rem 0.75rem;
+  font-size: 0.9375rem;
   background: #fff;
 }
 
@@ -405,21 +410,21 @@ button.danger:hover {
   display: grid;
   place-items: center;
   z-index: 40;
-  padding: 16px;
+  padding: 1rem;
 }
 
 .modal-card {
-  width: min(420px, 100%);
+  width: min(26.25rem, 100%);
   background: #fff;
-  border-radius: 14px;
+  border-radius: 0.875rem;
   border: 1px solid var(--line);
   box-shadow: 0 22px 45px rgba(16, 24, 40, 0.24);
-  padding: 20px;
+  padding: 1.25rem;
 }
 
 .modal-card h3 {
-  margin: 0 0 8px;
-  font-size: 21px;
+  margin: 0 0 0.5rem;
+  font-size: 1.3125rem;
 }
 
 .modal-card p {
@@ -428,22 +433,22 @@ button.danger:hover {
 }
 
 .modal-actions {
-  margin-top: 18px;
+  margin-top: 1.125rem;
   display: flex;
   justify-content: flex-end;
-  gap: 8px;
+  gap: 0.5rem;
 }
 
 @media (max-width: 860px) {
   .toast {
     left: 50%;
-    top: 12px;
+    top: 0.75rem;
     max-width: none;
-    width: calc(100vw - 24px);
+    width: calc(100vw - 1.5rem);
   }
 
   .page {
-    padding: 14px;
+    padding: 0.875rem;
   }
 
   .auth-shell {
@@ -460,7 +465,7 @@ button.danger:hover {
   }
 
   .main-header h1 {
-    font-size: 26px;
+    font-size: 1.625rem;
   }
 
   .main-header-actions {
@@ -480,10 +485,10 @@ button.danger:hover {
 
   .brand-panel,
   .form-panel {
-    padding: 24px;
+    padding: 1.5rem;
   }
 
   .brand-panel h1 {
-    font-size: 26px;
+    font-size: 1.625rem;
   }
 }

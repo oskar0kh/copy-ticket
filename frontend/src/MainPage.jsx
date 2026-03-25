@@ -1,10 +1,12 @@
 import React, { useState } from "react";
 import PerformanceSummationCard from "./PerformanceSummationCard";
+import PerformanceDetails from "./PerformanceDetails";
 
 export default function MainPage({ user, loading, lastInputUrl, onSubmitUrl, onLogout, onWithdraw }) {
   const [url, setUrl] = useState(lastInputUrl || "");
   const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
   const [showResults, setShowResults] = useState(false);
+  const [showPerformanceDetails, setShowPerformanceDetails] = useState(false);
 
   function handleSubmit(event) {
     event.preventDefault();
@@ -14,7 +16,13 @@ export default function MainPage({ user, loading, lastInputUrl, onSubmitUrl, onL
 
   function handleBackToInput() {
     setShowResults(false);
+    setShowPerformanceDetails(false);
     setUrl("");
+  }
+
+  function handleNavigateToPerformanceDetails() {
+    setShowResults(false);
+    setShowPerformanceDetails(true);
   }
 
   async function handleConfirmWithdraw() {
@@ -27,7 +35,8 @@ export default function MainPage({ user, loading, lastInputUrl, onSubmitUrl, onL
   }
 
   return (
-    <main className="main-shell">
+    <main className={`main-shell ${showPerformanceDetails ? 'full-width' : ''}`}>
+      {!showPerformanceDetails && (
       <header className="main-header">
         <div>
           <p className="tag">COPY TICKET</p>
@@ -71,11 +80,21 @@ export default function MainPage({ user, loading, lastInputUrl, onSubmitUrl, onL
           </table>
         </div>
       </header>
+      )}
 
       {/* showResults가 true일 때, PerformanceSummationCard 컴포넌트를 표시 */}
-      {showResults ? (
+      {showPerformanceDetails ? (
         <div>
-          <PerformanceSummationCard initialUrl={url} /> {/* 입력한 URL을 PerformanceSummationCard.jsx로 전달 */}
+          <PerformanceDetails user={user} onLogout={onLogout} />
+          <div style={{ textAlign: "center", marginTop: "40px", marginBottom: "40px" }}>
+            <button onClick={handleBackToInput} className="ghost" style={{ padding: "10px 20px" }}>
+              ← 다른 URL 입력하기
+            </button>
+          </div>
+        </div>
+      ) : showResults ? (
+        <div>
+          <PerformanceSummationCard initialUrl={url} onBookingSuccess={handleNavigateToPerformanceDetails} /> {/* 입력한 URL을 PerformanceSummationCard.jsx로 전달 및 예매 성공 콜백 */}
           <div style={{ textAlign: "center", marginTop: "40px", marginBottom: "40px" }}>
             <button onClick={handleBackToInput} className="ghost" style={{ padding: "10px 20px" }}>
               ← 다른 URL 입력하기

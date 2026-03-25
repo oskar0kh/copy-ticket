@@ -1,0 +1,311 @@
+/* 1. 최상위 래퍼 - 가로 전체 사용 */
+.perf-page-wrapper {
+  width: 100%;
+  background-color: #fff;
+  margin: 0;
+  padding: 0;
+}
+
+/* 상단 네비게이션 배너 */
+.perf-navbar {
+  width: 100%;
+  background-color: #fff;
+  border-bottom: 1px solid #e0e0e0;
+  padding: 0.9375rem 0;
+}
+
+.perf-navbar-inner {
+  width: 100%;
+  max-width: 80rem;
+  margin: 0 auto;
+  padding: 0 2.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.perf-navbar-left {
+  display: flex;
+  align-items: center;
+}
+
+.perf-navbar-logo {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #333;
+  letter-spacing: 0.05em;
+}
+
+.perf-navbar-right {
+  display: flex;
+  align-items: center;
+  gap: 0.9375rem;
+}
+
+.perf-navbar-user {
+  font-size: 0.8125rem;
+  color: #333;
+  font-weight: 700;
+}
+
+.perf-navbar-btn {
+  background-color: #5d5df5;
+  color: #fff;
+  border: none;
+  padding: 0.625rem 1.25rem;
+  border-radius: 0.375rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.perf-navbar-btn:hover {
+  background-color: #4a4acf;
+}
+
+/* 2. 내부 콘텐츠 정렬용 이너 클래스 (핵심) */
+.perf-content-inner {
+  width: 100%;
+  max-width: 80rem; /* 인터파크 표준 너비 */
+  margin: 0 auto;
+  padding: 0 2.5rem; /* 화면이 작아질 때 최소 여백 */
+  box-sizing: border-box;
+}
+
+/* 3. 상단 헤더 섹션 - 하단 라인이 가로 전체로 뻗음 */
+.perf-header-full {
+  padding-top: 1.875rem;
+  padding-bottom: 1rem;
+}
+
+.badge-row { display: flex; gap: 0.375rem; margin-bottom: 0.9375rem; }
+.badge-item { font-size: 0.6875rem; padding: 0.125rem 0.5rem; border-radius: 0.125rem; border: 1px solid #ddd; }
+.badge-item.blue { color: #5d5df5; border-color: #e5e5ff; background: #f8f8ff; }
+
+.perf-main-title { font-size: 1.875rem; font-weight: 700; color: #000; margin: 0; }
+.perf-sub-title { font-size: 1rem; color: #666; margin-top: 0.5rem; }
+.perf-rank-line { font-size: 0.8125rem; color: #999; margin-top: 0.9375rem; }
+
+/* 4. 메인 콘텐츠 레이아웃 */
+.perf-main-body {
+  padding-top: 0.625rem;
+}
+
+.perf-content-inner-wrapper {
+  width: 100%;
+  max-width: 80rem;
+  margin: 0 auto;
+  padding: 0 2.5rem 3rem; /* 상(0) 좌우(2.5rem) 하(3rem) */
+  box-sizing: border-box;
+}
+
+.perf-content-layout {
+  display: flex;
+  gap: 3.75rem;
+  align-items: flex-start;
+}
+
+.perf-left-section {
+  flex: 1;
+}
+.perf-right-sidebar {
+  width: 22.5rem;
+  flex-shrink: 0;
+  position: sticky;
+  top: 5rem;
+  height: fit-content;
+}
+
+/* 5. 정보 테이블 스타일 */
+.perf-info-top-row { display: flex; gap: 2.5rem; margin-bottom: 2.5rem; }
+.poster-img { width: 17.5rem; border-radius: 0.25rem; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+
+.info-details-table { flex: 1; }
+.info-item { display: flex; gap: 0; padding: 0.3125rem 0; border-bottom: none; align-items: flex-start; }
+.info-item .label { color: #333; flex-shrink: 0; font-weight: 600; font-size: 0.875rem; white-space: nowrap; margin-right: 0.5rem; }
+.info-item .value { color: #111; line-height: 1.4; font-size: 0.875rem; margin-left: -10rem; flex: 1; } /* margin-left로 필드간 간격 조정하면 됨*/
+
+.price-stack { list-style: none; padding: 0; margin-top: 0.625rem; }
+.price-stack li { display: flex; justify-content: space-between; margin-bottom: 0.5rem; font-size: 0.8125rem; align-items: center; }
+.price-stack .grade { color: #333; }
+.amt { font-weight: 700; color: #5d5df5; }
+
+/* 가격 섹션 - 왼쪽 정렬 */
+.info-item.price-item {
+  display: flex;
+  align-items: flex-start;
+}
+
+.info-item.price-item .label {
+  flex-shrink: 0;
+}
+
+.info-item.price-item .value {
+  flex: 1;
+}
+
+.btn-view-price {
+  background: none;
+  border: none;
+  color: #333;
+  font-size: 0.8125rem;
+  cursor: pointer;
+  font-weight: 600;
+  margin-bottom: 0.625rem;
+  padding: 0;
+  display: block;
+}
+
+/* 6. 사이드바 카드 스타일 (인터파크 예매창 느낌) */
+.sidebar-card {
+  border: 1px solid #e0e0e0;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  margin-top: 2rem;
+  margin-bottom: 0.75rem;
+  background: #fff;
+}
+
+.card-title { font-weight: 700; display: flex; justify-content: space-between; margin-bottom: 0.75rem; }
+
+.time-box.selected {
+  /* 1. 박스 자체를 왼쪽으로 정렬 */
+  width: 8.5rem;
+  margin-left: 0;
+  margin-right: auto;
+  display: block; /* 혹은 부모가 flex라면 생략 가능 */
+
+  /* 2. 내부 텍스트를 왼쪽으로 정렬 */
+  text-align: left;
+
+  /* (핵심 수정!) 이미지와 동일한 색상으로 통일 */
+  border: 1px solid #6364ED; /* 이미지의 테두리 파란색 */
+  background-color: #FFFFFF; /* 이미지의 깨끗한 흰색 배경 */
+  color: #6364ED;            /* 이미지의 텍스트 파란색 */
+
+  /* 여백 및 모양 (기본 유지하되, 이미지에 맞춰 약간 미세 조정) */
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  font-weight: 600;
+  font-size: 0.8125rem;
+  box-sizing: border-box;
+}
+
+.btn-buy-now {
+  width: 100%;
+  padding: 1rem;
+  background-color: #5d5df5;
+  color: #fff;
+  border: none;
+  border-radius: 0.5rem;
+  font-size: 1.125rem;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.btn-foreign {
+  width: 100%;
+  padding: 1rem;
+  background-color: #fff;
+  color: #5d5df5;
+  border: 2px solid #5d5df5;
+  border-radius: 0.5rem;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* 캘린더 스타일 */
+.mini-calendar {
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #e0e0e0;
+  margin: 0 -1rem 0.75rem -1rem;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+.cal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.cal-nav-btn {
+  background: none;
+  border: none;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: #333;
+  cursor: pointer;
+  padding: 0;
+  width: 1.625rem;
+  height: 1.625rem;
+}
+
+.cal-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #000;
+}
+
+.cal-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.375rem;
+  margin-bottom: 0.75rem;
+}
+
+.weekday {
+  text-align: center;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: #666;
+  padding: 0.375rem 0;
+}
+
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.375rem;
+}
+
+.cal-day {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  border-radius: 50%;
+  cursor: pointer;
+  font-weight: 500;
+  color: #ccc;
+  transition: all 0.2s;
+}
+
+.cal-day:not(.empty) {
+  color: #999;
+}
+
+.cal-day:not(.empty):not(.past):hover {
+  background-color: #f0f0f0;
+}
+
+.cal-day.past {
+  color: #ccc;
+  cursor: not-allowed;
+}
+
+.cal-day.selected {
+  background-color: #5d5df5;
+  color: #fff;
+  font-weight: 700;
+}
+
+.cal-day.empty {
+  cursor: default;
+}
