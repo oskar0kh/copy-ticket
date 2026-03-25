@@ -7,7 +7,6 @@ import copy_ticket.copy_ticket.dto.PerformanceResponseDto;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -293,14 +292,6 @@ public class InterparkService {
     }
 
     /**
-     * JSON 배열에서 일치하는 닫는 대괄호의 위치를 찾기 (하위 호환성)
-     * 문자열 내부의 괄호는 무시
-     */
-    private int findMatchingBracket(String text, int openIdx) {
-        return findMatchingBracket(text, openIdx, '[', ']');
-    }
-
-    /**
      * Map에서 문자열 값을 안전하게 추출
      */
     private String getStringValue(Map<String, Object> map, String key) {
@@ -363,9 +354,9 @@ public class InterparkService {
     }
 
     /**
-     * YYYYMMDD 형식의 날짜 문자열을 LocalDateTime으로 변환
+     * YYYYMMDD 형식의 날짜 문자열을 YYYY.MM.DD 형식으로 변환
      */
-    private LocalDateTime parsePlayDate(String dateStr) {
+    private String parsePlayDate(String dateStr) {
         try {
             if (dateStr == null || dateStr.length() < 8) {
                 return null;
@@ -375,7 +366,7 @@ public class InterparkService {
             int month = Integer.parseInt(dateStr.substring(4, 6));
             int day = Integer.parseInt(dateStr.substring(6, 8));
 
-            return LocalDate.of(year, month, day).atStartOfDay();
+            return String.format("%04d.%02d.%02d", year, month, day);
         } catch (Exception e) {
             log.warn("Failed to parse play date: {}", dateStr, e);
             return null;

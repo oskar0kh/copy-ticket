@@ -135,7 +135,12 @@ export default function PerformanceDetails({ initialUrl, onBookingSuccess }) {
             )}
 
             {/* Play Date Info */}
-            {performance.playDate && (
+            {performance.playStartDate && performance.playEndDate ? (
+              <div className="performance-info-section">
+                <h3>공연 날짜</h3>
+                <p>{performance.playStartDate} ~ {performance.playEndDate}</p>
+              </div>
+            ) : performance.playDate && (
               <div className="performance-info-section">
                 <h3>공연 날짜</h3>
                 <p>{performance.playDate}</p>

@@ -5,6 +5,13 @@ const PerformanceDetails = ({ user, onLogout, performanceData }) => {
   const [selectedDate, setSelectedDate] = useState(null);
   const [currentMonth, setCurrentMonth] = useState({ year: 2026, month: 6 });
 
+  // "YYYY.MM.DD" 형식의 문자열을 Date 객체로 변환
+  const parsePlayDateString = (dateStr) => {
+    if (!dateStr) return null;
+    const [year, month, day] = dateStr.split('.');
+    return new Date(year, month - 1, day);
+  };
+
   // performanceData가 있으면 초기 월/년을 공연 시작일로 설정
   useEffect(() => {
     console.log('=== PerformanceDetails Debug ===');
@@ -23,12 +30,14 @@ const PerformanceDetails = ({ user, onLogout, performanceData }) => {
     }
 
     if (performanceData?.playStartDate) {
-      const startDate = new Date(performanceData.playStartDate);
+      const startDate = parsePlayDateString(performanceData.playStartDate);
       console.log('Calendar init with playStartDate:', startDate);
       setCurrentMonth({
         year: startDate.getFullYear(),
         month: startDate.getMonth() + 1
       });
+      // 디폴트로 playStartDate를 선택된 날짜로 설정
+      setSelectedDate(startDate.getDate());
     }
   }, [performanceData]);
 
@@ -71,10 +80,27 @@ const PerformanceDetails = ({ user, onLogout, performanceData }) => {
     }
 
     const dateToCheck = new Date(currentMonth.year, currentMonth.month - 1, day);
-    const startDate = new Date(performanceData.playStartDate);
-    const endDate = new Date(performanceData.playEndDate);
+    const startDate = parsePlayDateString(performanceData.playStartDate);
+    const endDate = parsePlayDateString(performanceData.playEndDate);
 
     // 날짜 비교는 시간을 무시하고 날짜 부분만 비교
+    const checkDateAtMidnight = new Date(dateToCheck.getFullYear(), dateToCheck.getMonth(), dateToCheck.getDate());
+    const startDateAtMidnight = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+    const endDateAtMidnight = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+
+    return checkDateAtMidnight >= startDateAtMidnight && checkDateAtMidnight <= endDateAtMidnight;
+  };
+
+  // 날짜가 공연 기간 범위에 속하는지 확인 (파란 동그라미 표시용)
+  const isDateInPerformanceRange = (day) => {
+    if (!day || !performanceData?.playStartDate || !performanceData?.playEndDate) {
+      return false;
+    }
+
+    const dateToCheck = new Date(currentMonth.year, currentMonth.month - 1, day);
+    const startDate = parsePlayDateString(performanceData.playStartDate);
+    const endDate = parsePlayDateString(performanceData.playEndDate);
+
     const checkDateAtMidnight = new Date(dateToCheck.getFullYear(), dateToCheck.getMonth(), dateToCheck.getDate());
     const startDateAtMidnight = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
     const endDateAtMidnight = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
@@ -88,29 +114,18 @@ const PerformanceDetails = ({ user, onLogout, performanceData }) => {
   const isCurrentMonth = currentMonth.month === new Date().getMonth() + 1 &&
                          currentMonth.year === new Date().getFullYear();
 
-  // 공연 기간 문자열 포맷팅 (playDate 또는 playStartDate ~ playEndDate)
+  // 공연 기간 문자열 포맷팅 (playStartDate ~ playEndDate)
   const getPerformanceDateDisplay = () => {
-    // 1. 이미 포맷팅된 playDate가 있으면 사용 (예: "26-05-02 ~ 26-05-03")
-    if (performanceData?.playDate) {
-      return performanceData.playDate;
+    // 1. playStartDate, playEndDate가 있으면 직접 사용 (이미 YYYY.MM.DD 포맷)
+    if (performanceData?.playStartDate && performanceData?.playEndDate) {
+      return performanceData.playStartDate === performanceData.playEndDate
+        ? performanceData.playStartDate
+        : `${performanceData.playStartDate} ~ ${performanceData.playEndDate}`;
     }
 
-    // 2. playStartDate, playEndDate가 있으면 포맷팅해서 표시
-    if (performanceData?.playStartDate && performanceData?.playEndDate) {
-      const startDate = new Date(performanceData.playStartDate);
-      const endDate = new Date(performanceData.playEndDate);
-
-      const formatDate = (date) => {
-        const year = String(date.getFullYear()).slice(-2);
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
-      };
-
-      const startStr = formatDate(startDate);
-      const endStr = formatDate(endDate);
-
-      return startStr === endStr ? startStr : `${startStr} ~ ${endStr}`;
+    // 2. 이미 포맷팅된 playDate가 있으면 사용 (예: "26-05-02 ~ 26-05-03")
+    if (performanceData?.playDate) {
+      return performanceData.playDate;
     }
 
     return '';
@@ -220,22 +235,28 @@ const PerformanceDetails = ({ user, onLogout, performanceData }) => {
                   <div className="cal-header">
                     <button
                       className="cal-nav-btn"
-                      onClick={() => setCurrentMonth(prev => ({
-                        ...prev,
-                        month: prev.month === 1 ? 12 : prev.month - 1,
-                        year: prev.month === 1 ? prev.year - 1 : prev.year
-                      }))}
+                      onClick={() => {
+                        setCurrentMonth(prev => ({
+                          ...prev,
+                          month: prev.month === 1 ? 12 : prev.month - 1,
+                          year: prev.month === 1 ? prev.year - 1 : prev.year
+                        }));
+                        setSelectedDate(null);
+                      }}
                     >
                       &lt;
                     </button>
                     <span className="cal-title">{currentMonth.year}. {String(currentMonth.month).padStart(2, '0')}</span>
                     <button
                       className="cal-nav-btn"
-                      onClick={() => setCurrentMonth(prev => ({
-                        ...prev,
-                        month: prev.month === 12 ? 1 : prev.month + 1,
-                        year: prev.month === 12 ? prev.year + 1 : prev.year
-                      }))}
+                      onClick={() => {
+                        setCurrentMonth(prev => ({
+                          ...prev,
+                          month: prev.month === 12 ? 1 : prev.month + 1,
+                          year: prev.month === 12 ? prev.year + 1 : prev.year
+                        }));
+                        setSelectedDate(null);
+                      }}
                     >
                       &gt;
                     </button>
@@ -248,10 +269,11 @@ const PerformanceDetails = ({ user, onLogout, performanceData }) => {
                   <div className="cal-grid">
                     {calendarDays.map((day, index) => {
                       const selectable = isDateSelectable(day);
+                      const inRange = isDateInPerformanceRange(day);
                       return (
                         <div
                           key={index}
-                          className={`cal-day ${!day ? 'empty' : ''} ${day === selectedDate ? 'selected' : ''} ${!selectable ? 'disabled' : ''}`}
+                          className={`cal-day ${!day ? 'empty' : ''} ${day === selectedDate ? 'selected' : ''} ${!selectable ? 'disabled' : ''} ${inRange ? 'in-range' : ''}`}
                           onClick={() => day && selectable && setSelectedDate(day)}
                           style={{ cursor: selectable && day ? 'pointer' : 'not-allowed' }}
                         >
@@ -263,7 +285,8 @@ const PerformanceDetails = ({ user, onLogout, performanceData }) => {
                 </div>
 
                 <div className="card-title">회차</div>
-                <div className="time-box selected">1회 18:00</div>
+                <div className="time-box selected">1회 00:00</div>
+                <div className="disclaimer-notice">잔여석 안내 서비스를 제공하지 않습니다.</div>
               </div>
 
               <button className="btn-buy-now">예매하기</button>

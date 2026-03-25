@@ -67,7 +67,7 @@
 
 .performance-input-section button {
   padding: 0.625rem 1.5rem;
-  background: #dd0000;
+  background: #5d5df5;
   color: white;
   border: none;
   border-radius: 0.25rem;
@@ -78,7 +78,7 @@
 }
 
 .performance-input-section button:hover:not(:disabled) {
-  background: #bb0000;
+  background: #4a4ae0;
 }
 
 .performance-input-section button:disabled {
@@ -253,7 +253,7 @@
   display: inline-block;
   width: 100%;
   padding: 0.875rem 1.5rem;
-  background: #dd0000;
+  background: #5d5df5;
   color: white;
   text-decoration: none;
   border-radius: 0.25rem;
@@ -267,8 +267,8 @@
 }
 
 .button-link:hover {
-  background: #bb0000;
-  box-shadow: 0 4px 12px rgba(221, 0, 0, 0.3);
+  background: #4a4ae0;
+  box-shadow: 0 4px 12px rgba(93, 93, 245, 0.3);
 }
 
 .metadata {

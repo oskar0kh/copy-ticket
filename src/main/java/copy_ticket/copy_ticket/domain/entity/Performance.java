@@ -69,11 +69,11 @@ public class Performance {
     @Column(name = "play_date", length = 50)
     private String playDate;
 
-    @Column(name = "play_start_date")
-    private LocalDateTime playStartDate;
+    @Column(name = "play_start_date", length = 10)
+    private String playStartDate;
 
-    @Column(name = "play_end_date")
-    private LocalDateTime playEndDate;
+    @Column(name = "play_end_date", length = 10)
+    private String playEndDate;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by")

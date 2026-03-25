@@ -332,12 +332,12 @@ button.ghost:hover {
 }
 
 button.danger {
-  background: #b42318;
+  background: #5d5df5;
   color: #fff;
 }
 
 button.danger:hover {
-  background: #912018;
+  background: #4a4ae0;
 }
 
 .mode-switch button {
