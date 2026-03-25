@@ -29,12 +29,15 @@ public class PerformanceService {
         User user = userRepository.findByUserIdAndDeletedAtIsNull(userId)
                 .orElseThrow(() -> new RuntimeException("User not found: " + userId));
 
-        // 2. 같은 goods_code를 가진 기존 공연이 있는지 확인
-        //    있으면 soft delete (새로 저장하는 공연으로 교체)
-        performanceRepository.findByGoodsCodeAndDeletedAtIsNull(saveRequestDto.getGoodsCode())
+        // 2. 같은 사용자의 같은 goods_code가 이미 있으면 soft delete 처리
+        //    goods_code unique 제약 충돌을 피하기 위해 기존 값은 null로 비움
+        performanceRepository.findByCreatedByIdAndGoodsCodeAndDeletedAtIsNull(user.getId(), saveRequestDto.getGoodsCode())
                 .ifPresent(existing -> {
-                    existing.setDeletedAt(Instant.now());
-                    performanceRepository.save(existing);
+                Instant now = Instant.now();
+                existing.setDeletedAt(now);
+                existing.setUpdatedAt(now);
+                existing.setGoodsCode(null);
+                performanceRepository.saveAndFlush(existing);
                 });
 
         // 3. 사용자의 현재 공연 개수 확인 (삭제되지 않은 것만)

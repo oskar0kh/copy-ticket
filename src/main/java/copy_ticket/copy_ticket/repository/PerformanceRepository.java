@@ -20,7 +20,7 @@ public interface PerformanceRepository extends JpaRepository<Performance, Long> 
     // 사용자의 모든 공연 조회 (soft delete되지 않은 것만)
     List<Performance> findByCreatedByIdAndDeletedAtIsNullOrderByCreatedAtDesc(Long userId);
 
-    // 인터파크 상품 코드로 공연 조회
-    Optional<Performance> findByGoodsCodeAndDeletedAtIsNull(String goodsCode);
+    // 특정 사용자의 인터파크 상품 코드로 공연 조회 (soft delete되지 않은 것만)
+    Optional<Performance> findByCreatedByIdAndGoodsCodeAndDeletedAtIsNull(Long userId, String goodsCode);
 }
 
