@@ -1,11 +1,13 @@
 package copy_ticket.copy_ticket.dto;
 
+import copy_ticket.copy_ticket.domain.entity.Performance;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 
 /**
  * GET /api/performance/parse
@@ -45,4 +47,26 @@ public class PerformanceResponseDto {
     private String playDate;                     // 공연 날짜 범위 (예: "26-06-07 ~ 26-06-07")
     private String playStartDate;                // 공연 시작일 (YYYY.MM.DD)
     private String playEndDate;                  // 공연 종료일 (YYYY.MM.DD)
+
+    /**
+     * Performance 엔티티를 PerformanceResponseDto로 변환
+     */
+    public static PerformanceResponseDto fromEntity(Performance performance) {
+        return PerformanceResponseDto.builder()
+                .sourceUrl(performance.getSourceUrl())
+                .parsedAt(LocalDateTime.ofInstant(performance.getCreatedAt(), ZoneId.of("UTC")))
+                .title(performance.getTitle())
+                .imageUrl(performance.getImageUrl())
+                .startDate(performance.getStartDate())
+                .endDate(performance.getEndDate())
+                .link(performance.getLink())
+                .goodsCode(performance.getGoodsCode())
+                .goodsName(performance.getGoodsName())
+                .placeCode(performance.getPlaceCode())
+                .placeName(performance.getPlaceName())
+                .playDate(performance.getPlayDate())
+                .playStartDate(performance.getPlayStartDate())
+                .playEndDate(performance.getPlayEndDate())
+                .build();
+    }
 }

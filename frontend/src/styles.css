@@ -232,6 +232,85 @@ body {
   color: #344054;
 }
 
+/* 저장된 공연 목록 스타일 */
+.saved-performances {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
+  background: #f8fafc;
+}
+
+.saved-performances strong {
+  display: block;
+  margin-bottom: 0.75rem;
+  font-size: 0.9375rem;
+  color: var(--text);
+}
+
+.saved-performances-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.5rem;
+}
+
+.saved-perf-item {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 0.875rem;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+  transition: all 0.16s ease;
+}
+
+.saved-perf-item:hover {
+  background: #f3f4f6;
+  border-color: #d0d5dd;
+  box-shadow: 0 2px 8px rgba(16, 24, 40, 0.06);
+}
+
+.saved-perf-button {
+  flex: 1;
+  background: none;
+  border: none;
+  color: #0066cc;
+  cursor: pointer;
+  padding: 0;
+  text-align: left;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  transition: color 0.16s ease;
+}
+
+.saved-perf-button:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.saved-perf-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
+  font-size: 0.75rem;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
+.saved-perf-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  color: #9ca3af;
+  font-size: 0.875rem;
+}
+
 .brand-panel {
   padding: 2.25rem;
   background: #fafafa;
@@ -476,6 +555,14 @@ button.danger:hover {
   .account-table {
     width: 100%;
     min-width: 0;
+  }
+
+  .saved-performances-list {
+    grid-template-columns: 1fr;
+  }
+
+  .saved-perf-meta {
+    display: none;
   }
 
   .brand-panel {

@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import PerformanceSummationCard from "./PerformanceSummationCard";
 import PerformanceDetails from "./PerformanceDetails";
+import { performanceApi } from "./api/performanceApi";
 
 export default function MainPage({ user, loading, lastInputUrl, onSubmitUrl, onLogout, onWithdraw }) {
   const [url, setUrl] = useState(lastInputUrl || "");
@@ -8,6 +9,26 @@ export default function MainPage({ user, loading, lastInputUrl, onSubmitUrl, onL
   const [showResults, setShowResults] = useState(false);
   const [showPerformanceDetails, setShowPerformanceDetails] = useState(false);
   const [performanceData, setPerformanceData] = useState(null);
+  const [savedPerformances, setSavedPerformances] = useState([]);
+  const [loadingSavedPerformances, setLoadingSavedPerformances] = useState(false);
+
+  // 저장된 공연 목록 조회
+  useEffect(() => {
+    loadSavedPerformances();
+  }, []);
+
+  const loadSavedPerformances = async () => {
+    setLoadingSavedPerformances(true);
+    try {
+      const list = await performanceApi.getPerformanceList();
+      setSavedPerformances(list || []);
+    } catch (error) {
+      console.error('Failed to load saved performances:', error);
+      setSavedPerformances([]);
+    } finally {
+      setLoadingSavedPerformances(false);
+    }
+  };
 
   function handleSubmit(event) {
     event.preventDefault();
@@ -20,6 +41,8 @@ export default function MainPage({ user, loading, lastInputUrl, onSubmitUrl, onL
     setShowPerformanceDetails(false);
     setPerformanceData(null);
     setUrl("");
+    // 저장된 공연 목록 다시 로드
+    loadSavedPerformances();
   }
 
   function handleNavigateToPerformanceDetails(performance) {
@@ -27,6 +50,17 @@ export default function MainPage({ user, loading, lastInputUrl, onSubmitUrl, onL
     setShowResults(false);
     setShowPerformanceDetails(true);
   }
+
+  // 저장된 공연 제목 클릭 시 상세 정보 로드
+  const handleSavedPerformanceClick = async (performanceId) => {
+    try {
+      const performance = await performanceApi.getPerformanceById(performanceId);
+      handleNavigateToPerformanceDetails(performance);
+    } catch (error) {
+      console.error('Failed to load performance details:', error);
+      alert('공연 정보를 불러올 수 없습니다.');
+    }
+  };
 
   async function handleConfirmWithdraw() {
     try {
@@ -128,10 +162,25 @@ export default function MainPage({ user, loading, lastInputUrl, onSubmitUrl, onL
             </button>
           </form>
 
-          {lastInputUrl && (
-            <div className="url-preview">
-              <strong>마지막 입력 URL</strong>
-              <p>{lastInputUrl}</p>
+          {/* 저장된 공연 목록 섹션 */}
+          {savedPerformances.length > 0 && (
+            <div className="saved-performances">
+              <strong>📚 저장된 공연 목록</strong>
+              <ul className="saved-performances-list">
+                {savedPerformances.map((perf) => (
+                  <li key={perf.id} className="saved-perf-item">
+                    <button
+                      type="button"
+                      className="saved-perf-button"
+                      onClick={() => handleSavedPerformanceClick(perf.id)}
+                      disabled={loadingSavedPerformances}
+                    >
+                      {perf.title}
+                    </button>
+                    <div className="saved-perf-arrow">→</div>
+                  </li>
+                ))}
+              </ul>
             </div>
           )}
         </section>

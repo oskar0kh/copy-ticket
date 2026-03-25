@@ -9,12 +9,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -115,6 +113,93 @@ public class PerformanceParsingController {
             throw new ResponseStatusException(
                     HttpStatus.INTERNAL_SERVER_ERROR,
                     "공연 정보 저장 중 오류가 발생했습니다: " + e.getMessage()
+            );
+        }
+    }
+
+    /**
+     * 사용자의 저장된 공연 목록을 조회하는 API
+     * - 저장된 공연의 ID, title, goodsCode 반환
+     * - 최신순 정렬
+     *
+     * @param authentication 인증된 사용자 정보 (Spring Security)
+     * @return ResponseEntity: { id, title, goodsCode } 리스트
+     */
+    @GetMapping("/list")
+    public ResponseEntity<List<PerformanceService.PerformanceListItemDto>> getPerformanceList(
+            Authentication authentication
+    ) {
+        try {
+            // 1. 인증 확인
+            if (authentication == null || !authentication.isAuthenticated()) {
+                throw new ResponseStatusException(
+                        HttpStatus.UNAUTHORIZED,
+                        "로그인이 필요합니다."
+                );
+            }
+
+            // 2. 인증된 사용자의 username 추출
+            String userId = authentication.getName();
+
+            // 3. Service 호출 (저장된 공연 목록 조회)
+            List<PerformanceService.PerformanceListItemDto> performanceList = performanceService.getPerformanceListByUserId(userId);
+
+            return ResponseEntity.ok(performanceList);
+
+        } catch (ResponseStatusException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new ResponseStatusException(
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "공연 목록 조회 중 오류가 발생했습니다: " + e.getMessage()
+            );
+        }
+    }
+
+    /**
+     * 특정 공연 정보를 조회하는 API
+     * - 저장된 공연의 전체 정보 반환
+     * - 보안: 조회하려는 사용자가 해당 공연의 소유자인지 확인
+     *
+     * @param performanceId 공연 ID
+     * @param authentication 인증된 사용자 정보 (Spring Security)
+     * @return ResponseEntity: PerformanceResponseDto (공연 상세 정보)
+     */
+    @GetMapping("/{performanceId}")
+    public ResponseEntity<PerformanceResponseDto> getPerformanceById(
+            @PathVariable Long performanceId,
+            Authentication authentication
+    ) {
+        try {
+            // 1. 인증 확인
+            if (authentication == null || !authentication.isAuthenticated()) {
+                throw new ResponseStatusException(
+                        HttpStatus.UNAUTHORIZED,
+                        "로그인이 필요합니다."
+                );
+            }
+
+            // 2. 인증된 사용자의 username 추출
+            String userId = authentication.getName();
+
+            // 3. Service 호출 (특정 공연 정보 조회)
+            PerformanceResponseDto performance = performanceService.getPerformanceById(performanceId, userId);
+
+            return ResponseEntity.ok(performance);
+
+        } catch (ResponseStatusException e) {
+            throw e;
+        } catch (RuntimeException e) {
+            // 공연 정보 없음 또는 권한 없음
+            int statusCode = e.getMessage().contains("not found") ? HttpStatus.NOT_FOUND.value() : HttpStatus.FORBIDDEN.value();
+            throw new ResponseStatusException(
+                    HttpStatus.resolve(statusCode),
+                    e.getMessage()
+            );
+        } catch (Exception e) {
+            throw new ResponseStatusException(
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "공연 정보 조회 중 오류가 발생했습니다: " + e.getMessage()
             );
         }
     }
