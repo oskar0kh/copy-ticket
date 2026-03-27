@@ -56,7 +56,7 @@ public class InterparkService {
                         .build();
             }
 
-            PerformanceResponseDto result = extractPerformanceFromApiResponse(apiResponse, url);
+            PerformanceResponseDto result = extractPerformanceFromApiResponse(apiResponse, url, goodsCode);
             log.info("✅ Successfully parsed performance: {}", result.getGoodsName());
             return result;
 
@@ -113,9 +113,10 @@ public class InterparkService {
     /**
      * API 응답(JSON)에서 핵심 공연 정보 추출
      */
-    private PerformanceResponseDto extractPerformanceFromApiResponse(String jsonResponse, String sourceUrl) {
+    private PerformanceResponseDto extractPerformanceFromApiResponse(String jsonResponse, String sourceUrl, String goodsCode) {
         PerformanceResponseDto.PerformanceResponseDtoBuilder builder = PerformanceResponseDto.builder()
                 .sourceUrl(sourceUrl)
+                .goodsCode(goodsCode)
                 .parsedAt(LocalDateTime.now());
 
         try {
@@ -148,6 +149,13 @@ public class InterparkService {
         }
 
         // ========== 12개 핵심 필드 추출 ==========
+
+        // 0. goodsCode - 상품 코드 (API 응답에서 추출, 없으면 빌더의 기존 값 유지)
+        String apiGoodsCode = getStringValue(performance, "goodsCode");
+        if (apiGoodsCode != null) {
+            builder.goodsCode(apiGoodsCode);
+            log.info("✅ [0/12] Extracted goodsCode from API: {}", apiGoodsCode);
+        }
 
         // 1. goodsName - 공연 제목
         String goodsName = getStringValue(performance, "goodsName");
@@ -236,7 +244,7 @@ public class InterparkService {
             }
         }
 
-        log.info("✅ Successfully extracted all 12 core performance fields");
+        log.info("✅ Successfully extracted all 13 core performance fields");
 
         // 12. weekRank - 콘서트 주간 순위
         String weekRank = getStringValue(performance, "weekRank");

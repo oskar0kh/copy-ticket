@@ -6,14 +6,14 @@
 📁 Output file: /home/kunhyung/coding_wsl/copy-ticket/InterparkServiceTest_raw_response.txt
 
 📡 API REQUEST URL:
-   https://api-ticketfront.interpark.com/v1/goods/26003142/summary?goodsCode=26003142&passCode=&priceGrade=&seatGrade=&ts=1774620884540
+   https://api-ticketfront.interpark.com/v1/goods/26003142/summary?goodsCode=26003142&passCode=&priceGrade=&seatGrade=&ts=1774624818550
 
 ⏳ Calling Interpark API...
 
 📊 API RESPONSE STATUS:
    - HTTP Status: 200
    - Response Size: 3897 bytes
-   - Elapsed Time: 0.06 seconds
+   - Elapsed Time: 0.04 seconds
 
 ────────────────────────────────────────────────────────────────────────────────────────────────────
 📋 FULL RAW API RESPONSE (Pretty JSON):
@@ -65,7 +65,7 @@
     "isSportOneStop" : false,
     "isCancelDisabled" : false,
     "dayRank" : "55",
-    "weekRank" : "49",
+    "weekRank" : "50",
     "monthRank" : "29",
     "discountInfo" : "",
     "bizInfo" : "주최 : YH ENTERTAINMENT\r\n주관 : COMPANY Z\r\n문의 : 1544-1555",
@@ -90,7 +90,7 @@
     "isCaptcha" : true,
     "isUsedCastingCalendar" : false,
     "yfacilityInfo" : [ ],
-    "topingGrades" : [ "gFeWUPw44Mn97N5", "oiagzuHRLRVjMes", "Jh5NfxgDfElsBDC", "rtGVaDOF0nHwxDH", "NJPxS3ZfGgHqu2x", "t7LCtGaQfz9BQlp", "mUZbJig65I7pW9f", "FvWVUCnLqToBC4h", "Mlt6tW4TdzlQZnF", "VFgCNmFRLxoAWDc", "ZTd1U0XSZM88bQS" ],
+    "topingGrades" : [ "pqhEDvqXEVu9h2X", "2nF3EiinnDPPdtY", "2Ex8eXQ0uaKbOlm", "GgLLHVTnNefw3Za", "018GM9u5F7IrSlI", "UmQjWj6sOvONe3y", "PmJFRC4BBWnyiPM", "7rgC34XkWUiCyJG", "hQRpiFdTDqaw7l9", "WBxIQDlbJRAOPTI", "TkG1JagbkV1Cu1R" ],
     "maxSalesPrice" : 0,
     "minSalesPrice" : 0,
     "mediaUrl" : "",
@@ -99,7 +99,7 @@
     "sessionStartDate" : null,
     "sessionEndDate" : null,
     "soldOut" : null,
-    "currentTime" : 1774620884585,
+    "currentTime" : 1774624818580,
     "isGoodsTicketCast" : false,
     "isIngredientOnestop" : true,
     "isPaymentSeparate" : true
@@ -152,7 +152,7 @@
    - isSportOneStop                 (Boolean        ) = false
    - isCancelDisabled               (Boolean        ) = false
    - dayRank                        (String         ) = 55
-   - weekRank                       (String         ) = 49
+   - weekRank                       (String         ) = 50
    - monthRank                      (String         ) = 29
    - discountInfo                   (String         ) = 
    - bizInfo                        (String         ) = 주최 : YH ENTERTAINMENT
@@ -181,7 +181,7 @@
    - isCaptcha                      (Boolean        ) = true
    - isUsedCastingCalendar          (Boolean        ) = false
    - yfacilityInfo                  (ArrayList      ) = []
-   - topingGrades                   (ArrayList      ) = [gFeWUPw44Mn97N5, oiagzuHRLRVjMes, Jh5NfxgDfElsBDC, rtGVaDOF...
+   - topingGrades                   (ArrayList      ) = [pqhEDvqXEVu9h2X, 2nF3EiinnDPPdtY, 2Ex8eXQ0uaKbOlm, GgLLHVTn...
    - maxSalesPrice                  (Integer        ) = 0
    - minSalesPrice                  (Integer        ) = 0
    - mediaUrl                       (String         ) = 
@@ -190,7 +190,7 @@
    - sessionStartDate               (null           ) = null
    - sessionEndDate                 (null           ) = null
    - soldOut                        (null           ) = null
-   - currentTime                    (Long           ) = 1774620884585
+   - currentTime                    (Long           ) = 1774624818580
    - isGoodsTicketCast              (Boolean        ) = false
    - isIngredientOnestop            (Boolean        ) = true
    - isPaymentSeparate              (Boolean        ) = true

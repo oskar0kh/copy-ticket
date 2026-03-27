@@ -7,6 +7,7 @@ import copy_ticket.copy_ticket.dto.PerformanceSaveRequestDto;
 import copy_ticket.copy_ticket.repository.PerformanceRepository;
 import copy_ticket.copy_ticket.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,6 +17,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class PerformanceService {
 
     private final PerformanceRepository performanceRepository;
@@ -29,10 +31,24 @@ public class PerformanceService {
         User user = userRepository.findByUserIdAndDeletedAtIsNull(userId)
                 .orElseThrow(() -> new RuntimeException("User not found: " + userId));
 
-        // 2. 사용자의 현재 공연 개수 확인 (삭제되지 않은 것만)
+        // 2. goodsCode 기반 기존 레코드 확인 (soft delete되지 않은 것만)
+        if (saveRequestDto.getGoodsCode() != null) {
+            List<Performance> existingList = performanceRepository.findByCreatedByIdAndGoodsCodeAndDeletedAtIsNull(
+                    user.getId(), saveRequestDto.getGoodsCode());
+
+            if (!existingList.isEmpty()) {
+                // 기존 레코드 있으면 soft delete
+                Performance existing = existingList.get(0);
+                existing.setDeletedAt(Instant.now());
+                performanceRepository.save(existing);
+                log.info("Soft deleted existing performance with goodsCode: {}", saveRequestDto.getGoodsCode());
+            }
+        }
+
+        // 3. 사용자의 현재 공연 개수 확인 (삭제되지 않은 것만)
         long currentCount = performanceRepository.countByCreatedByIdAndDeletedAtIsNull(user.getId());
 
-        // 3. 5개 이상이면 가장 오래된 공연 soft delete
+        // 4. 5개 이상이면 가장 오래된 공연 soft delete
         if (currentCount >= MAX_PERFORMANCES_PER_USER) {
             List<Performance> oldestList = performanceRepository.findOldestByUserIdOrderByCreatedAtAsc(user.getId());
             if (!oldestList.isEmpty()) {
@@ -42,9 +58,10 @@ public class PerformanceService {
             }
         }
 
-        // 4. DTO → Entity 변환 (12개 핵심 필드만)
+        // 5. DTO → Entity 변환 (13개 핵심 필드)
         Performance performance = new Performance();
         performance.setSourceUrl(saveRequestDto.getSourceUrl());
+        performance.setGoodsCode(saveRequestDto.getGoodsCode());
         performance.setGoodsName(saveRequestDto.getGoodsName());
         performance.setSubGoodsName(saveRequestDto.getSubGoodsName());
         performance.setPlaceName(saveRequestDto.getPlaceName());
@@ -62,7 +79,7 @@ public class PerformanceService {
         performance.setUpdatedAt(Instant.now());
         performance.setDeletedAt(null);
 
-        // 5. DB에 저장
+        // 6. DB에 저장
         return performanceRepository.save(performance);
     }
 

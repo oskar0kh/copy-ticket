@@ -35,9 +35,12 @@ public class Performance {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // ========== 2-13. 12개 핵심 필드 ==========
+    // ========== 2-14. 13개 핵심 필드 ==========
     @Column(name = "source_url", nullable = false, length = 2048)
     private String sourceUrl;
+
+    @Column(name = "goods_code", length = 50)
+    private String goodsCode;
 
     @Column(name = "goods_name", nullable = false, length = 500)
     private String goodsName;

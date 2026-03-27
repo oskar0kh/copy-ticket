@@ -19,11 +19,14 @@ import java.time.ZoneId;
 @AllArgsConstructor
 public class PerformanceResponseDto {
 
-    // ========== 12개 핵심 필드 ==========
+    // ========== 13개 핵심 필드 ==========
     // 1. 원본 URL
     private String sourceUrl;
 
-    // 2-9. 공연 정보
+    // 2. 상품 코드
+    private String goodsCode;
+
+    // 3-10. 공연 정보
     private String goodsName;                   // 공연 제목
     private String subGoodsName;                // 공연 부제목
     private String placeName;                   // 공연 장소
@@ -50,6 +53,7 @@ public class PerformanceResponseDto {
     public static PerformanceResponseDto fromEntity(Performance performance) {
         return PerformanceResponseDto.builder()
                 .sourceUrl(performance.getSourceUrl())
+                .goodsCode(performance.getGoodsCode())
                 .goodsName(performance.getGoodsName())
                 .subGoodsName(performance.getSubGoodsName())
                 .placeName(performance.getPlaceName())

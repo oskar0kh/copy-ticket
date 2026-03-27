@@ -24,6 +24,7 @@ CREATE UNIQUE INDEX uq_users_user_id_active ON users(user_id) WHERE deleted_at I
 CREATE TABLE performances (
     id                      BIGSERIAL PRIMARY KEY,
     source_url              VARCHAR(2048) NOT NULL,
+    goods_code              VARCHAR(50),
     goods_name              VARCHAR(500) NOT NULL,
     sub_goods_name          VARCHAR(1000),
     place_name              VARCHAR(500),

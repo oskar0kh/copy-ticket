@@ -6,7 +6,6 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
-import java.util.Optional;
 
 public interface PerformanceRepository extends JpaRepository<Performance, Long> {
 
@@ -19,5 +18,8 @@ public interface PerformanceRepository extends JpaRepository<Performance, Long> 
 
     // 사용자의 모든 공연 조회 (soft delete되지 않은 것만)
     List<Performance> findByCreatedByIdAndDeletedAtIsNullOrderByCreatedAtDesc(Long userId);
+
+    // 같은 goodsCode 기존 레코드 조회 (soft delete되지 않은 것만)
+    List<Performance> findByCreatedByIdAndGoodsCodeAndDeletedAtIsNull(Long userId, String goodsCode);
 }
 
