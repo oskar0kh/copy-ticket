@@ -103,7 +103,7 @@ public class PerformanceParsingController {
             // 4. 저장된 공연 정보 응답
             return ResponseEntity.ok(Map.of(
                     "id", savedPerformance.getId(),
-                    "title", savedPerformance.getTitle(),
+                    "title", savedPerformance.getGoodsName(),
                     "message", "공연 정보가 저장되었습니다."
             ));
 

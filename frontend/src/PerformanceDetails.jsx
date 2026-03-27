@@ -14,24 +14,8 @@ const PerformanceDetails = ({ user, onLogout, performanceData }) => {
 
   // performanceData가 있으면 초기 월/년을 공연 시작일로 설정
   useEffect(() => {
-    console.log('=== PerformanceDetails Debug ===');
-    console.log('performanceData:', performanceData);
-    if (performanceData) {
-      console.log('Fields:');
-      console.log('  title:', performanceData.title);
-      console.log('  placeName:', performanceData.placeName);
-      console.log('  startDate (예매 시작):', performanceData.startDate);
-      console.log('  endDate (예매 종료):', performanceData.endDate);
-      console.log('  playDate:', performanceData.playDate);
-      console.log('  playStartDate:', performanceData.playStartDate);
-      console.log('  playEndDate:', performanceData.playEndDate);
-      console.log('  goodsName:', performanceData.goodsName);
-      console.log('  imageUrl:', performanceData.imageUrl);
-    }
-
     if (performanceData?.playStartDate) {
       const startDate = parsePlayDateString(performanceData.playStartDate);
-      console.log('Calendar init with playStartDate:', startDate);
       setCurrentMonth({
         year: startDate.getFullYear(),
         month: startDate.getMonth() + 1
@@ -158,9 +142,11 @@ const PerformanceDetails = ({ user, onLogout, performanceData }) => {
                 <span className="badge-item green">안심예매 ⓘ</span>
                 <span className="badge-item red">예매대기 ⓘ</span>
               </div>
-              <h1 className="perf-main-title">{performanceData?.title || '레이베이 내한공연'}</h1>
-              <p className="perf-sub-title">{performanceData?.goodsName || 'Laufey: A Matter of Time Tour in Seoul'}</p>
-              <div className="perf-rank-line">콘서트 주간 00위</div>
+              <h1 className="perf-main-title">{performanceData?.goodsName || '공연 제목 없음'}</h1>
+              {performanceData?.subGoodsName && (
+                <p className="perf-sub-title">{performanceData.subGoodsName}</p>
+              )}
+              <div className="perf-rank-line">콘서트 주간 {performanceData?.weekRank || '00'}위</div>
             </section>
 
             {/* 2. 메인 콘텐츠 섹션 */}
@@ -168,27 +154,34 @@ const PerformanceDetails = ({ user, onLogout, performanceData }) => {
               <div className="perf-info-top-row">
                 <div className="poster-box">
                   <img
-                    src={performanceData?.imageUrl || "Default Poster"}
-                    alt={performanceData?.title || "Default Title"}
+                    src={performanceData?.goodsLargeImageUrl || "https://via.placeholder.com/320x426?text=Poster"}
+                    alt={performanceData?.goodsName || "공연 포스터"}
                     className="poster-img"
+                    onError={(e) => {
+                      e.target.src = 'https://via.placeholder.com/320x426?text=Poster';
+                    }}
                   />
                   <div className="poster-footer">
-                    <span>♡ 티켓캐스트 000</span>
+                    <span>♡ 티켓캐스트 {performanceData?.ticketCastCount || '000'}</span>
                   </div>
                 </div>
 
                 <div className="info-details-table">
                 <div className="info-item">
                   <span className="label">장소</span>
-                  <span className="value">{performanceData?.placeName || '킨텍스 XX홀'}</span>
+                  <span className="value">{performanceData?.placeName || '장소 정보 없음'}</span>
                 </div>
                 <div className="info-item">
                   <span className="label">공연기간</span>
-                  <span className="value">{getPerformanceDateDisplay() || '20xx.xx.xx'}</span>
+                  <span className="value">{getPerformanceDateDisplay() || '공연 기간 정보 없음'}</span>
+                </div>
+                <div className="info-item">
+                  <span className="label">공연시간</span>
+                  <span className="value">{performanceData?.runningTime ? `${performanceData.runningTime}분` : '정보 없음'}</span>
                 </div>
                 <div className="info-item">
                   <span className="label">관람연령</span>
-                  <span className="value">만 X세이상</span>
+                  <span className="value">{performanceData?.viewRateName || '정보 없음'}</span>
                 </div>
                 <div className="info-item price-item">
                   <span className="label">가격</span>
@@ -214,11 +207,11 @@ const PerformanceDetails = ({ user, onLogout, performanceData }) => {
                 </div>
                 <div className="info-item">
                     <span className="label">배송</span>
-                    <span className="value">2026년 XX월 XX일 일괄 배송되는 상품입니다.</span>
+                    <span className="value">2026년 00월 00일 일괄 배송되는 상품입니다.</span>
                 </div>
                 <div className="info-item">
                     <span className="label">유의사항</span>
-                    <span className="value benefit-link">2026년 XX월 XX일 XX시 XX분~2026년 XX월 XX일 XX시 XX분까지<br></br>무통장입금 결제가 불가능합니다.</span>
+                    <span className="value benefit-link">2026년 00월 00일 00시 00분~2026년 00월 00일 00시 00분까지<br></br>무통장입금 결제가 불가능합니다.</span>
                 </div>
                 </div>
               </div>
@@ -270,10 +263,11 @@ const PerformanceDetails = ({ user, onLogout, performanceData }) => {
                     {calendarDays.map((day, index) => {
                       const selectable = isDateSelectable(day);
                       const inRange = isDateInPerformanceRange(day);
+                      const isSunday = index % 7 === 0;
                       return (
                         <div
                           key={index}
-                          className={`cal-day ${!day ? 'empty' : ''} ${day === selectedDate ? 'selected' : ''} ${!selectable ? 'disabled' : ''} ${inRange ? 'in-range' : ''}`}
+                          className={`cal-day ${!day ? 'empty' : ''} ${day === selectedDate ? 'selected' : ''} ${!selectable ? 'disabled' : ''} ${inRange ? 'in-range' : ''} ${isSunday && day ? 'sunday' : ''}`}
                           onClick={() => day && selectable && setSelectedDate(day)}
                           style={{ cursor: selectable && day ? 'pointer' : 'not-allowed' }}
                         >

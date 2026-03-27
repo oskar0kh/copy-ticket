@@ -17,56 +17,42 @@ import lombok.Setter;
 import java.time.Instant;
 
 /**
- * 공연 정보 — URL HTML 파싱 후 저장
+ * 공연 정보 — API 응답에서 파싱해서 저장
  * 사용자당 최대 5개까지만 저장 가능 (soft delete로 관리)
  */
 @Entity
 @Table(name = "performances", indexes = {
-        @Index(name = "idx_performances_reservation_open_at", columnList = "start_date"),
         @Index(name = "idx_performances_source_url", columnList = "source_url"),
-        @Index(name = "idx_performances_goods_code", columnList = "goods_code")
+        @Index(name = "idx_performances_created_by", columnList = "created_by")
 })
 @Getter
 @Setter
 @NoArgsConstructor
 public class Performance {
 
+    // ========== 1. ID ==========
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // ========== 2-13. 12개 핵심 필드 ==========
     @Column(name = "source_url", nullable = false, length = 2048)
     private String sourceUrl;
 
-    @Column(nullable = false, length = 500)
-    private String title;
-
-    @Column(name = "image_url", length = 2048)
-    private String imageUrl;
-
-    @Column(name = "start_date", length = 12)
-    private String startDate;
-
-    @Column(name = "end_date", length = 12)
-    private String endDate;
-
-    @Column(length = 2048)
-    private String link;
-
-    @Column(name = "goods_code", unique = true, length = 50)
-    private String goodsCode;
-
-    @Column(name = "goods_name", length = 500)
+    @Column(name = "goods_name", nullable = false, length = 500)
     private String goodsName;
 
-    @Column(name = "place_code", length = 50)
-    private String placeCode;
+    @Column(name = "sub_goods_name", length = 1000)
+    private String subGoodsName;
 
     @Column(name = "place_name", length = 500)
     private String placeName;
 
-    @Column(name = "play_date", length = 50)
-    private String playDate;
+    @Column(name = "view_rate_name", length = 100)
+    private String viewRateName;
+
+    @Column(name = "running_time", length = 20)
+    private String runningTime;
 
     @Column(name = "play_start_date", length = 10)
     private String playStartDate;
@@ -74,6 +60,23 @@ public class Performance {
     @Column(name = "play_end_date", length = 10)
     private String playEndDate;
 
+    @Column(name = "goods_large_image_url", length = 2048)
+    private String goodsLargeImageUrl;
+
+    @Column(name = "ticket_open_date", length = 20)
+    private String ticketOpenDate;
+
+    @Column(name = "booking_end_date", length = 20)
+    private String bookingEndDate;
+
+    @Column(name = "ticket_cast_count")
+    private Integer ticketCastCount;
+
+    // ========== 14. 공연 순위 정보 ==========
+    @Column(name = "week_rank", length = 10)
+    private String weekRank;
+
+    // ========== 15-18. 메타 필드 ==========
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by")
     private User createdBy;
@@ -87,4 +90,3 @@ public class Performance {
     @Column(name = "deleted_at")
     private Instant deletedAt;
 }
-

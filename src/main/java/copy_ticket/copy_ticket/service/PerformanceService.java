@@ -29,21 +29,10 @@ public class PerformanceService {
         User user = userRepository.findByUserIdAndDeletedAtIsNull(userId)
                 .orElseThrow(() -> new RuntimeException("User not found: " + userId));
 
-        // 2. 같은 사용자의 같은 goods_code가 이미 있으면 soft delete 처리
-        //    goods_code unique 제약 충돌을 피하기 위해 기존 값은 null로 비움
-        performanceRepository.findByCreatedByIdAndGoodsCodeAndDeletedAtIsNull(user.getId(), saveRequestDto.getGoodsCode())
-                .ifPresent(existing -> {
-                Instant now = Instant.now();
-                existing.setDeletedAt(now);
-                existing.setUpdatedAt(now);
-                existing.setGoodsCode(null);
-                performanceRepository.saveAndFlush(existing);
-                });
-
-        // 3. 사용자의 현재 공연 개수 확인 (삭제되지 않은 것만)
+        // 2. 사용자의 현재 공연 개수 확인 (삭제되지 않은 것만)
         long currentCount = performanceRepository.countByCreatedByIdAndDeletedAtIsNull(user.getId());
 
-        // 4. 5개 이상이면 가장 오래된 공연 soft delete
+        // 3. 5개 이상이면 가장 오래된 공연 soft delete
         if (currentCount >= MAX_PERFORMANCES_PER_USER) {
             List<Performance> oldestList = performanceRepository.findOldestByUserIdOrderByCreatedAtAsc(user.getId());
             if (!oldestList.isEmpty()) {
@@ -53,35 +42,35 @@ public class PerformanceService {
             }
         }
 
-        // 5. DTO → Entity 변환
+        // 4. DTO → Entity 변환 (12개 핵심 필드만)
         Performance performance = new Performance();
         performance.setSourceUrl(saveRequestDto.getSourceUrl());
-        performance.setTitle(saveRequestDto.getTitle());
-        performance.setImageUrl(saveRequestDto.getImageUrl());
-        performance.setStartDate(saveRequestDto.getStartDate());
-        performance.setEndDate(saveRequestDto.getEndDate());
-        performance.setLink(saveRequestDto.getLink());
-        performance.setGoodsCode(saveRequestDto.getGoodsCode());
         performance.setGoodsName(saveRequestDto.getGoodsName());
-        performance.setPlaceCode(saveRequestDto.getPlaceCode());
+        performance.setSubGoodsName(saveRequestDto.getSubGoodsName());
         performance.setPlaceName(saveRequestDto.getPlaceName());
-        performance.setPlayDate(saveRequestDto.getPlayDate());
+        performance.setViewRateName(saveRequestDto.getViewRateName());
+        performance.setRunningTime(saveRequestDto.getRunningTime());
         performance.setPlayStartDate(saveRequestDto.getPlayStartDate());
         performance.setPlayEndDate(saveRequestDto.getPlayEndDate());
+        performance.setGoodsLargeImageUrl(saveRequestDto.getGoodsLargeImageUrl());
+        performance.setTicketOpenDate(saveRequestDto.getTicketOpenDate());
+        performance.setBookingEndDate(saveRequestDto.getBookingEndDate());
+        performance.setTicketCastCount(saveRequestDto.getTicketCastCount());
+        performance.setWeekRank(saveRequestDto.getWeekRank());
         performance.setCreatedBy(user);
         performance.setCreatedAt(Instant.now());
         performance.setUpdatedAt(Instant.now());
         performance.setDeletedAt(null);
 
-        // 6. DB에 저장
+        // 5. DB에 저장
         return performanceRepository.save(performance);
     }
 
     /**
-     * 사용자의 저장된 공연 목록을 조회 (title만 반환)
+     * 사용자의 저장된 공연 목록을 조회 (goodsName 반환)
      *
      * @param userId 사용자 ID
-     * @return 저장된 공연의 title 목록
+     * @return 저장된 공연의 goodsName 목록
      */
     @Transactional(readOnly = true)
     public List<String> getPerformanceTitleListByUserId(String userId) {
@@ -90,15 +79,15 @@ public class PerformanceService {
 
         return performanceRepository.findByCreatedByIdAndDeletedAtIsNullOrderByCreatedAtDesc(user.getId())
                 .stream()
-                .map(Performance::getTitle)
+                .map(Performance::getGoodsName)
                 .collect(Collectors.toList());
     }
 
     /**
-     * 사용자의 저장된 공연 목록을 조회 (ID, title, goodsCode)
+     * 사용자의 저장된 공연 목록을 조회 (ID, goodsName 포함)
      *
      * @param userId 사용자 ID
-     * @return 저장된 공연의 목록 (ID, title, goodsCode 포함)
+     * @return 저장된 공연의 목록 (ID, goodsName 포함)
      */
     @Transactional(readOnly = true)
     public List<PerformanceListItemDto> getPerformanceListByUserId(String userId) {
@@ -107,7 +96,7 @@ public class PerformanceService {
 
         return performanceRepository.findByCreatedByIdAndDeletedAtIsNullOrderByCreatedAtDesc(user.getId())
                 .stream()
-                .map(perf -> new PerformanceListItemDto(perf.getId(), perf.getTitle(), perf.getGoodsCode()))
+                .map(perf -> new PerformanceListItemDto(perf.getId(), perf.getGoodsName()))
                 .collect(Collectors.toList());
     }
 
@@ -166,39 +155,31 @@ public class PerformanceService {
             throw new RuntimeException("Performance is already deleted");
         }
 
-        // Soft delete: deleted_at 설정, goods_code를 null로 설정 (unique 제약 회피), updated_at 업데이트
+        // Soft delete: deleted_at 설정, updated_at 업데이트
         Instant now = Instant.now();
         performance.setDeletedAt(now);
         performance.setUpdatedAt(now);
-        performance.setGoodsCode(null);
         performanceRepository.save(performance);
     }
 
     /**
-     * DTO: 공연 목록 아이템 (ID + title + goodsCode)
+     * DTO: 공연 목록 아이템 (ID + goodsName)
      */
     public static class PerformanceListItemDto {
         public Long id;
-        public String title;
-        public String goodsCode;
+        public String goodsName;
 
-        public PerformanceListItemDto(Long id, String title, String goodsCode) {
+        public PerformanceListItemDto(Long id, String goodsName) {
             this.id = id;
-            this.title = title;
-            this.goodsCode = goodsCode;
+            this.goodsName = goodsName;
         }
 
         public Long getId() {
             return id;
         }
 
-        public String getTitle() {
-            return title;
-        }
-
-        public String getGoodsCode() {
-            return goodsCode;
+        public String getGoodsName() {
+            return goodsName;
         }
     }
 }
-

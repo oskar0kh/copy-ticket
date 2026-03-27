@@ -40,7 +40,7 @@ public class SecurityConfig {
             )
             .authorizeHttpRequests(auth -> auth // 접근 가능한 URL 설정 (로그인, 회원가입, 정적 리소스 등)
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                .requestMatchers(HttpMethod.POST, "/api/signup", "/api/login", "/api/logout").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/signup", "/api/login", "/api/logout", "/api/performance/parse").permitAll()
                 .requestMatchers("/error").permitAll()
                 .anyRequest().authenticated()
             )

@@ -5,11 +5,10 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
-
 /**
  * POST /api/performance/save
- * 공연 정보를 DB에 저장하는 요청 DTO
+ * 파싱된 공연 정보를 DB에 저장하는 요청 DTO
+ * (12개 핵심 필드만 포함)
  */
 @Data
 @Builder
@@ -17,32 +16,18 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class PerformanceSaveRequestDto {
 
-    // ========== DB 저장 필드 (schema.sql과 일치) ==========
-    // 메타 정보
-    private String sourceUrl;                    // 원본 URL (사용자가 입력한 URL)
-    private LocalDateTime parsedAt;              // 파싱 시각
-
-    // 기본 공연 정보
-    private String title;                        // 공연 제목
-    private String imageUrl;                     // 포스터/이미지 URL
-
-    // 예매 시간
-    private String startDate;                    // 예매 시작 (YYYYMMDDHHMM)
-    private String endDate;                      // 예매 종료 (YYYYMMDDHHMM)
-
-    // 공연 링크
-    private String link;                         // 공연 URL (인터파크)
-
-    // 인터파크 상품 정보
-    private String goodsCode;                    // 인터파크 상품 코드
-    private String goodsName;                    // 인터파크 상품명
-
-    // 공연장 정보
-    private String placeCode;                    // 공연장 코드
-    private String placeName;                    // 공연장명
-
-    // 공연 일정
-    private String playDate;                     // 공연 날짜 범위 (예: "26-06-07 ~ 26-06-07")
-    private String playStartDate;                // 공연 시작일 (YYYY.MM.DD)
-    private String playEndDate;                  // 공연 종료일 (YYYY.MM.DD)
+    // ========== 13개 핵심 필드 ==========
+    private String sourceUrl;              // 1. 원본 URL (사용자가 입력한 URL)
+    private String goodsName;              // 2. 공연 제목
+    private String subGoodsName;           // 3. 공연 부제목
+    private String placeName;              // 4. 공연 장소
+    private String viewRateName;           // 5. 관람 연령 (전체관람가, 12세이상 등)
+    private String runningTime;            // 6. 공연 시간 (분 단위)
+    private String playStartDate;          // 7. 공연 시작일 (YYYY.MM.DD)
+    private String playEndDate;            // 8. 공연 종료일 (YYYY.MM.DD)
+    private String goodsLargeImageUrl;     // 9. 공연 포스터 이미지 URL
+    private String ticketOpenDate;         // 10. 티켓 오픈 날짜 (YYYYMMDDHHmm)
+    private String bookingEndDate;         // 11. 예매 종료 날짜 (YYYYMMDDHHmm)
+    private Integer ticketCastCount;       // 12. 티켓캐스트 개수
+    private String weekRank;               // 13. 콘서트 주간 순위
 }

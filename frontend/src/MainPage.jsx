@@ -191,6 +191,7 @@ export default function MainPage({ user, loading, lastInputUrl, onSubmitUrl, onL
           {savedPerformances.length > 0 && (
             <div className="saved-performances">
               <strong>📚 저장된 URL 목록</strong>
+              <p className="saved-performances-notice">공연 URL은 최대 5개까지 저장할 수 있습니다.</p>
               <ul className="saved-performances-list">
                 {savedPerformances.map((perf) => (
                   <li key={perf.id} className="saved-perf-item">
@@ -200,7 +201,7 @@ export default function MainPage({ user, loading, lastInputUrl, onSubmitUrl, onL
                       onClick={() => handleSavedPerformanceClick(perf.id)}
                       disabled={loadingSavedPerformances}
                     >
-                      {perf.title}
+                      {perf.goodsName}
                     </button>
                     <button
                       type="button"
@@ -244,7 +245,7 @@ export default function MainPage({ user, loading, lastInputUrl, onSubmitUrl, onL
         <div className="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="delete-modal-title">
           <div className="modal-card">
             <h3 id="delete-modal-title">정말로 삭제하시겠습니까?</h3>
-            <p>"{performanceToDelete.title}" 공연이 삭제됩니다.</p>
+            <p>"{performanceToDelete.goodsName}" 공연이 삭제됩니다.</p>
             <div className="modal-actions">
               <button onClick={handleConfirmDelete} disabled={loadingSavedPerformances}>
                 확인
