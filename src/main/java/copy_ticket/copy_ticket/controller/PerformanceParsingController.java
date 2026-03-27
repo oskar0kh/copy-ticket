@@ -103,7 +103,7 @@ public class PerformanceParsingController {
             // 4. 저장된 공연 정보 응답
             return ResponseEntity.ok(Map.of(
                     "id", savedPerformance.getId(),
-                    "title", savedPerformance.getTitle(),
+                    "title", savedPerformance.getGoodsName(),
                     "message", "공연 정보가 저장되었습니다."
             ));
 
@@ -200,6 +200,63 @@ public class PerformanceParsingController {
             throw new ResponseStatusException(
                     HttpStatus.INTERNAL_SERVER_ERROR,
                     "공연 정보 조회 중 오류가 발생했습니다: " + e.getMessage()
+            );
+        }
+    }
+
+    /**
+     * 공연을 soft delete로 삭제하는 API
+     * - 사용자가 소유한 공연만 삭제 가능
+     * - 보안: 삭제하려는 사용자가 해당 공연의 소유자인지 확인
+     *
+     * @param performanceId 삭제할 공연 ID
+     * @param authentication 인증된 사용자 정보 (Spring Security)
+     * @return ResponseEntity: { message }
+     */
+    @DeleteMapping("/{performanceId}")
+    public ResponseEntity<Map<String, String>> deletePerformance(
+            @PathVariable Long performanceId,
+            Authentication authentication
+    ) {
+        try {
+            // 1. 인증 확인
+            if (authentication == null || !authentication.isAuthenticated()) {
+                throw new ResponseStatusException(
+                        HttpStatus.UNAUTHORIZED,
+                        "로그인이 필요합니다."
+                );
+            }
+
+            // 2. 인증된 사용자의 username 추출
+            String userId = authentication.getName();
+
+            // 3. Service 호출 (공연 soft delete)
+            performanceService.deletePerformance(performanceId, userId);
+
+            return ResponseEntity.ok(Map.of(
+                    "message", "공연이 삭제되었습니다."
+            ));
+
+        } catch (ResponseStatusException e) {
+            throw e;
+        } catch (RuntimeException e) {
+            // 공연 정보 없음, 권한 없음, 또는 이미 삭제됨
+            int statusCode;
+            if (e.getMessage().contains("not found")) {
+                statusCode = HttpStatus.NOT_FOUND.value();
+            } else if (e.getMessage().contains("already deleted")) {
+                statusCode = HttpStatus.CONFLICT.value();
+            } else {
+                statusCode = HttpStatus.FORBIDDEN.value();
+            }
+            throw new ResponseStatusException(
+                    HttpStatus.resolve(statusCode),
+                    e.getMessage()
+            );
+        } catch (Exception e) {
+            throw new ResponseStatusException(
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "공연 삭제 중 오류가 발생했습니다: " + e.getMessage()
             );
         }
     }
