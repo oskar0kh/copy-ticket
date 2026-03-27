@@ -19,32 +19,31 @@ CREATE TABLE users (
 CREATE UNIQUE INDEX uq_users_user_id_active ON users(user_id) WHERE deleted_at IS NULL;
 
 -- ---------------------------------------------------------------------------
--- 2. performances — 공연 정보
+-- 2. performances — 공연 정보 (API 응답에서 파싱)
 -- ---------------------------------------------------------------------------
 CREATE TABLE performances (
-    id                   BIGSERIAL PRIMARY KEY,
-    source_url           VARCHAR(2048) NOT NULL,
-    title                VARCHAR(500) NOT NULL,
-    image_url            VARCHAR(2048),
-    start_date           VARCHAR(12),
-    end_date             VARCHAR(12),
-    link                 VARCHAR(2048),
-    goods_code           VARCHAR(50) UNIQUE,
-    goods_name           VARCHAR(500),
-    place_code           VARCHAR(50),
-    place_name           VARCHAR(500),
-    play_date            VARCHAR(50),
-    play_start_date      VARCHAR(10),
-    play_end_date        VARCHAR(10),
-    created_by           BIGINT REFERENCES users(id),
-    created_at           TIMESTAMP NOT NULL DEFAULT now(),
-    updated_at           TIMESTAMP NOT NULL DEFAULT now(),
-    deleted_at           TIMESTAMP
+    id                      BIGSERIAL PRIMARY KEY,
+    source_url              VARCHAR(2048) NOT NULL,
+    goods_name              VARCHAR(500) NOT NULL,
+    sub_goods_name          VARCHAR(1000),
+    place_name              VARCHAR(500),
+    view_rate_name          VARCHAR(100),
+    running_time            VARCHAR(20),
+    play_start_date         VARCHAR(10),
+    play_end_date           VARCHAR(10),
+    goods_large_image_url   VARCHAR(2048),
+    ticket_open_date        VARCHAR(20),
+    booking_end_date        VARCHAR(20),
+    ticket_cast_count       INTEGER,
+    week_rank               VARCHAR(10),
+    created_by              BIGINT REFERENCES users(id),
+    created_at              TIMESTAMP NOT NULL DEFAULT now(),
+    updated_at              TIMESTAMP NOT NULL DEFAULT now(),
+    deleted_at              TIMESTAMP
 );
 
-CREATE INDEX idx_performances_reservation_open_at ON performances(start_date);
 CREATE INDEX idx_performances_source_url ON performances(source_url);
-CREATE INDEX idx_performances_goods_code ON performances(goods_code);
+CREATE INDEX idx_performances_created_by ON performances(created_by);
 
 -- ---------------------------------------------------------------------------
 -- 3. seats — 좌석

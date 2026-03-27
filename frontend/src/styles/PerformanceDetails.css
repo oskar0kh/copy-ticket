@@ -77,7 +77,7 @@
 /* 3. 상단 헤더 섹션 - 하단 라인이 가로 전체로 뻗음 */
 .perf-header-full {
   padding-top: 1.875rem;
-  padding-bottom: 1rem;
+  padding-bottom: 0.5rem;
 }
 
 .badge-row { display: flex; gap: 0.375rem; margin-bottom: 0.9375rem; }
@@ -86,7 +86,7 @@
 
 .perf-main-title { font-size: 1.875rem; font-weight: 700; color: #000; margin: 0; }
 .perf-sub-title { font-size: 1rem; color: #666; margin-top: 0.5rem; }
-.perf-rank-line { font-size: 0.8125rem; color: #999; margin-top: 0.9375rem; }
+.perf-rank-line { font-size: 0.8125rem; color: #999; margin-top: 0.5rem; }
 
 /* 4. 메인 콘텐츠 레이아웃 */
 .perf-main-body {
@@ -120,15 +120,15 @@
 
 /* 5. 정보 테이블 스타일 */
 .perf-info-top-row { display: flex; gap: 2.5rem; margin-bottom: 2.5rem; }
-.poster-img { width: 17.5rem; border-radius: 0.25rem; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+.poster-img { width: 17.5rem; border-radius: 0.25rem; margin-bottom: 0.5rem; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
 
 .info-details-table { flex: 1; }
 .info-item { display: flex; gap: 0; padding: 0.3125rem 0; border-bottom: none; align-items: flex-start; }
-.info-item .label { color: #333; flex-shrink: 0; font-weight: 600; font-size: 0.875rem; white-space: nowrap; margin-right: 0.5rem; }
-.info-item .value { color: #111; line-height: 1.4; font-size: 0.875rem; margin-left: -10rem; flex: 1; } /* margin-left로 필드간 간격 조정하면 됨*/
+.info-item .label { color: #333; flex-shrink: 0; font-weight: 600; font-size: 1rem; white-space: nowrap; margin-right: 0.5rem; }
+.info-item .value { color: #111; line-height: 1.4; font-size: 1rem; margin-left: -10rem; flex: 1; } /* margin-left로 필드간 간격 조정하면 됨*/
 
 .price-stack { list-style: none; padding: 0; margin-top: 0.625rem; }
-.price-stack li { display: flex; justify-content: space-between; margin-bottom: 0.5rem; font-size: 0.8125rem; align-items: center; }
+.price-stack li { display: flex; justify-content: space-between; margin-bottom: 0.5rem; font-size: 1cqi; align-items: center; }
 .price-stack .grade { color: #333; }
 .amt { font-weight: 700; color: #5d5df5; }
 
@@ -150,7 +150,7 @@
   background: none;
   border: none;
   color: #333;
-  font-size: 0.8125rem;
+  font-size: 1rem;
   cursor: pointer;
   font-weight: 600;
   margin-bottom: 0.625rem;
@@ -158,17 +158,23 @@
   display: block;
 }
 
+.btn-view-price:hover,
+.btn-view-price:active {
+  background: none;
+  color: #333;
+}
+
 /* 6. 사이드바 카드 스타일 (인터파크 예매창 느낌) */
 .sidebar-card {
   border: 1px solid #e0e0e0;
   border-radius: 0.5rem;
-  padding: 1rem;
+  padding: 1.25rem;
   margin-top: 1.5rem;
   margin-bottom: 0.5rem;
   background: #fff;
 }
 
-.card-title { font-weight: 700; display: flex; justify-content: space-between; margin-bottom: 0.55rem; font-size: 0.9375rem; }
+.card-title { font-weight: 700; display: flex; justify-content: space-between; margin-bottom: 0.55rem; font-size: 1rem; }
 
 .time-box.selected {
   /* 1. 박스 자체를 왼쪽으로 정렬 */
@@ -186,16 +192,17 @@
   color: #6364ED;            /* 이미지의 텍스트 파란색 */
 
   /* 여백 및 모양 (기본 유지하되, 이미지에 맞춰 약간 미세 조정) */
-  padding: 0.75rem 1rem;
+  padding: 0.725rem 1rem;
   border-radius: 0.375rem;
   font-weight: 600;
-  font-size: 0.8rem;
+  font-size: 0.9rem;
   box-sizing: border-box;
-  margin-bottom: 0.6rem;
+  margin-bottom: 0.8rem;
+  margin-top: 0.8rem;
 }
 
 .disclaimer-notice {
-  font-size: 0.8rem;
+  font-size: 0.875rem;
   color: black;
   line-height: 1.3;
 }
@@ -230,9 +237,9 @@
 .mini-calendar {
   padding: 0.5rem 0;
   border-bottom: 1px solid #e0e0e0; /* 캘린더 하단 회색 선 */
-  margin: 0 -1rem 0.65rem -1rem;
-  padding-left: 1rem;
-  padding-right: 1rem;
+  margin: 0 -1.25rem 0.65rem -1.25rem;
+  padding-left: 1.25rem;
+  padding-right: 1.25rem;
 }
 
 .cal-header {
@@ -318,4 +325,8 @@
   color: #fff;
   font-weight: 700;
   border-radius: 50%;
+}
+
+.cal-day.sunday:not(.empty) {
+  color: #ff0000;
 }

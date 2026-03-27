@@ -19,34 +19,30 @@ import java.time.ZoneId;
 @AllArgsConstructor
 public class PerformanceResponseDto {
 
-    // ========== DB 저장 필드 (schema.sql과 일치) ==========
+    // ========== 12개 핵심 필드 ==========
+    // 1. 원본 URL
+    private String sourceUrl;
+
+    // 2-9. 공연 정보
+    private String goodsName;                   // 공연 제목
+    private String subGoodsName;                // 공연 부제목
+    private String placeName;                   // 공연 장소
+    private String viewRateName;                // 관람 연령 (전체관람가, 12세이상 등)
+    private String runningTime;                 // 공연 시간 (분 단위)
+    private String playStartDate;               // 공연 시작일 (YYYY.MM.DD)
+    private String playEndDate;                 // 공연 종료일 (YYYY.MM.DD)
+    private String goodsLargeImageUrl;          // 공연 포스터 이미지 URL
+
+    // 10-12. 예매 정보
+    private String ticketOpenDate;              // 티켓 오픈 날짜 (YYYYMMDDHHmm)
+    private String bookingEndDate;              // 예매 종료 날짜 (YYYYMMDDHHmm)
+    private Integer ticketCastCount;            // 티켓캐스트 개수
+
+    // 공연 순위 정보
+    private String weekRank;                    // 주간 순위
+
     // 메타 정보
-    private String sourceUrl;                    // 원본 URL (사용자가 입력한 URL)
-    private LocalDateTime parsedAt;              // 파싱 시각
-
-    // 기본 공연 정보
-    private String title;                        // 공연 제목
-    private String imageUrl;                     // 포스터/이미지 URL
-
-    // 예매 시간
-    private String startDate;                    // 예매 시작 (YYYYMMDDHHMM)
-    private String endDate;                      // 예매 종료 (YYYYMMDDHHMM)
-
-    // 공연 링크
-    private String link;                         // 공연 URL (인터파크)
-
-    // 인터파크 상품 정보
-    private String goodsCode;                    // 인터파크 상품 코드
-    private String goodsName;                    // 인터파크 상품명
-
-    // 공연장 정보
-    private String placeCode;                    // 공연장 코드
-    private String placeName;                    // 공연장명
-
-    // 공연 일정
-    private String playDate;                     // 공연 날짜 범위 (예: "26-06-07 ~ 26-06-07")
-    private String playStartDate;                // 공연 시작일 (YYYY.MM.DD)
-    private String playEndDate;                  // 공연 종료일 (YYYY.MM.DD)
+    private LocalDateTime parsedAt;             // 파싱 시각
 
     /**
      * Performance 엔티티를 PerformanceResponseDto로 변환
@@ -54,19 +50,19 @@ public class PerformanceResponseDto {
     public static PerformanceResponseDto fromEntity(Performance performance) {
         return PerformanceResponseDto.builder()
                 .sourceUrl(performance.getSourceUrl())
-                .parsedAt(LocalDateTime.ofInstant(performance.getCreatedAt(), ZoneId.of("UTC")))
-                .title(performance.getTitle())
-                .imageUrl(performance.getImageUrl())
-                .startDate(performance.getStartDate())
-                .endDate(performance.getEndDate())
-                .link(performance.getLink())
-                .goodsCode(performance.getGoodsCode())
                 .goodsName(performance.getGoodsName())
-                .placeCode(performance.getPlaceCode())
+                .subGoodsName(performance.getSubGoodsName())
                 .placeName(performance.getPlaceName())
-                .playDate(performance.getPlayDate())
+                .viewRateName(performance.getViewRateName())
+                .runningTime(performance.getRunningTime())
                 .playStartDate(performance.getPlayStartDate())
                 .playEndDate(performance.getPlayEndDate())
+                .goodsLargeImageUrl(performance.getGoodsLargeImageUrl())
+                .ticketOpenDate(performance.getTicketOpenDate())
+                .bookingEndDate(performance.getBookingEndDate())
+                .ticketCastCount(performance.getTicketCastCount())
+                .weekRank(performance.getWeekRank())
+                .parsedAt(LocalDateTime.ofInstant(performance.getCreatedAt(), ZoneId.of("UTC")))
                 .build();
     }
 }

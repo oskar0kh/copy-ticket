@@ -6,6 +6,8 @@ import { performanceApi } from "./api/performanceApi";
 export default function MainPage({ user, loading, lastInputUrl, onSubmitUrl, onLogout, onWithdraw }) {
   const [url, setUrl] = useState(lastInputUrl || "");
   const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [performanceToDelete, setPerformanceToDelete] = useState(null);
   const [showResults, setShowResults] = useState(false);
   const [showPerformanceDetails, setShowPerformanceDetails] = useState(false);
   const [performanceData, setPerformanceData] = useState(null);
@@ -59,6 +61,29 @@ export default function MainPage({ user, loading, lastInputUrl, onSubmitUrl, onL
     } catch (error) {
       console.error('Failed to load performance details:', error);
       alert('공연 정보를 불러올 수 없습니다.');
+    }
+  };
+
+  // 삭제 버튼 클릭 시 모달 열기
+  const handleDeleteClick = (e, performance) => {
+    e.stopPropagation(); // 상위 버튼 클릭 방지
+    setPerformanceToDelete(performance);
+    setIsDeleteModalOpen(true);
+  };
+
+  // 삭제 확인
+  const handleConfirmDelete = async () => {
+    if (!performanceToDelete) return;
+
+    try {
+      await performanceApi.deletePerformance(performanceToDelete.id);
+      setIsDeleteModalOpen(false);
+      setPerformanceToDelete(null);
+      // 저장된 공연 목록 다시 로드
+      loadSavedPerformances();
+    } catch (error) {
+      console.error('Failed to delete performance:', error);
+      alert('공연 삭제에 실패했습니다.');
     }
   };
 
@@ -165,7 +190,8 @@ export default function MainPage({ user, loading, lastInputUrl, onSubmitUrl, onL
           {/* 저장된 공연 목록 섹션 */}
           {savedPerformances.length > 0 && (
             <div className="saved-performances">
-              <strong>📚 저장된 공연 목록</strong>
+              <strong>📚 저장된 URL 목록</strong>
+              <p className="saved-performances-notice">공연 URL은 최대 5개까지 저장할 수 있습니다.</p>
               <ul className="saved-performances-list">
                 {savedPerformances.map((perf) => (
                   <li key={perf.id} className="saved-perf-item">
@@ -175,9 +201,17 @@ export default function MainPage({ user, loading, lastInputUrl, onSubmitUrl, onL
                       onClick={() => handleSavedPerformanceClick(perf.id)}
                       disabled={loadingSavedPerformances}
                     >
-                      {perf.title}
+                      {perf.goodsName}
                     </button>
-                    <div className="saved-perf-arrow">→</div>
+                    <button
+                      type="button"
+                      className="saved-perf-delete-btn"
+                      onClick={(e) => handleDeleteClick(e, perf)}
+                      disabled={loadingSavedPerformances}
+                      title="삭제"
+                    >
+                      ✕
+                    </button>
                   </li>
                 ))}
               </ul>
@@ -199,6 +233,30 @@ export default function MainPage({ user, loading, lastInputUrl, onSubmitUrl, onL
                 className="ghost"
                 onClick={() => setIsWithdrawModalOpen(false)}
                 disabled={loading}
+              >
+                취소
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isDeleteModalOpen && performanceToDelete && (
+        <div className="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="delete-modal-title">
+          <div className="modal-card">
+            <h3 id="delete-modal-title">정말로 삭제하시겠습니까?</h3>
+            <p>"{performanceToDelete.goodsName}" 공연이 삭제됩니다.</p>
+            <div className="modal-actions">
+              <button onClick={handleConfirmDelete} disabled={loadingSavedPerformances}>
+                확인
+              </button>
+              <button
+                className="ghost"
+                onClick={() => {
+                  setIsDeleteModalOpen(false);
+                  setPerformanceToDelete(null);
+                }}
+                disabled={loadingSavedPerformances}
               >
                 취소
               </button>

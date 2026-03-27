@@ -116,10 +116,10 @@ export default function PerformanceDetails({ initialUrl, onBookingSuccess }) {
         <div className="performance-details">
           {/* Left: Poster */}
           <div className="performance-poster">
-            {performance.imageUrl ? (
+            {performance.goodsLargeImageUrl ? (
               <img
-                src={performance.imageUrl}
-                alt={performance.title}
+                src={performance.goodsLargeImageUrl}
+                alt={performance.goodsName}
                 onError={(e) => {
                   e.target.src = 'https://via.placeholder.com/320x426?text=Poster';
                 }}
@@ -134,13 +134,18 @@ export default function PerformanceDetails({ initialUrl, onBookingSuccess }) {
           {/* Right: Info */}
           <div className="performance-info">
             {/* Title */}
-            <h1>{performance.title || '제목 미정'}</h1>
+            <h1>{performance.goodsName || '제목 미정'}</h1>
 
-            {/* Venue, Price */}
+            {/* Subtitle */}
+            {performance.subGoodsName && (
+              <p className="subtitle">{performance.subGoodsName}</p>
+            )}
+
+            {/* Place Info */}
             {performance.placeName && (
               <div className="performance-info-section">
-                <h3>공연장</h3>
-                <p>{performance.placeName}</p>
+                <h3>공연 장소</h3>
+                <p className="place-text">{performance.placeName}</p>
               </div>
             )}
 
@@ -148,22 +153,19 @@ export default function PerformanceDetails({ initialUrl, onBookingSuccess }) {
             {performance.playStartDate && performance.playEndDate ? (
               <div className="performance-info-section">
                 <h3>공연 날짜</h3>
-                <p>{performance.playStartDate} ~ {performance.playEndDate}</p>
+                <div className="date-range">
+                  <div className="date-item">
+                    <span className="date-label">시작</span>
+                    <span className="date-value">{performance.playStartDate}</span>
+                  </div>
+                  <span className="date-separator">–</span>
+                  <div className="date-item">
+                    <span className="date-label">종료</span>
+                    <span className="date-value">{performance.playEndDate}</span>
+                  </div>
+                </div>
               </div>
-            ) : performance.playDate && (
-              <div className="performance-info-section">
-                <h3>공연 날짜</h3>
-                <p>{performance.playDate}</p>
-              </div>
-            )}
-
-            {/* Reservation Time */}
-            {performance.startDate && (
-              <div className="reservation-section">
-                <span className="label">예매 시작</span>
-                <span>{performance.startDate}</span>
-              </div>
-            )}
+            ) : null}
 
             {/* Button */}
             <button
@@ -175,11 +177,6 @@ export default function PerformanceDetails({ initialUrl, onBookingSuccess }) {
             >
               예매 연습하기
             </button>
-
-            {/* Metadata */}
-            <div className="metadata">
-              파싱됨: {new Date(performance.parsedAt).toLocaleString('ko-KR')}
-            </div>
           </div>
         </div>
       )}

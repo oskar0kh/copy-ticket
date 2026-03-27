@@ -7,11 +7,13 @@
 
 ## 1. 기술 스택
 
-| 구분 | 현재 | 추가 예정 |
-|------|------|-----------|
-| **Backend** | Spring Boot 4.x, Web, JPA, Validation, Thymeleaf | Spring Security, Redis, Kafka Client |
-| **DB** | PostgreSQL | (동일) |
-| **인프라** | — | Redis, Kafka (Docker) |
+| 구분 | 현재 |
+|------|------|
+| **Backend** | Spring Boot 4.x, Web, JPA, Validation, Spring Security, Redis, Kafka Client |
+| **Frontend** | React |
+| **DB** | PostgreSQL |
+| **인프라** | Redis, Kafka, Docker |
+| **기타 프레임워크** | Playwright |
 
 ---
 
@@ -80,7 +82,7 @@ Phase 7  마이페이지(예매 내역) + 락 TTL 비정상 종료 처리
 | 3-4 | 공통 UI 템플릿 | 인터파크 티켓의 “예매 화면” Thymeleaf 템플릿 구현, 파싱 결과로 치환해 렌더링 |
 | 3-5 | 예매 버튼 후 화면 | “예매하기” 클릭 시 다음 화면 UI 분석 후 템플릿 구현 (대기열 진입 전 단계와 연동) |
 
-**산출물:** 파싱 결과 DTO (title, imageUrl, description, openAt 등), 공연 상세/예매 진입용 템플릿
+**산출물:** 파싱 결과 DTO (title, imageUrl, 등), 공연 요약 페이지, 티켓팅 연습 페이지
 
 ---
 

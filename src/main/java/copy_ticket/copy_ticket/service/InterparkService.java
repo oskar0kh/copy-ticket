@@ -1,23 +1,24 @@
 package copy_ticket.copy_ticket.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.microsoft.playwright.*;
-import com.microsoft.playwright.options.LoadState;
 import copy_ticket.copy_ticket.dto.PerformanceResponseDto;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.net.URI;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Slf4j
 @Service
 public class InterparkService {
 
     /**
-     * Playwright 사용 -> 인터파크 티켓 페이지 렌더링해서 파싱
+     * HTTP API 직접 호출로 인터파크 공연 정보 파싱
+     * summary API에 직접 요청해서 공연 정보 조회
      *
      * @param url Interpark 상품 URL (예: https://tickets.interpark.com/goods/26003042)
      * @return 파싱된 공연 정보
@@ -25,332 +26,224 @@ public class InterparkService {
     public PerformanceResponseDto parseInterParkUrl(String url) {
         log.info("Starting to parse Interpark URL: {}", url);
 
-        // 1. Playwright 객체를 생성하고, URL을 랜더링 할 headless 브라우저(화면 안뜨는 브라우저), 컨택스트, 페이지 생성
-        try (Playwright playwright = Playwright.create()) {   // Playwright 인스턴스 생성
-            Browser browser = playwright.chromium().launch(); // Chromium 브라우저 실행
-            BrowserContext context = browser.newContext();    // 새로운 브라우저 컨텍스트 생성 (세션 격리)
-            Page page = context.newPage();                    // 새로운 페이지 생성
+        try {
+            // 1. URL에서 goodsCode 추출
+            String goodsCode = extractGoodsCodeFromUrl(url);
+            if (goodsCode == null) {
+                log.error("Could not extract goods code from URL: {}", url);
+                return PerformanceResponseDto.builder()
+                        .sourceUrl(url)
+                        .goodsName("URL에서 상품코드를 찾을 수 없습니다")
+                        .parsedAt(LocalDateTime.now())
+                        .build();
+            }
 
-            // 2. URL로 페이지 네비게이트
-            log.info("Navigating to URL...");
-            page.navigate(url);
+            log.info("Extracted goodsCode: {}", goodsCode);
 
-            // 3. 완전히 렌더링 될때까지 대기
-            page.waitForLoadState(LoadState.NETWORKIDLE);
-            log.info("Page loaded successfully");
+            // 2. API 직접 호출
+            String apiUrl = buildSummaryApiUrl(goodsCode);
+            log.info("Calling API: {}", apiUrl);
 
-            // 4. 완전히 렌더링 된 HTML 수집
-            String content = page.content();
+            String apiResponse = callInterparkSummaryApi(apiUrl);
 
-            // 5. HTML 필터링을 통해 핵심 공연 정보 추출
-            PerformanceResponseDto result = htmlPerformanceFilter(content, url);
+            // 3. API 응답 파싱
+            if (apiResponse == null || apiResponse.isEmpty()) {
+                log.error("Empty API response");
+                return PerformanceResponseDto.builder()
+                        .sourceUrl(url)
+                        .goodsName("API 응답이 없습니다")
+                        .parsedAt(LocalDateTime.now())
+                        .build();
+            }
 
-            log.info("Successfully parsed performance: {}", result.getTitle());
+            PerformanceResponseDto result = extractPerformanceFromApiResponse(apiResponse, url);
+            log.info("✅ Successfully parsed performance: {}", result.getGoodsName());
             return result;
 
         } catch (Exception e) {
-            log.error("Error parsing Interpark URL: {}", url, e);
-            throw new RuntimeException("Failed to parse Interpark page: " + e.getMessage(), e);
+            log.error("Error parsing Interpark URL", e);
+            return PerformanceResponseDto.builder()
+                    .sourceUrl(url)
+                    .goodsName("파싱 오류: " + e.getMessage())
+                    .parsedAt(LocalDateTime.now())
+                    .build();
         }
     }
 
     /**
-     * HTML 콘텐츠에서 fallback JSON 부분을 추출하고 공연 정보 파싱하는 메서드 (개선 버전)
+     * summary API URL 생성
      */
-    private PerformanceResponseDto htmlPerformanceFilter(String htmlContent, String sourceUrl) {
+    private String buildSummaryApiUrl(String goodsCode) {
+        long timestamp = System.currentTimeMillis();
+        return String.format(
+            "https://api-ticketfront.interpark.com/v1/goods/%s/summary?goodsCode=%s&passCode=&priceGrade=&seatGrade=&ts=%d",
+            goodsCode, goodsCode, timestamp
+        );
+    }
+
+    /**
+     * HTTP 요청으로 API 호출 (Java 11+ HttpClient 사용)
+     */
+    private String callInterparkSummaryApi(String apiUrl) {
+        try {
+            HttpClient client = HttpClient.newHttpClient();
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(apiUrl))
+                    .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+                    .header("Accept", "application/json")
+                    .GET()
+                    .build();
+
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+            if (response.statusCode() == 200) {
+                log.info("✅ API call successful (status: 200)");
+                log.info("   - Response size: {} bytes", response.body().length());
+                return response.body();
+            } else {
+                log.error("API call failed with status: {}", response.statusCode());
+                return null;
+            }
+        } catch (Exception e) {
+            log.error("Error calling Interpark summary API", e);
+            return null;
+        }
+    }
+
+    /**
+     * API 응답(JSON)에서 핵심 공연 정보 추출
+     */
+    private PerformanceResponseDto extractPerformanceFromApiResponse(String jsonResponse, String sourceUrl) {
         PerformanceResponseDto.PerformanceResponseDtoBuilder builder = PerformanceResponseDto.builder()
                 .sourceUrl(sourceUrl)
                 .parsedAt(LocalDateTime.now());
 
         try {
-            // 1. URL에서 goodsCode 추출
-            String urlGoodsCode = extractGoodsCodeFromUrl(sourceUrl);
-            log.debug("Extracted goods code from URL: {}", urlGoodsCode);
-
-            // 2. HTML에서 "fallback": 부분 찾기
-            int fallbackIdx = htmlContent.indexOf("\"fallback\":");
-            if (fallbackIdx == -1) {
-                log.warn("Could not find fallback section in HTML");
-                builder.title("공연 정보 없음");
-                return builder.build();
-            }
-
-            // 3. fallback 이후의 JSON 추출 (객체 또는 배열)
-            String fallbackContent = htmlContent.substring(fallbackIdx + "\"fallback\":".length()).trim();
-
-            // 4. JSON 값 추출 (객체 또는 배열)
-            int jsonStart = -1;
-            char firstChar = fallbackContent.charAt(0);
-
-            if (firstChar == '{') {
-                jsonStart = 0;
-            } else if (firstChar == '[') {
-                jsonStart = 0;
-            } else if (firstChar == '"') {
-                // 문자열인 경우 처리 안 함
-                log.warn("Fallback is a string, skipping");
-                builder.title("공연 정보 없음");
-                return builder.build();
-            }
-
-            if (jsonStart == -1) {
-                log.warn("Could not determine fallback type");
-                builder.title("공연 정보 없음");
-                return builder.build();
-            }
-
-            // 5. JSON 값의 끝 위치 찾기 (중괄호 또는 대괄호 매칭)
-            int jsonEnd = firstChar == '{'
-                ? findMatchingBracket(fallbackContent, 0, '{', '}')
-                : findMatchingBracket(fallbackContent, 0, '[', ']');
-
-            if (jsonEnd == -1) {
-                log.warn("Could not find matching bracket");
-                builder.title("공연 정보 없음");
-                return builder.build();
-            }
-
-            String jsonStr = fallbackContent.substring(jsonStart, jsonEnd + 1);
-            log.debug("Extracted JSON length: {}", jsonStr.length());
-
-            // 6. Jackson으로 파싱 및 공연 정보 추출
             ObjectMapper mapper = new ObjectMapper();
+            Map<String, Object> responseData = mapper.readValue(jsonResponse,
+                    mapper.getTypeFactory().constructMapType(Map.class, String.class, Object.class));
 
-            if (firstChar == '[') {
-                // fallback이 배열인 경우
-                List<Map<String, Object>> list = mapper.readValue(jsonStr,
-                        mapper.getTypeFactory().constructCollectionType(List.class, Map.class));
-                Map<String, Object> matched = findMatchingPerformance(list, urlGoodsCode);
-                if (matched != null) {
-                    extractPerformanceFields(matched, builder);
-                    return builder.build();
-                }
-            } else {
-                // fallback이 객체인 경우: {"@\"/goods/recent\",\"?goodsCodes=XXX\",":[...], ...}
-                Map<String, Object> fallbackObj = mapper.readValue(jsonStr,
-                        mapper.getTypeFactory().constructMapType(Map.class, String.class, Object.class));
+            log.debug("Parsed API response with {} top-level keys", responseData.size());
 
-                log.debug("Fallback object has {} keys", fallbackObj.size());
+            // 공연 정보 추출
+            extractPerformanceFields(responseData, builder);
 
-                // 1단계: fallback의 모든 배열에서 goodsCode와 일치하는 항목 수집
-                List<Map<String, Object>> allMatchedPerformances = new ArrayList<>();
-
-                for (Map.Entry<String, Object> entry : fallbackObj.entrySet()) {
-                    String key = entry.getKey();
-                    Object value = entry.getValue();
-
-                    // 직접 배열인 경우
-                    if (value instanceof List) {
-                        @SuppressWarnings("unchecked")
-                        List<Map<String, Object>> items = (List<Map<String, Object>>) value;
-                        log.debug("Searching in direct array at key: {}", key);
-                        for (Map<String, Object> item : items) {
-                            String itemGoodsCode = getStringValue(item, "goodsCode");
-                            if (urlGoodsCode != null && urlGoodsCode.equals(itemGoodsCode)) {
-                                allMatchedPerformances.add(item);
-                                log.debug("Found match in {}: {}", key, urlGoodsCode);
-                            }
-                        }
-                    }
-                    // 객체 내부의 배열인 경우
-                    else if (value instanceof Map) {
-                        @SuppressWarnings("unchecked")
-                        Map<String, Object> innerObj = (Map<String, Object>) value;
-                        for (Map.Entry<String, Object> innerEntry : innerObj.entrySet()) {
-                            Object innerValue = innerEntry.getValue();
-                            if (innerValue instanceof List) {
-                                @SuppressWarnings("unchecked")
-                                List<Map<String, Object>> items = (List<Map<String, Object>>) innerValue;
-                                log.debug("Searching in nested array at key: {}.{}", key, innerEntry.getKey());
-                                for (Map<String, Object> item : items) {
-                                    String itemGoodsCode = getStringValue(item, "goodsCode");
-                                    if (urlGoodsCode != null && urlGoodsCode.equals(itemGoodsCode)) {
-                                        allMatchedPerformances.add(item);
-                                        log.debug("Found match in {}.{}: {}", key, innerEntry.getKey(), urlGoodsCode);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // 2단계: 찾은 항목들을 병합 (기본 정보 + 상세 정보)
-                if (!allMatchedPerformances.isEmpty()) {
-                    Map<String, Object> mergedPerformance = mergePerformanceData(allMatchedPerformances);
-                    extractPerformanceFields(mergedPerformance, builder);
-                    log.info("Successfully extracted merged performance data with {} items", allMatchedPerformances.size());
-                    return builder.build();
-                }
-            }
-
-            log.warn("No matching performance found in all fallback arrays");
-            builder.title("공연 정보 없음");
+            log.debug("Successfully extracted performance fields from API response");
+            return builder.build();
 
         } catch (Exception e) {
-            log.error("Error filtering HTML performance data", e);
-            builder.title("파싱 오류: " + e.getMessage());
+            log.error("Error extracting performance from API response", e);
+            builder.goodsName("API 응답 파싱 오류: " + e.getMessage());
+            return builder.build();
         }
-
-        return builder.build();
     }
 
-    /**
-     * 여러 공연 정보 항목을 병합 (기본 정보 + 상세 정보)
-     * /goods/recent의 기본 정보와 /banner의 상세 정보를 합치기
-     */
-    private Map<String, Object> mergePerformanceData(List<Map<String, Object>> performances) {
-        if (performances.isEmpty()) {
-            return null;
-        }
-
-        // 1. 기본 정보를 담을 merged map (첫 번째 항목으로 시작)
-        Map<String, Object> merged = new java.util.HashMap<>(performances.get(0));
-
-        // 2. 나머지 항목들에서 누락된 필드를 채우기
-        for (int i = 1; i < performances.size(); i++) {
-            Map<String, Object> item = performances.get(i);
-            for (Map.Entry<String, Object> entry : item.entrySet()) {
-                // null이거나 빈 값인 필드만 채우기
-                String key = entry.getKey();
-                Object value = entry.getValue();
-
-                if (!merged.containsKey(key) || merged.get(key) == null ||
-                    (merged.get(key) instanceof String && ((String) merged.get(key)).isEmpty())) {
-                    if (value != null && !(value instanceof String && ((String) value).isEmpty())) {
-                        merged.put(key, value);
-                        log.debug("Merged field {}: {}", key, value);
-                    }
-                }
-            }
-        }
-
-        log.info("Successfully merged {} performance items", performances.size());
-        return merged;
-    }
-
-    /**
-     * 공연 목록에서 urlGoodsCode와 일치하는 공연 찾기
-     */
-    private Map<String, Object> findMatchingPerformance(List<Map<String, Object>> performanceList, String urlGoodsCode) {
-        for (Map<String, Object> item : performanceList) {
-            String itemGoodsCode = getStringValue(item, "goodsCode");
-            if (urlGoodsCode != null && urlGoodsCode.equals(itemGoodsCode)) {
-                log.info("Found matching performance with goodsCode: {}", urlGoodsCode);
-                return item;
-            }
-        }
-
-        // 일치하는 것이 없으면 첫 번째 반환
-        if (!performanceList.isEmpty()) {
-            log.warn("No exact match found, using first item");
-            return performanceList.get(0);
-        }
-
-        return null;
-    }
-
-    /**
-     * JSON에서 일치하는 닫는 괄호의 위치를 찾기 (여러 타입의 괄호 지원)
-     * 문자열 내부의 괄호는 무시
-     */
-    private int findMatchingBracket(String text, int openIdx, char openChar, char closeChar) {
-        int count = 1;
-        boolean inString = false;
-        boolean escaped = false;
-
-        for (int i = openIdx + 1; i < text.length(); i++) {
-            char c = text.charAt(i);
-
-            if (escaped) {
-                escaped = false;
-                continue;
-            }
-
-            if (c == '\\') {
-                escaped = true;
-                continue;
-            }
-
-            if (c == '"') {
-                inString = !inString;
-                continue;
-            }
-
-            if (!inString) {
-                if (c == openChar) {
-                    count++;
-                } else if (c == closeChar) {
-                    count--;
-                    if (count == 0) {
-                        return i;
-                    }
-                }
-            }
-        }
-
-        return -1;
-    }
-
-    /**
-     * Map에서 문자열 값을 안전하게 추출
-     */
-    private String getStringValue(Map<String, Object> map, String key) {
-        if (map == null || !map.containsKey(key)) {
-            return null;
-        }
-        Object value = map.get(key);
-        return value != null ? value.toString() : null;
-    }
-
-    /**
-     * JSON 객체에서 공연 정보 필드 추출 및 builder 설정
-     */
     private void extractPerformanceFields(Map<String, Object> performance,
                                          PerformanceResponseDto.PerformanceResponseDtoBuilder builder) {
-        // 기본 공연 정보
-        String title = getStringValue(performance, "goodsName");
-        if (title != null) {
-            builder.title(title);
+        // API 응답이 nested된 경우 "data" 필드에서 실제 데이터 추출
+        @SuppressWarnings("unchecked")
+        Map<String, Object> dataObj = (Map<String, Object>) performance.get("data");
+        if (dataObj != null) {
+            performance = dataObj;
         }
 
-        String imageUrl = getStringValue(performance, "posterImageUrl");
+        // ========== 12개 핵심 필드 추출 ==========
+
+        // 1. goodsName - 공연 제목
+        String goodsName = getStringValue(performance, "goodsName");
+        if (goodsName != null) {
+            builder.goodsName(goodsName);
+            log.info("✅ [1/12] Extracted goodsName: {}", goodsName);
+        }
+
+        // 2. subGoodsName - 공연 부제목
+        String subGoodsName = getStringValue(performance, "subGoodsName");
+        if (subGoodsName != null) {
+            builder.subGoodsName(subGoodsName);
+            log.info("✅ [2/12] Extracted subGoodsName: {}", subGoodsName);
+        }
+
+        // 3. placeName - 공연 장소
+        String placeName = getStringValue(performance, "placeName");
+        if (placeName != null) {
+            builder.placeName(placeName);
+            log.info("✅ [3/12] Extracted placeName: {}", placeName);
+        }
+
+        // 4. viewRateName - 관람 연령
+        String viewRateName = getStringValue(performance, "viewRateName");
+        if (viewRateName != null) {
+            builder.viewRateName(viewRateName);
+            log.info("✅ [4/12] Extracted viewRateName: {}", viewRateName);
+        }
+
+        // 5. runningTime - 공연 시간
+        String runningTime = getStringValue(performance, "runningTime");
+        if (runningTime != null) {
+            builder.runningTime(runningTime);
+            log.info("✅ [5/12] Extracted runningTime: {} minutes", runningTime);
+        }
+
+        // 6. playStartDate - 공연 시작일 (YYYYMMDD → YYYY.MM.DD)
+        String playStartDateStr = getStringValue(performance, "playStartDate");
+        if (playStartDateStr != null) {
+            String parsedStartDate = parsePlayDate(playStartDateStr);
+            builder.playStartDate(parsedStartDate);
+            log.info("✅ [6/12] Extracted playStartDate: {} → {}", playStartDateStr, parsedStartDate);
+        }
+
+        // 7. playEndDate - 공연 종료일 (YYYYMMDD → YYYY.MM.DD)
+        String playEndDateStr = getStringValue(performance, "playEndDate");
+        if (playEndDateStr != null) {
+            String parsedEndDate = parsePlayDate(playEndDateStr);
+            builder.playEndDate(parsedEndDate);
+            log.info("✅ [7/12] Extracted playEndDate: {} → {}", playEndDateStr, parsedEndDate);
+        }
+
+        // 8. goodsLargeImageUrl - 공연 포스터 이미지 URL
+        String imageUrl = getStringValue(performance, "goodsLargeImageUrl");
         if (imageUrl != null) {
             if (imageUrl.startsWith("//")) {
                 imageUrl = "https:" + imageUrl;
             }
-            builder.imageUrl(imageUrl);
+            builder.goodsLargeImageUrl(imageUrl);
+            log.info("✅ [8/12] Extracted goodsLargeImageUrl: {}", imageUrl);
         }
 
-        // 예매 시간
-        builder.startDate(getStringValue(performance, "bookStartDate"));
-        builder.endDate(getStringValue(performance, "bookEndDate"));
-
-        // 공연 링크
-        builder.link(getStringValue(performance, "goodsUrl"));
-
-        // 인터파크 상품 정보
-        builder.goodsCode(getStringValue(performance, "goodsCode"));
-        builder.goodsName(getStringValue(performance, "goodsName"));
-
-        // 공연장 정보
-        builder.placeCode(getStringValue(performance, "placeCode"));
-        builder.placeName(getStringValue(performance, "placeName"));
-
-        // 공연 일정
-        builder.playDate(getStringValue(performance, "playDate"));
-
-        // playStartDate, playEndDate 파싱
-        String playStartDateStr = getStringValue(performance, "playStartDate");
-        String playEndDateStr = getStringValue(performance, "playEndDate");
-
-        if (playStartDateStr != null) {
-            builder.playStartDate(parsePlayDate(playStartDateStr));
-        }
-        if (playEndDateStr != null) {
-            builder.playEndDate(parsePlayDate(playEndDateStr));
+        // 9. ticketOpenDate - 티켓 오픈 날짜
+        String ticketOpenDate = getStringValue(performance, "ticketOpenDate");
+        if (ticketOpenDate != null) {
+            builder.ticketOpenDate(ticketOpenDate);
+            log.info("✅ [9/12] Extracted ticketOpenDate: {}", ticketOpenDate);
         }
 
-        log.debug("Successfully extracted all performance fields");
+        // 10. bookingEndDate - 예매 종료 날짜
+        String bookingEndDate = getStringValue(performance, "bookingEndDate");
+        if (bookingEndDate != null) {
+            builder.bookingEndDate(bookingEndDate);
+            log.info("✅ [10/12] Extracted bookingEndDate: {}", bookingEndDate);
+        }
+
+        // 11. ticketCastCount - 티켓캐스트 개수
+        Object ticketCastCountObj = performance.get("ticketCastCount");
+        if (ticketCastCountObj != null) {
+            try {
+                Integer ticketCastCount = Integer.valueOf(ticketCastCountObj.toString());
+                builder.ticketCastCount(ticketCastCount);
+                log.info("✅ [11/12] Extracted ticketCastCount: {}", ticketCastCount);
+            } catch (NumberFormatException e) {
+                log.warn("Failed to parse ticketCastCount: {}", ticketCastCountObj);
+            }
+        }
+
+        log.info("✅ Successfully extracted all 12 core performance fields");
+
+        // 12. weekRank - 콘서트 주간 순위
+        String weekRank = getStringValue(performance, "weekRank");
+        if (weekRank != null) {
+            builder.weekRank(weekRank);
+            log.info("✅ Extracted weekRank: {}", weekRank);
+        }
     }
 
     /**
@@ -395,5 +288,16 @@ public class InterparkService {
             log.debug("Error extracting goods code from URL: {}", url, e);
         }
         return null;
+    }
+
+    /**
+     * Map에서 String 값 추출 (null 안전)
+     */
+    private String getStringValue(Map<String, Object> map, String key) {
+        if (map == null) return null;
+        Object value = map.get(key);
+        if (value == null) return null;
+        if (value instanceof String) return (String) value;
+        return value.toString();
     }
 }
