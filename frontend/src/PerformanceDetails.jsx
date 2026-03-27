@@ -1,9 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import './styles/PerformanceDetails.css';
+import LoadingScreen from './components/LoadingScreen';
+import CaptchaModal from './components/CaptchaModal';
+import SeatSelection from './components/SeatSelection';
 
 const PerformanceDetails = ({ user, onLogout, performanceData }) => {
   const [selectedDate, setSelectedDate] = useState(null);
   const [currentMonth, setCurrentMonth] = useState({ year: 2026, month: 6 });
+  const [reservationFlow, setReservationFlow] = useState(null); // 'loading', 'seats', null
+  const [captchaCompleted, setCaptchaCompleted] = useState(false);
 
   // "YYYY.MM.DD" 형식의 문자열을 Date 객체로 변환
   const parsePlayDateString = (dateStr) => {
@@ -114,6 +119,48 @@ const PerformanceDetails = ({ user, onLogout, performanceData }) => {
 
     return '';
   };
+
+  // 예매하기 버튼 클릭 핸들러
+  const handleReservationClick = () => {
+    // 1단계: 로딩 화면
+    setReservationFlow('loading');
+    setCaptchaCompleted(false);
+
+    // 2초 후 좌석 선택 화면으로 전환
+    setTimeout(() => {
+      setReservationFlow('seats');
+    }, 2000);
+  };
+
+  // CAPTCHA 입력 완료 핸들러
+  const handleCaptchaComplete = (captchaInput) => {
+    setCaptchaCompleted(true);
+  };
+
+  // 예매 플로우 종료 핸들러
+  const handleReservationClose = () => {
+    setReservationFlow(null);
+    setCaptchaCompleted(false);
+  };
+
+  // 예매 플로우가 진행 중이면 해당 UI 표시
+  if (reservationFlow === 'loading') {
+    return <LoadingScreen />;
+  }
+
+  if (reservationFlow === 'seats') {
+    return (
+      <>
+        <SeatSelection performanceData={performanceData} />
+        {!captchaCompleted && (
+          <CaptchaModal
+            onComplete={handleCaptchaComplete}
+            captchaImage={null}
+          />
+        )}
+      </>
+    );
+  }
 
   return (
     <div className="perf-page-wrapper">
@@ -283,7 +330,7 @@ const PerformanceDetails = ({ user, onLogout, performanceData }) => {
                 <div className="disclaimer-notice">잔여석 안내 서비스를 제공하지 않습니다.</div>
               </div>
 
-              <button className="btn-buy-now">예매하기</button>
+              <button className="btn-buy-now" onClick={handleReservationClick}>예매하기</button>
               <button className="btn-foreign">BOOKING / 外國語</button>
             </div>
           </aside>

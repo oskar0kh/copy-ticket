@@ -129,8 +129,8 @@
 
 .price-stack { list-style: none; padding: 0; margin-top: 0.625rem; }
 .price-stack li { display: flex; justify-content: space-between; margin-bottom: 0.5rem; font-size: 1cqi; align-items: center; }
-.price-stack .grade { color: #333; }
-.amt { font-weight: 700; color: #5d5df5; }
+.price-stack .grade { color: #333; font-size: 0.875rem; }
+.amt { font-weight: 700; font-size: 0.875rem; color: #5d5df5; }
 
 /* 가격 섹션 - 왼쪽 정렬 */
 .info-item.price-item {
