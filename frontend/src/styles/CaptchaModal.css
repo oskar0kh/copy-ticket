@@ -213,6 +213,17 @@
   text-transform: none;
 }
 
+.error-message {
+  width: 100%;
+  padding: 2 1rem;
+  color: #d4463e;
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-top: 1rem;
+  text-align: center;
+  box-sizing: border-box;
+}
+
 .btn-complete {
   width: calc(100% - 4rem);
   margin: 1.5rem 2rem 2rem 2rem;

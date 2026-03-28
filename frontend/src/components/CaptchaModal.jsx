@@ -1,24 +1,59 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import '../styles/CaptchaModal.css';
 
 const CaptchaModal = ({ onComplete, captchaImage }) => {
+  const [captchaText, setCaptchaText] = useState('');
   const [inputValue, setInputValue] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
+
+  // 랜덤 6자리 알파벳 대문자 생성
+  const generateRandomCaptcha = () => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    let result = '';
+    for (let i = 0; i < 6; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
+  };
+
+  // 컴포넌트 마운트 시 초기 CAPTCHA 생성
+  useEffect(() => {
+    setCaptchaText(generateRandomCaptcha());
+  }, []);
 
   const handleInputChange = (e) => {
     setInputValue(e.target.value.toUpperCase());
+    setErrorMessage('');
   };
 
   const handleCompleteClick = () => {
-    if (inputValue.trim().length > 0) {
-      onComplete(inputValue);
-      setInputValue('');
+    if (inputValue.trim().length === 0) {
+      return;
     }
+
+    // 입력값과 CAPTCHA 텍스트 비교
+    if (inputValue.trim() !== captchaText.trim()) {
+      setErrorMessage('문자가 일치하지 않습니다. 다시 입력해주세요');
+      setInputValue('');
+      return;
+    }
+
+    // 일치하면 완료
+    onComplete(inputValue);
+    setInputValue('');
+    setErrorMessage('');
   };
 
   const handleKeyPress = (e) => {
     if (e.key === 'Enter') {
       handleCompleteClick();
     }
+  };
+
+  const handleRefresh = () => {
+    setCaptchaText(generateRandomCaptcha());
+    setInputValue('');
+    setErrorMessage('');
   };
 
   return (
@@ -45,11 +80,11 @@ const CaptchaModal = ({ onComplete, captchaImage }) => {
               {captchaImage ? (
                 <img src={captchaImage} alt="captcha" />
               ) : (
-                <div className="captcha-placeholder">NBLKAE</div>
+                <div className="captcha-placeholder">{captchaText}</div>
               )}
             </div>
 
-            <button className="btn-refresh">
+            <button className="btn-refresh" onClick={handleRefresh}>
               <span>⟳</span>
             </button>
           </div>
@@ -64,6 +99,9 @@ const CaptchaModal = ({ onComplete, captchaImage }) => {
             onKeyPress={handleKeyPress}
             maxLength="10"
           />
+          {errorMessage && (
+            <div className="error-message">{errorMessage}</div>
+          )}
         </div>
 
         <button
