@@ -5,7 +5,7 @@ import CaptchaModal from '../reservation_page/CaptchaModal';
 import SeatSelection from '../reservation_page/SeatSelection';
 import BookingSuccess from '../reservation_page/BookingSuccess';
 
-const PerformanceDetails = ({ user, onLogout, performanceData, onGoMain }) => {
+const PerformanceDetails = ({ user, performanceData, onGoMain }) => {
   const performanceKey = useMemo(() => (
     performanceData?.goodsCode
       || performanceData?.goodsName
@@ -25,6 +25,13 @@ const PerformanceDetails = ({ user, onLogout, performanceData, onGoMain }) => {
     return window.sessionStorage.getItem(captchaStorageKey) === 'true';
   });
   const [selectedSeatsForSuccess, setSelectedSeatsForSuccess] = useState([]);
+  const [isTimerModalOpen, setIsTimerModalOpen] = useState(false);
+  const [selectedTimerSeconds, setSelectedTimerSeconds] = useState('5');
+  const [isReservationReady, setIsReservationReady] = useState(false);
+  const [remainingTimerSeconds, setRemainingTimerSeconds] = useState(null);
+  const [timerTargetAt, setTimerTargetAt] = useState(null);
+  const timerTimeoutRef = useRef(null);
+  const timerIntervalRef = useRef(null);
 
   useEffect(() => {
     if (captchaCompleted) {
@@ -66,15 +73,69 @@ const PerformanceDetails = ({ user, onLogout, performanceData, onGoMain }) => {
     if (previousPerformanceKeyRef.current !== performanceKey) {
       setReservationFlow(null);
       setCaptchaCompleted(false);
+      setIsReservationReady(false);
+      setRemainingTimerSeconds(null);
+      setTimerTargetAt(null);
     }
 
     previousPerformanceKeyRef.current = performanceKey;
   }, [performanceData, performanceKey]);
 
-  const handleLogout = async () => {
-    if (onLogout) {
-      await onLogout();
+  useEffect(() => {
+    return () => {
+      if (timerTimeoutRef.current) {
+        clearTimeout(timerTimeoutRef.current);
+      }
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current);
+      }
+    };
+  }, []);
+
+  const handleStartReservationTimer = () => {
+    const seconds = Number(selectedTimerSeconds);
+    const targetAt = Date.now() + seconds * 1000;
+
+    if (timerTimeoutRef.current) {
+      clearTimeout(timerTimeoutRef.current);
     }
+    if (timerIntervalRef.current) {
+      clearInterval(timerIntervalRef.current);
+    }
+
+    setIsReservationReady(false);
+    setRemainingTimerSeconds(seconds);
+    setTimerTargetAt(targetAt);
+    setIsTimerModalOpen(false);
+
+    timerIntervalRef.current = setInterval(() => {
+      setRemainingTimerSeconds((prev) => {
+        if (prev === null || prev <= 1) {
+          clearInterval(timerIntervalRef.current);
+          timerIntervalRef.current = null;
+          return null;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    timerTimeoutRef.current = setTimeout(() => {
+      setIsReservationReady(true);
+      setRemainingTimerSeconds(null);
+      setTimerTargetAt(null);
+      timerTimeoutRef.current = null;
+    }, seconds * 1000);
+  };
+
+  const getTicketOpenDateDisplay = () => {
+    if (performanceData?.playStartDate) {
+      return performanceData.playStartDate;
+    }
+    return '--.--.--';
+  };
+
+  const getTicketOpenDday = (timestamp) => {
+    return `D-day`;
   };
 
   // 캘린더 생성 함수
@@ -140,6 +201,10 @@ const PerformanceDetails = ({ user, onLogout, performanceData, onGoMain }) => {
 
   const calendarDays = generateCalendarDays();
   const weekDays = ['일', '월', '화', '수', '목', '금', '토'];
+  const timerActive = !isReservationReady && remainingTimerSeconds !== null;
+  const buyNowButtonLabel = timerActive
+    ? `${remainingTimerSeconds}초 후 예매 오픈`
+    : (isReservationReady ? '예매하기' : '예매 타이머를 사용해주세요');
   const today = new Date().getDate();
   const isCurrentMonth = currentMonth.month === new Date().getMonth() + 1 &&
                          currentMonth.year === new Date().getFullYear();
@@ -261,10 +326,59 @@ const PerformanceDetails = ({ user, onLogout, performanceData, onGoMain }) => {
           </div>
           <div className="perf-navbar-right">
             <span className="perf-navbar-user">{user?.name || '사용자'}</span>
-            <button className="perf-navbar-btn" onClick={handleLogout}>로그아웃</button>
+            <button
+              className="perf-navbar-btn perf-navbar-timer-btn"
+              onClick={() => setIsTimerModalOpen(true)}
+            >
+              예매 타이머
+            </button>
           </div>
         </div>
       </nav>
+
+      {isTimerModalOpen && (
+        <div className="perf-timer-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="timer-modal-title">
+          <div className="perf-timer-modal-card">
+            <button
+              type="button"
+              className="perf-timer-modal-close"
+              onClick={() => setIsTimerModalOpen(false)}
+              aria-label="타이머 모달 닫기"
+            >
+              ×
+            </button>
+            <h3 id="timer-modal-title">예매하기 버튼 타이머</h3>
+            <div className="perf-timer-copy">
+              <p>예매 오픈 시각을 조절할 수 있는 타이머입니다.</p>
+              <p>
+                원하시는 오픈 시각을 설정하시면<br />
+                해당 시각에 맞춰 예매하기 버튼이 활성화됩니다.
+              </p>
+              <p>타이머를 사용해서 예매를 연습해보세요!</p>
+            </div>
+
+            <label className="perf-timer-field">
+              <span>시간</span>
+              <select
+                value={selectedTimerSeconds}
+                onChange={(e) => setSelectedTimerSeconds(e.target.value)}
+              >
+                <option value="5">5초</option>
+                <option value="10">10초</option>
+                <option value="15">15초</option>
+                <option value="30">30초</option>
+                <option value="60">60초</option>
+              </select>
+            </label>
+
+            <div className="perf-timer-modal-actions">
+              <button className="perf-timer-start-btn" onClick={handleStartReservationTimer}>
+                타이머 시작
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 콘텐츠 레이아웃: 왼쪽(본문) + 오른쪽(사이드바) */}
       <div className="perf-content-inner-wrapper">
@@ -359,67 +473,85 @@ const PerformanceDetails = ({ user, onLogout, performanceData, onGoMain }) => {
           <aside className="perf-right-sidebar">
             <div className="sticky-sidebar">
               <div className="sidebar-card">
-                <div className="card-title">관람일</div>
-                <div className="mini-calendar">
-                  <div className="cal-header">
-                    <button
-                      className="cal-nav-btn"
-                      onClick={() => {
-                        setCurrentMonth(prev => ({
-                          ...prev,
-                          month: prev.month === 1 ? 12 : prev.month - 1,
-                          year: prev.month === 1 ? prev.year - 1 : prev.year
-                        }));
-                        setSelectedDate(null);
-                      }}
-                    >
-                      &lt;
-                    </button>
-                    <span className="cal-title">{currentMonth.year}. {String(currentMonth.month).padStart(2, '0')}</span>
-                    <button
-                      className="cal-nav-btn"
-                      onClick={() => {
-                        setCurrentMonth(prev => ({
-                          ...prev,
-                          month: prev.month === 12 ? 1 : prev.month + 1,
-                          year: prev.month === 12 ? prev.year + 1 : prev.year
-                        }));
-                        setSelectedDate(null);
-                      }}
-                    >
-                      &gt;
-                    </button>
+                {timerActive ? (
+                  <div className="ticket-open-guide">
+                    <h4 className="ticket-open-guide-title">티켓오픈안내</h4>
+                    <div className="ticket-open-guide-main">
+                      <span className="ticket-open-guide-dday">{getTicketOpenDday(timerTargetAt)}</span>
+                      <div className="ticket-open-guide-info">
+                        <strong>티켓오픈</strong>
+                        <span>{getTicketOpenDateDisplay()}</span>
+                      </div>
+                    </div>
+                    <p className="ticket-open-guide-desc">티켓 오픈 시간은 예고없이 변경될 수 있습니다.</p>
                   </div>
-
-                  <div className="cal-weekdays">
-                    {weekDays.map(day => <div key={day} className="weekday">{day}</div>)}
-                  </div>
-
-                  <div className="cal-grid">
-                    {calendarDays.map((day, index) => {
-                      const selectable = isDateSelectable(day);
-                      const inRange = isDateInPerformanceRange(day);
-                      const isSunday = index % 7 === 0;
-                      return (
-                        <div
-                          key={index}
-                          className={`cal-day ${!day ? 'empty' : ''} ${day === selectedDate ? 'selected' : ''} ${!selectable ? 'disabled' : ''} ${inRange ? 'in-range' : ''} ${isSunday && day ? 'sunday' : ''}`}
-                          onClick={() => day && selectable && setSelectedDate(day)}
-                          style={{ cursor: selectable && day ? 'pointer' : 'not-allowed' }}
+                ) : (
+                  <>
+                    <div className="card-title">관람일</div>
+                    <div className="mini-calendar">
+                      <div className="cal-header">
+                        <button
+                          className="cal-nav-btn"
+                          onClick={() => {
+                            setCurrentMonth(prev => ({
+                              ...prev,
+                              month: prev.month === 1 ? 12 : prev.month - 1,
+                              year: prev.month === 1 ? prev.year - 1 : prev.year
+                            }));
+                            setSelectedDate(null);
+                          }}
                         >
-                          {day}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
+                          &lt;
+                        </button>
+                        <span className="cal-title">{currentMonth.year}. {String(currentMonth.month).padStart(2, '0')}</span>
+                        <button
+                          className="cal-nav-btn"
+                          onClick={() => {
+                            setCurrentMonth(prev => ({
+                              ...prev,
+                              month: prev.month === 12 ? 1 : prev.month + 1,
+                              year: prev.month === 12 ? prev.year + 1 : prev.year
+                            }));
+                            setSelectedDate(null);
+                          }}
+                        >
+                          &gt;
+                        </button>
+                      </div>
 
-                <div className="card-title">회차</div>
-                <div className="time-box selected">1회 00:00</div>
-                <div className="disclaimer-notice">잔여석 안내 서비스를 제공하지 않습니다.</div>
+                      <div className="cal-weekdays">
+                        {weekDays.map(day => <div key={day} className="weekday">{day}</div>)}
+                      </div>
+
+                      <div className="cal-grid">
+                        {calendarDays.map((day, index) => {
+                          const selectable = isDateSelectable(day);
+                          const inRange = isDateInPerformanceRange(day);
+                          const isSunday = index % 7 === 0;
+                          return (
+                            <div
+                              key={index}
+                              className={`cal-day ${!day ? 'empty' : ''} ${day === selectedDate ? 'selected' : ''} ${!selectable ? 'disabled' : ''} ${inRange ? 'in-range' : ''} ${isSunday && day ? 'sunday' : ''}`}
+                              onClick={() => day && selectable && setSelectedDate(day)}
+                              style={{ cursor: selectable && day ? 'pointer' : 'not-allowed' }}
+                            >
+                              {day}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div className="card-title">회차</div>
+                    <div className="time-box selected">1회 00:00</div>
+                    <div className="disclaimer-notice">잔여석 안내 서비스를 제공하지 않습니다.</div>
+                  </>
+                )}
               </div>
 
-              <button className="btn-buy-now" onClick={handleReservationClick}>예매하기</button>
+              <button className="btn-buy-now" onClick={handleReservationClick} disabled={!isReservationReady}>
+                {buyNowButtonLabel}
+              </button>
               <button className="btn-foreign">BOOKING / 外國語</button>
             </div>
           </aside>

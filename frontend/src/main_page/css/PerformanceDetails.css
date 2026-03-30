@@ -66,6 +66,119 @@
   background-color: #eef1f5;
 }
 
+.perf-navbar-timer-btn {
+  background-color: #5d5df5;
+  color: #fff;
+}
+
+.perf-navbar-timer-btn:hover {
+  background-color: #4a4ae0;
+}
+
+.perf-timer-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(17, 24, 39, 0.45);
+  display: grid;
+  place-items: center;
+  z-index: 50;
+  padding: 1rem;
+}
+
+.perf-timer-modal-card {
+  position: relative;
+  width: min(30rem, 100%);
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 0.875rem;
+  box-shadow: 0 22px 45px rgba(16, 24, 40, 0.24);
+  padding: 1.5rem;
+}
+
+.perf-timer-modal-close {
+  position: absolute;
+  top: 0.625rem;
+  right: 0.875rem;
+  width: 2rem;
+  height: 2rem;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: #667085;
+  font-size: 1.5rem;
+  font-weight: 300;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.perf-timer-modal-close:hover {
+  background: transparent;
+  color: #667085;
+}
+
+.perf-timer-modal-card h3 {
+  margin: 0 0 1.5rem;
+  font-size: 1.3125rem;
+  text-align: center;
+}
+
+.perf-timer-copy {
+  max-width: 25rem;
+  margin: 0 auto;
+}
+
+.perf-timer-copy p {
+  font-size: 1rem;
+  color: #374151;
+}
+
+.perf-timer-modal-card p {
+  margin: 0 0 1rem;
+  color: #4b5563;
+  line-height: 1.55;
+  text-align: center;
+  word-break: keep-all;
+  text-wrap: balance;
+}
+
+.perf-timer-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+  margin: 1.25rem 0 1.25rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.perf-timer-field select {
+  border: 1px solid #d0d5dd;
+  border-radius: 0.5rem;
+  padding: 0.625rem 0.75rem;
+  font-size: 0.9375rem;
+  background: #fff;
+  color: #1f2937;
+}
+
+.perf-timer-modal-actions {
+  margin-top: 1.125rem;
+}
+
+.perf-timer-start-btn {
+  width: 100%;
+  background: #5d5df5;
+  color: #fff;
+  border: none;
+  border-radius: 0.5rem;
+  padding: 0.8125rem 0.875rem;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.perf-timer-start-btn:hover {
+  background: #4a4ae0;
+}
+
 /* 2. 내부 콘텐츠 정렬용 이너 클래스 (핵심) */
 .perf-content-inner {
   width: 100%;
@@ -175,6 +288,65 @@
   background: #fff;
 }
 
+.ticket-open-guide {
+  border: none;
+  border-radius: 1.25rem;
+  background: #fff;
+  padding: 1.5rem 1rem 1.3rem;
+}
+
+.ticket-open-guide-title {
+  margin: 0;
+  text-align: center;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #111;
+}
+
+.ticket-open-guide-main {
+  margin-top: 1.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.ticket-open-guide-dday {
+  font-family: "Pretendard Variable", "SUIT Variable", "Noto Sans KR", sans-serif;
+  font-size: 1.8rem;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: #d35b57;
+  font-weight: 350;
+}
+
+.ticket-open-guide-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
+}
+
+.ticket-open-guide-info strong {
+  font-size: 1rem;
+  color: #111;
+  font-weight: 400;
+}
+
+.ticket-open-guide-info span {
+  font-size: 0.875rem;
+  color: #666;
+  font-weight: 400;
+}
+
+.ticket-open-guide-desc {
+  margin: 1rem 0 0;
+  text-align: center;
+  color: #666;
+  font-size: 0.77rem;
+  line-height: 1.35;
+}
+
 .card-title { font-weight: 700; display: flex; justify-content: space-between; margin-bottom: 0.55rem; font-size: 1rem; }
 
 .time-box.selected {
@@ -219,7 +391,17 @@
   font-weight: 700;
   cursor: pointer;
   margin-top: 0.3rem;
-  margin-bottom: 0.3rem;
+  margin-bottom: 0.7rem;
+}
+
+.btn-buy-now:hover {
+  background-color: #5d5df5;
+}
+
+.btn-buy-now:disabled {
+  background-color: #bcbcbc;
+  color: #f1f1f1;
+  cursor: not-allowed;
 }
 
 .btn-foreign {
@@ -232,6 +414,12 @@
   font-size: 0.875rem;
   font-weight: 700;
   cursor: pointer;
+}
+
+.btn-foreign:hover {
+  background-color: #fff;
+  color: #5d5df5;
+  border-color: #5d5df5;
 }
 
 /* 캘린더 스타일 */
