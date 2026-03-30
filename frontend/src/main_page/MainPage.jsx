@@ -1,16 +1,27 @@
 import React, { useState, useEffect } from "react";
 import PerformanceSummationCard from "./PerformanceSummationCard";
 import PerformanceDetails from "./PerformanceDetails";
-import { performanceApi } from "./api/performanceApi";
+import { performanceApi } from "../api/performanceApi";
 
 export default function MainPage({ user, loading, lastInputUrl, onSubmitUrl, onLogout, onWithdraw }) {
+  const detailsStorageKey = `mainPage:performanceDetails:${user?.id || 'default-user'}`;
   const [url, setUrl] = useState(lastInputUrl || "");
   const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [performanceToDelete, setPerformanceToDelete] = useState(null);
   const [showResults, setShowResults] = useState(false);
-  const [showPerformanceDetails, setShowPerformanceDetails] = useState(false);
-  const [performanceData, setPerformanceData] = useState(null);
+  const [performanceData, setPerformanceData] = useState(() => {
+    const raw = window.localStorage.getItem(detailsStorageKey);
+    if (!raw) return null;
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return null;
+    }
+  });
+  const [showPerformanceDetails, setShowPerformanceDetails] = useState(() => {
+    return Boolean(window.localStorage.getItem(detailsStorageKey));
+  });
   const [savedPerformances, setSavedPerformances] = useState([]);
   const [loadingSavedPerformances, setLoadingSavedPerformances] = useState(false);
 
@@ -42,16 +53,45 @@ export default function MainPage({ user, loading, lastInputUrl, onSubmitUrl, onL
     setShowResults(false);
     setShowPerformanceDetails(false);
     setPerformanceData(null);
+    window.localStorage.removeItem(detailsStorageKey);
+    window.localStorage.removeItem('reservationFlow');
     setUrl("");
     // 저장된 공연 목록 다시 로드
     loadSavedPerformances();
   }
 
   function handleNavigateToPerformanceDetails(performance) {
+    window.history.pushState({ view: 'performance-details' }, '');
+    window.localStorage.setItem(detailsStorageKey, JSON.stringify(performance));
+    window.localStorage.removeItem('reservationFlow');
     setPerformanceData(performance);
     setShowResults(false);
     setShowPerformanceDetails(true);
   }
+
+  useEffect(() => {
+    if (showPerformanceDetails && performanceData) {
+      window.localStorage.setItem(detailsStorageKey, JSON.stringify(performanceData));
+      return;
+    }
+    window.localStorage.removeItem(detailsStorageKey);
+  }, [showPerformanceDetails, performanceData, detailsStorageKey]);
+
+  useEffect(() => {
+    const handleBrowserBack = (event) => {
+      if (!showPerformanceDetails) return;
+
+      // SeatSelection에서 뒤로가기로 PerformanceDetails 상태로 복귀하는 경우는 메인으로 보내지 않음
+      if (event.state?.view === 'performance-details') {
+        return;
+      }
+
+      handleBackToInput();
+    };
+
+    window.addEventListener('popstate', handleBrowserBack);
+    return () => window.removeEventListener('popstate', handleBrowserBack);
+  }, [showPerformanceDetails]);
 
   // 저장된 공연 제목 클릭 시 상세 정보 로드
   const handleSavedPerformanceClick = async (performanceId) => {
@@ -147,7 +187,12 @@ export default function MainPage({ user, loading, lastInputUrl, onSubmitUrl, onL
       {/* showResults가 true일 때, PerformanceSummationCard 컴포넌트를 표시 */}
       {showPerformanceDetails ? (
         <div>
-          <PerformanceDetails user={user} onLogout={onLogout} performanceData={performanceData} />
+          <PerformanceDetails
+            user={user}
+            onLogout={onLogout}
+            performanceData={performanceData}
+            onGoMain={handleBackToInput}
+          />
           <div style={{ textAlign: "center", marginTop: "40px", marginBottom: "40px" }}>
             <button onClick={handleBackToInput} className="ghost" style={{ padding: "10px 20px" }}>
               ← 다른 URL 입력하기

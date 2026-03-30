@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { performanceApi } from './api/performanceApi';
-import './styles/PerformanceSummationCard.css';
+import { performanceApi } from '../api/performanceApi';
+import './css/PerformanceSummationCard.css';
 
 export default function PerformanceDetails({ initialUrl, onBookingSuccess }) {
   const [url, setUrl] = useState(initialUrl || '');

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import '../styles/CaptchaModal.css';
+import './css/CaptchaModal.css';
 
 const CaptchaModal = ({ onComplete, captchaImage }) => {
   const [captchaText, setCaptchaText] = useState('');

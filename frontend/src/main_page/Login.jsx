@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { login, logout, signup, withdrawAccount, me } from "./api/auth";
+import { login, logout, signup, withdrawAccount, me } from "../api/auth";
 import MainPage from "./MainPage";
 
 const initialSignup = { id: "", password: "", name: "" };
@@ -156,6 +156,26 @@ export default function Login() {
     setLoading(true);
     setError("");
     setMessage("");
+
+    try {
+      const seatSelectionStoragePrefix = "seatSelection:selectedSeats:";
+      Object.keys(window.localStorage).forEach((key) => {
+        if (key.startsWith(seatSelectionStoragePrefix)) {
+          window.localStorage.removeItem(key);
+        }
+      });
+
+      window.localStorage.removeItem("reservationFlow");
+      const mainPageDetailsPrefix = "mainPage:performanceDetails:";
+      Object.keys(window.localStorage).forEach((key) => {
+        if (key.startsWith(mainPageDetailsPrefix)) {
+          window.localStorage.removeItem(key);
+        }
+      });
+    } catch {
+      // Ignore storage cleanup errors.
+    }
+
     setUser(null);
     setView("auth");
     setMode("login");

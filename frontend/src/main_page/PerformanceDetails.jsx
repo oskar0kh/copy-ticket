@@ -1,14 +1,47 @@
-import React, { useState, useEffect } from 'react';
-import './styles/PerformanceDetails.css';
-import LoadingScreen from './components/LoadingScreen';
-import CaptchaModal from './components/CaptchaModal';
-import SeatSelection from './components/SeatSelection';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import './css/PerformanceDetails.css';
+import LoadingScreen from '../reservation_page/LoadingScreen';
+import CaptchaModal from '../reservation_page/CaptchaModal';
+import SeatSelection from '../reservation_page/SeatSelection';
+import BookingSuccess from '../reservation_page/BookingSuccess';
 
-const PerformanceDetails = ({ user, onLogout, performanceData }) => {
+const PerformanceDetails = ({ user, onLogout, performanceData, onGoMain }) => {
+  const performanceKey = useMemo(() => (
+    performanceData?.goodsCode
+      || performanceData?.goodsName
+      || 'default-performance'
+  ), [performanceData]);
+  const captchaStorageKey = useMemo(() => (
+    `captchaCompleted:${user?.id || 'default-user'}:${performanceKey}`
+  ), [user, performanceKey]);
+  const previousPerformanceKeyRef = useRef(performanceKey);
   const [selectedDate, setSelectedDate] = useState(null);
   const [currentMonth, setCurrentMonth] = useState({ year: 2026, month: 6 });
-  const [reservationFlow, setReservationFlow] = useState(null); // 'loading', 'seats', null
-  const [captchaCompleted, setCaptchaCompleted] = useState(false);
+  const [reservationFlow, setReservationFlow] = useState(() => {
+    const saved = window.localStorage.getItem('reservationFlow');
+    return saved || null;
+  }); // 'loading', 'seats', 'booking-success', null
+  const [captchaCompleted, setCaptchaCompleted] = useState(() => {
+    return window.sessionStorage.getItem(captchaStorageKey) === 'true';
+  });
+  const [selectedSeatsForSuccess, setSelectedSeatsForSuccess] = useState([]);
+
+  useEffect(() => {
+    if (captchaCompleted) {
+      window.sessionStorage.setItem(captchaStorageKey, 'true');
+    } else {
+      window.sessionStorage.removeItem(captchaStorageKey);
+    }
+  }, [captchaCompleted, captchaStorageKey]);
+
+  // reservationFlow를 localStorage에 저장
+  useEffect(() => {
+    if (reservationFlow) {
+      window.localStorage.setItem('reservationFlow', reservationFlow);
+    } else {
+      window.localStorage.removeItem('reservationFlow');
+    }
+  }, [reservationFlow]);
 
   // "YYYY.MM.DD" 형식의 문자열을 Date 객체로 변환
   const parsePlayDateString = (dateStr) => {
@@ -28,7 +61,15 @@ const PerformanceDetails = ({ user, onLogout, performanceData }) => {
       // 디폴트로 playStartDate를 선택된 날짜로 설정
       setSelectedDate(startDate.getDate());
     }
-  }, [performanceData]);
+
+    // 동일 공연의 새로고침에서는 현재 화면(flow)을 유지하고, 다른 공연으로 바뀔 때만 초기화
+    if (previousPerformanceKeyRef.current !== performanceKey) {
+      setReservationFlow(null);
+      setCaptchaCompleted(false);
+    }
+
+    previousPerformanceKeyRef.current = performanceKey;
+  }, [performanceData, performanceKey]);
 
   const handleLogout = async () => {
     if (onLogout) {
@@ -128,9 +169,21 @@ const PerformanceDetails = ({ user, onLogout, performanceData }) => {
 
     // 2초 후 좌석 선택 화면으로 전환
     setTimeout(() => {
+      window.history.pushState({ view: 'seat-selection' }, '');
       setReservationFlow('seats');
     }, 2000);
   };
+
+  useEffect(() => {
+    if (reservationFlow !== 'seats') return;
+
+    const handleSeatSelectionBack = () => {
+      setReservationFlow(null);
+    };
+
+    window.addEventListener('popstate', handleSeatSelectionBack);
+    return () => window.removeEventListener('popstate', handleSeatSelectionBack);
+  }, [reservationFlow]);
 
   // CAPTCHA 입력 완료 핸들러
   const handleCaptchaComplete = (captchaInput) => {
@@ -143,6 +196,20 @@ const PerformanceDetails = ({ user, onLogout, performanceData }) => {
     setCaptchaCompleted(false);
   };
 
+  // 좌석 선택 완료 핸들러
+  const handleSeatSelectionSuccess = (selectedSeats) => {
+    setSelectedSeatsForSuccess(selectedSeats);
+    setReservationFlow('booking-success');
+  };
+
+  // 예매 성공 후 돌아가기 핸들러
+  const handleBookingReturn = () => {
+    setReservationFlow(null);
+    setCaptchaCompleted(false);
+    setSelectedSeatsForSuccess([]);
+    onGoMain?.();
+  };
+
   // 예매 플로우가 진행 중이면 해당 UI 표시
   if (reservationFlow === 'loading') {
     return <LoadingScreen />;
@@ -151,7 +218,12 @@ const PerformanceDetails = ({ user, onLogout, performanceData }) => {
   if (reservationFlow === 'seats') {
     return (
       <>
-        <SeatSelection performanceData={performanceData} />
+        <SeatSelection
+          performanceData={performanceData}
+          user={user}
+          onSuccess={handleSeatSelectionSuccess}
+          onGoMain={onGoMain}
+        />
         {!captchaCompleted && (
           <CaptchaModal
             onComplete={handleCaptchaComplete}
@@ -162,13 +234,30 @@ const PerformanceDetails = ({ user, onLogout, performanceData }) => {
     );
   }
 
+  if (reservationFlow === 'booking-success') {
+    return <BookingSuccess selectedSeats={selectedSeatsForSuccess} onReturn={handleBookingReturn} />;
+  }
+
   return (
     <div className="perf-page-wrapper">
       {/* 상단 네비게이션 배너 */}
       <nav className="perf-navbar">
         <div className="perf-navbar-inner">
           <div className="perf-navbar-left">
-            <p className="perf-navbar-logo">COPY TICKET</p>
+            <p
+              className="perf-navbar-logo"
+              onClick={onGoMain}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  onGoMain?.();
+                }
+              }}
+            >
+              COPY TICKET
+            </p>
           </div>
           <div className="perf-navbar-right">
             <span className="perf-navbar-user">{user?.name || '사용자'}</span>
@@ -209,7 +298,7 @@ const PerformanceDetails = ({ user, onLogout, performanceData }) => {
                     }}
                   />
                   <div className="poster-footer">
-                    <span>♡ 티켓캐스트 {performanceData?.ticketCastCount || '000'}</span>
+                    <span>♡ 티켓캐스트 <strong>{performanceData?.ticketCastCount || '000'}</strong></span>
                   </div>
                 </div>
 
@@ -235,9 +324,9 @@ const PerformanceDetails = ({ user, onLogout, performanceData }) => {
                   <div className="value">
                     <button className="btn-view-price">전체가격보기 ▾</button>
                     <ul className="price-stack">
-                      <li><span className="grade">ORCHESTRA PIT</span> <span className="amt">999,999원</span></li>
-                      <li><span className="grade">OPERA STALL</span> <span className="amt">999,9990원</span></li>
-                      <li><span className="grade">스탠딩석</span> <span className="amt">99,999원</span></li>
+                      <li><span className="grade">ORCHESTRA PIT</span> <span className="amt">-원</span></li>
+                      <li><span className="grade">OPERA STALL</span> <span className="amt">-원</span></li>
+                      <li><span className="grade">스탠딩석</span> <span className="amt">-원</span></li>
                     </ul>
                   </div>
                 </div>

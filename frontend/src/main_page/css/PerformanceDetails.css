@@ -31,10 +31,11 @@
 
 .perf-navbar-logo {
   margin: 0;
-  font-size: 1rem;
+  font-size: 1.25rem;
   font-weight: 700;
-  color: #333;
-  letter-spacing: 0.05em;
+  color: #5d5df5;
+  letter-spacing: 0;
+  cursor: pointer;
 }
 
 .perf-navbar-right {
@@ -44,25 +45,25 @@
 }
 
 .perf-navbar-user {
-  font-size: 0.8125rem;
+  font-size: 0.875rem;
   color: #333;
   font-weight: 700;
 }
 
 .perf-navbar-btn {
-  background-color: #5d5df5;
-  color: #fff;
+  background-color: #f7f8fa;
+  color: #333;
   border: none;
   padding: 0.625rem 1.25rem;
   border-radius: 0.375rem;
-  font-size: 0.8125rem;
+  font-size: 0.875rem;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .perf-navbar-btn:hover {
-  background-color: #4a4acf;
+  background-color: #eef1f5;
 }
 
 /* 2. 내부 콘텐츠 정렬용 이너 클래스 (핵심) */
