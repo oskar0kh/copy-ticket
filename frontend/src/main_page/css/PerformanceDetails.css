@@ -280,8 +280,8 @@
 
 /* 6. 사이드바 카드 스타일 (인터파크 예매창 느낌) */
 .sidebar-card {
-  border: 1px solid #e0e0e0;
-  border-radius: 0.5rem;
+  border: 1.5px solid #b8bdc6;
+  border-radius: 0.875rem;
   padding: 1.25rem;
   margin-top: 1.5rem;
   margin-bottom: 0.5rem;
@@ -401,7 +401,7 @@
 .btn-buy-now:disabled {
   background-color: #bcbcbc;
   color: #f1f1f1;
-  cursor: not-allowed;
+  cursor: default;
 }
 
 .btn-foreign {
@@ -425,7 +425,7 @@
 /* 캘린더 스타일 */
 .mini-calendar {
   padding: 0.5rem 0;
-  border-bottom: 1px solid #e0e0e0; /* 캘린더 하단 회색 선 */
+  border-bottom: 1px solid #b8bdc6; /* 캘린더 하단 회색 선 */
   margin: 0 -1.25rem 0.65rem -1.25rem;
   padding-left: 1.25rem;
   padding-right: 1.25rem;
@@ -499,7 +499,7 @@
 
 .cal-day.past {
   color: #ccc;
-  cursor: not-allowed;
+  cursor: default;
 }
 
 .cal-day.in-range {

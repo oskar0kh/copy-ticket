@@ -204,7 +204,7 @@ const PerformanceDetails = ({ user, performanceData, onGoMain }) => {
   const timerActive = !isReservationReady && remainingTimerSeconds !== null;
   const buyNowButtonLabel = timerActive
     ? `${remainingTimerSeconds}초 후 예매 오픈`
-    : (isReservationReady ? '예매하기' : '예매 타이머를 사용해주세요');
+    : (isReservationReady ? '예매하기' : '타이머를 사용해주세요');
   const today = new Date().getDate();
   const isCurrentMonth = currentMonth.month === new Date().getMonth() + 1 &&
                          currentMonth.year === new Date().getFullYear();
@@ -330,7 +330,7 @@ const PerformanceDetails = ({ user, performanceData, onGoMain }) => {
               className="perf-navbar-btn perf-navbar-timer-btn"
               onClick={() => setIsTimerModalOpen(true)}
             >
-              예매 타이머
+              타이머
             </button>
           </div>
         </div>
@@ -533,7 +533,7 @@ const PerformanceDetails = ({ user, performanceData, onGoMain }) => {
                               key={index}
                               className={`cal-day ${!day ? 'empty' : ''} ${day === selectedDate ? 'selected' : ''} ${!selectable ? 'disabled' : ''} ${inRange ? 'in-range' : ''} ${isSunday && day ? 'sunday' : ''}`}
                               onClick={() => day && selectable && setSelectedDate(day)}
-                              style={{ cursor: selectable && day ? 'pointer' : 'not-allowed' }}
+                              style={{ cursor: selectable && day ? 'pointer' : 'default' }}
                             >
                               {day}
                             </div>
