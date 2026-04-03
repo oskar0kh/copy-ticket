@@ -49,6 +49,20 @@ export default function Login() {
   const [toast, setToast] = useState(null);
   const toastTimerRef = useRef(null);
 
+  function clearMainPageTransientState() {
+    try {
+      const mainPageDetailsPrefix = "mainPage:performanceDetails:";
+      Object.keys(window.localStorage).forEach((key) => {
+        if (key.startsWith(mainPageDetailsPrefix)) {
+          window.localStorage.removeItem(key);
+        }
+      });
+      window.localStorage.removeItem("reservationFlow");
+    } catch {
+      // Ignore storage cleanup errors.
+    }
+  }
+
   useEffect(() => {
     return () => {
       if (toastTimerRef.current) {
@@ -62,6 +76,7 @@ export default function Login() {
     async function checkAuthStatus() {
       try {
         const currentUser = await me();
+        clearMainPageTransientState();
         setUser(currentUser);
         setView("main");
       } catch (err) {
@@ -139,6 +154,7 @@ export default function Login() {
 
     try {
       const currentUser = await login(loginForm);
+      clearMainPageTransientState();
       setUser(currentUser);
       setView("main");
       setMessage(`${currentUser.name}님, 환영합니다.`);

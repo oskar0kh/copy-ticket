@@ -6,6 +6,7 @@ import { performanceApi } from "../api/performanceApi";
 export default function MainPage({ user, loading, lastInputUrl, onSubmitUrl, onLogout, onWithdraw }) {
   const detailsStorageKey = `mainPage:performanceDetails:${user?.id || 'default-user'}`;
   const [url, setUrl] = useState(lastInputUrl || "");
+  const [selectedMode, setSelectedMode] = useState(null);
   const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [performanceToDelete, setPerformanceToDelete] = useState(null);
@@ -47,6 +48,31 @@ export default function MainPage({ user, loading, lastInputUrl, onSubmitUrl, onL
     event.preventDefault();
     onSubmitUrl(url);
     setShowResults(true); // handleSubmit이 호출되면, showResults를 true로 설정하여 PerformanceSummationCard 컴포넌트를 보여줌
+  }
+
+  function handleSelectMode(nextMode) {
+    setSelectedMode(nextMode);
+    setShowResults(false);
+    setShowPerformanceDetails(false);
+    setPerformanceData(null);
+    window.localStorage.removeItem(detailsStorageKey);
+    window.localStorage.removeItem('reservationFlow');
+
+    if (nextMode === 'practice') {
+      setUrl(lastInputUrl || "");
+    } else {
+      setUrl("");
+    }
+  }
+
+  function handleBackToModeSelection() {
+    setSelectedMode(null);
+    setShowResults(false);
+    setShowPerformanceDetails(false);
+    setPerformanceData(null);
+    window.localStorage.removeItem(detailsStorageKey);
+    window.localStorage.removeItem('reservationFlow');
+    setUrl("");
   }
 
   function handleBackToInput() {
@@ -142,16 +168,34 @@ export default function MainPage({ user, loading, lastInputUrl, onSubmitUrl, onL
       <header className="main-header">
         <div>
           <p className="tag">COPY TICKET</p>
-          <h1>{showResults ? "공연 정보" : "URL 입력 메인 화면"}</h1>
+          <h1>
+            {showResults
+              ? "공연 정보"
+              : selectedMode === "practice"
+                ? "개인 연습"
+                : selectedMode === "competition"
+                  ? "공개 경쟁"
+                  : "모드 선택"
+            }
+          </h1>
           <p className="main-subtitle">
             {showResults
               ? "인터파크에서 가져온 공연 정보입니다."
-              : "아래에서 인터파크 콘서트 URL을 입력해 주세요."
+              : selectedMode === "practice"
+                ? "기존처럼 URL을 입력해 개인 연습을 진행할 수 있습니다."
+                : selectedMode === "competition"
+                  ? "공개 라운드는 아직 준비 중입니다."
+                  : "개인 연습과 공개 경쟁 중 원하는 모드를 선택해 주세요."
             }
           </p>
         </div>
 
         <div className="main-header-actions">
+          {selectedMode && !showResults && !showPerformanceDetails && (
+            <button className="ghost mode-back-button" onClick={handleBackToModeSelection} disabled={loading}>
+              모드 다시 선택
+            </button>
+          )}
           <table className="account-table">
             <tbody>
               <tr>
@@ -199,6 +243,23 @@ export default function MainPage({ user, loading, lastInputUrl, onSubmitUrl, onL
             </button>
           </div>
         </div>
+      ) : selectedMode === "competition" ? (
+        <section className="mode-card competition-card">
+          <p className="mode-card-label">공개 경쟁</p>
+          <h2>공개 라운드 참가 준비 중</h2>
+          <p>
+            여러 사용자가 함께 경쟁하는 공개 예매 화면은 다음 단계에서 연결됩니다.
+          </p>
+
+          <div className="mode-card-actions">
+            <button type="button" className="ghost" onClick={handleBackToModeSelection} disabled={loading}>
+              모드 다시 선택
+            </button>
+            <button type="button" disabled>
+              공개 라운드 준비 중
+            </button>
+          </div>
+        </section>
       ) : showResults ? (
         <div>
           <PerformanceSummationCard initialUrl={url} onBookingSuccess={handleNavigateToPerformanceDetails} /> {/* 입력한 URL을 PerformanceSummationCard.jsx로 전달 및 예매 성공 콜백 */}
@@ -208,11 +269,11 @@ export default function MainPage({ user, loading, lastInputUrl, onSubmitUrl, onL
             </button>
           </div>
         </div>
-      ) : (
+      ) : selectedMode === "practice" ? (
         <section className="url-card">
           <h2>인터파크 콘서트 URL 입력</h2>
           <p>
-            인터파크 티켓의 콘서트 상세 페이지 URL을 입력하면 공연 정보를 자동으로 가져옵니다.
+            인터파크 티켓의 콘서트 상세 페이지 URL을 입력하면 공연 정보(공연 제목, 오픈 시각 등)를 자동으로 가져옵니다.
           </p>
 
           <form className="url-form" onSubmit={handleSubmit}> {/* '정보 가져오기' 폼 */}
@@ -262,6 +323,21 @@ export default function MainPage({ user, loading, lastInputUrl, onSubmitUrl, onL
               </ul>
             </div>
           )}
+        </section>
+      ) : (
+        <section className="mode-selection-card">
+          <div className="mode-selection-grid">
+            <button type="button" className="mode-option" onClick={() => handleSelectMode("practice")} disabled={loading}>
+              <span className="mode-option-label">개인 연습</span>
+              <strong>인터파크 URL 입력하기</strong>
+              <span className="mode-option-description">연습하고 싶으신 인터파크 공연의 URL을 입력하시면, 실제 티켓팅 화면 및 흐름과 유사하게 연습하실 수 있습니다.</span>
+            </button>
+            <button type="button" className="mode-option" onClick={() => handleSelectMode("competition")} disabled={loading}>
+              <span className="mode-option-label">공개 경쟁</span>
+              <strong>여러 사용자들과 경쟁하기</strong>
+              <span className="mode-option-description">정각 기준 30분 단위로 공개 티켓팅 페이지가 열립니다.<br></br>실제 사용자들과 경쟁해서 자신의 티켓팅 실력을 확인해보세요!</span>
+            </button>
+          </div>
         </section>
       )}
 

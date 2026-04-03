@@ -131,6 +131,10 @@ body {
   gap: 0.5rem;
 }
 
+.mode-back-button {
+  align-self: flex-end;
+}
+
 .account-table {
   border-collapse: collapse;
   min-width: 18.75rem;
@@ -176,6 +180,91 @@ body {
   border-radius: 1rem;
   padding: 1.5rem;
   box-shadow: 0 12px 30px rgba(16, 24, 40, 0.08);
+}
+
+.mode-selection-card,
+.mode-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  box-shadow: 0 12px 30px rgba(16, 24, 40, 0.08);
+}
+
+.mode-selection-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.mode-option {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.7rem;
+  padding: 1.25rem;
+  min-height: 11.25rem;
+  background: #f8fafc;
+  border: 1px solid var(--line);
+  color: var(--text);
+  text-align: left;
+}
+
+.mode-option:hover {
+  background: #f1f5f9;
+  border-color: #d9dee7;
+}
+
+.mode-option strong {
+  color: var(--text);
+  font-size: 1.0625rem;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.mode-option-label {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 100px;
+  padding: 0.3rem 0.625rem;
+  background: #5d5df5;
+  color: #fff;
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+.mode-option-description {
+  color: var(--muted);
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.6;
+}
+
+.mode-card-label {
+  margin: 0 0 0.625rem;
+  color: var(--muted);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.mode-card h2,
+.mode-selection-card h2 {
+  margin: 0 0 0.5rem;
+}
+
+.mode-card p,
+.mode-selection-card > p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.mode-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.625rem;
+  margin-top: 1.25rem;
 }
 
 .url-card h2 {
@@ -568,9 +657,17 @@ button.danger:hover {
     width: 100%;
   }
 
+  .mode-back-button {
+    align-self: flex-start;
+  }
+
   .account-table {
     width: 100%;
     min-width: 0;
+  }
+
+  .mode-selection-grid {
+    grid-template-columns: 1fr;
   }
 
   .saved-performances-list {
