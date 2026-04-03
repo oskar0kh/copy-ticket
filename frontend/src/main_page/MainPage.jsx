@@ -327,12 +327,12 @@ export default function MainPage({ user, loading, lastInputUrl, onSubmitUrl, onL
       ) : (
         <section className="mode-selection-card">
           <div className="mode-selection-grid">
-            <button type="button" className="mode-option" onClick={() => handleSelectMode("practice")} disabled={loading}>
+            <button type="button" className="mode-option" data-mode="practice" onClick={() => handleSelectMode("practice")} disabled={loading}>
               <span className="mode-option-label">개인 연습</span>
               <strong>인터파크 URL 입력하기</strong>
               <span className="mode-option-description">연습하고 싶으신 인터파크 공연의 URL을 입력하시면, 실제 티켓팅 화면 및 흐름과 유사하게 연습하실 수 있습니다.</span>
             </button>
-            <button type="button" className="mode-option" onClick={() => handleSelectMode("competition")} disabled={loading}>
+            <button type="button" className="mode-option" data-mode="competition" onClick={() => handleSelectMode("competition")} disabled={loading}>
               <span className="mode-option-label">공개 경쟁</span>
               <strong>여러 사용자들과 경쟁하기</strong>
               <span className="mode-option-description">정각 기준 30분 단위로 공개 티켓팅 페이지가 열립니다.<br></br>실제 사용자들과 경쟁해서 자신의 티켓팅 실력을 확인해보세요!</span>

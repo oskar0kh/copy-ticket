@@ -210,7 +210,20 @@ body {
   text-align: left;
 }
 
-.mode-option:hover {
+.mode-option[data-mode="practice"] {
+  background: #f8fafc;
+}
+
+.mode-option[data-mode="practice"]:hover {
+  background: #f1f5f9;
+  border-color: #d9dee7;
+}
+
+.mode-option[data-mode="competition"] {
+  background: #f8fafc;
+}
+
+.mode-option[data-mode="competition"]:hover {
   background: #f1f5f9;
   border-color: #d9dee7;
 }
