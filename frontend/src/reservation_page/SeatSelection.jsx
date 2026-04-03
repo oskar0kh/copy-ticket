@@ -1,10 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import './css/SeatSelection.css';
 
-const ROWS = Array.from({ length: 15 }, (_, index) => String.fromCharCode(65 + index));
+const ROWS = Array.from({ length: 20 }, (_, index) => String.fromCharCode(65 + index));
 const SEATS_PER_ROW = 20;
 const MAX_SELECTABLE = 4;
-const SYSTEM_SELECT_INTERVAL = 500;
+const SYSTEM_SELECT_INTERVAL = 100; // 랜덤 좌석 선택 시간 (0.1초마다 10석 선택)
 const SYSTEM_SELECT_COUNT = 10;
 const BLOCK_SIZE = 20;
 const FIRST_BLOCK_WEIGHT = 2.2;
