@@ -1,16 +1,40 @@
 import React, { useState, useEffect } from "react";
-import PerformanceSummationCard from "./PerformanceSummationCard";
-import PerformanceDetails from "./PerformanceDetails";
+import PerformanceSummationCard from "../private_reservation/PerformanceSummationCard";
+import PerformanceDetails from "../private_reservation/PerformanceDetails";
+import PublicPerformanceDetails from "../public_reservation/PublicPerformanceDetails";
+import PublicPerformanceEntrance from "../public_reservation/PublicPerformanceEntrance";
 import { performanceApi } from "../api/performanceApi";
+import "../private_reservation/css/PerformanceSummationCard.css";
 
 export default function MainPage({ user, loading, lastInputUrl, onSubmitUrl, onLogout, onWithdraw }) {
   const detailsStorageKey = `mainPage:performanceDetails:${user?.id || 'default-user'}`;
-  const [url, setUrl] = useState(lastInputUrl || "");
-  const [selectedMode, setSelectedMode] = useState(null);
+  const viewStateStorageKey = `mainPage:viewState:${user?.id || 'default-user'}`;
+  const readSavedViewState = () => {
+    const raw = window.localStorage.getItem(viewStateStorageKey);
+    if (!raw) return null;
+
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return null;
+    }
+  };
+
+  const [url, setUrl] = useState(() => {
+    const savedViewState = readSavedViewState();
+    return savedViewState?.url ?? lastInputUrl ?? "";
+  });
+  const [selectedMode, setSelectedMode] = useState(() => {
+    const savedViewState = readSavedViewState();
+    return savedViewState?.selectedMode ?? null;
+  });
   const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [performanceToDelete, setPerformanceToDelete] = useState(null);
-  const [showResults, setShowResults] = useState(false);
+  const [showResults, setShowResults] = useState(() => {
+    const savedViewState = readSavedViewState();
+    return Boolean(savedViewState?.showResults);
+  });
   const [performanceData, setPerformanceData] = useState(() => {
     const raw = window.localStorage.getItem(detailsStorageKey);
     if (!raw) return null;
@@ -23,8 +47,19 @@ export default function MainPage({ user, loading, lastInputUrl, onSubmitUrl, onL
   const [showPerformanceDetails, setShowPerformanceDetails] = useState(() => {
     return Boolean(window.localStorage.getItem(detailsStorageKey));
   });
+  const [showPublicPerformanceDetails, setShowPublicPerformanceDetails] = useState(() => {
+    const savedViewState = readSavedViewState();
+    return Boolean(savedViewState?.showPublicPerformanceDetails);
+  });
   const [savedPerformances, setSavedPerformances] = useState([]);
   const [loadingSavedPerformances, setLoadingSavedPerformances] = useState(false);
+
+  useEffect(() => {
+    const currentView = window.history.state?.view;
+    if (!currentView) {
+      window.history.replaceState({ view: 'mode-selection' }, '');
+    }
+  }, []);
 
   // 저장된 공연 목록 조회
   useEffect(() => {
@@ -46,14 +81,22 @@ export default function MainPage({ user, loading, lastInputUrl, onSubmitUrl, onL
 
   function handleSubmit(event) {
     event.preventDefault();
+    window.history.pushState({ view: 'practice-results' }, '');
     onSubmitUrl(url);
     setShowResults(true); // handleSubmit이 호출되면, showResults를 true로 설정하여 PerformanceSummationCard 컴포넌트를 보여줌
   }
 
   function handleSelectMode(nextMode) {
+    if (nextMode === 'competition') {
+      window.history.pushState({ view: 'competition-entrance' }, '');
+    } else if (nextMode === 'practice') {
+      window.history.pushState({ view: 'practice-input' }, '');
+    }
+
     setSelectedMode(nextMode);
     setShowResults(false);
     setShowPerformanceDetails(false);
+    setShowPublicPerformanceDetails(false);
     setPerformanceData(null);
     window.localStorage.removeItem(detailsStorageKey);
     window.localStorage.removeItem('reservationFlow');
@@ -69,6 +112,7 @@ export default function MainPage({ user, loading, lastInputUrl, onSubmitUrl, onL
     setSelectedMode(null);
     setShowResults(false);
     setShowPerformanceDetails(false);
+    setShowPublicPerformanceDetails(false);
     setPerformanceData(null);
     window.localStorage.removeItem(detailsStorageKey);
     window.localStorage.removeItem('reservationFlow');
@@ -78,6 +122,7 @@ export default function MainPage({ user, loading, lastInputUrl, onSubmitUrl, onL
   function handleBackToInput() {
     setShowResults(false);
     setShowPerformanceDetails(false);
+    setShowPublicPerformanceDetails(false);
     setPerformanceData(null);
     window.localStorage.removeItem(detailsStorageKey);
     window.localStorage.removeItem('reservationFlow');
@@ -93,6 +138,23 @@ export default function MainPage({ user, loading, lastInputUrl, onSubmitUrl, onL
     setPerformanceData(performance);
     setShowResults(false);
     setShowPerformanceDetails(true);
+    setShowPublicPerformanceDetails(false);
+  }
+
+  function handleNavigateToPublicPerformanceDetails() {
+    window.history.pushState({ view: 'public-performance-details' }, '');
+    setShowResults(false);
+    setShowPerformanceDetails(false);
+    setShowPublicPerformanceDetails(true);
+  }
+
+  function handleBackFromPublicPerformanceDetails() {
+    setShowPublicPerformanceDetails(false);
+    window.localStorage.removeItem('reservationFlow');
+  }
+
+  function handleNavigateBackFromPublicPerformanceDetails() {
+    window.history.back();
   }
 
   useEffect(() => {
@@ -104,20 +166,64 @@ export default function MainPage({ user, loading, lastInputUrl, onSubmitUrl, onL
   }, [showPerformanceDetails, performanceData, detailsStorageKey]);
 
   useEffect(() => {
-    const handleBrowserBack = (event) => {
-      if (!showPerformanceDetails) return;
+    const nextViewState = {
+      selectedMode,
+      showResults,
+      showPublicPerformanceDetails,
+      url,
+    };
 
-      // SeatSelection에서 뒤로가기로 PerformanceDetails 상태로 복귀하는 경우는 메인으로 보내지 않음
-      if (event.state?.view === 'performance-details') {
+    const shouldClearViewState =
+      !selectedMode
+      && !showResults
+      && !showPublicPerformanceDetails
+      && !url;
+
+    if (shouldClearViewState) {
+      window.localStorage.removeItem(viewStateStorageKey);
+      return;
+    }
+
+    window.localStorage.setItem(viewStateStorageKey, JSON.stringify(nextViewState));
+  }, [selectedMode, showResults, showPublicPerformanceDetails, url, viewStateStorageKey]);
+
+  useEffect(() => {
+    const handleBrowserBack = (event) => {
+      const backView = event.state?.view;
+
+      if (showPublicPerformanceDetails) {
+        handleBackFromPublicPerformanceDetails();
         return;
       }
 
-      handleBackToInput();
+      if (showPerformanceDetails) {
+        // SeatSelection에서 뒤로가기로 PerformanceDetails 상태로 복귀하는 경우는 메인으로 보내지 않음
+        if (event.state?.view === 'performance-details') {
+          return;
+        }
+
+        handleBackToInput();
+        return;
+      }
+
+      if (showResults || selectedMode === 'competition' || selectedMode === 'practice') {
+        if (
+          backView === 'mode-selection'
+          || backView === 'practice-input'
+          || backView === 'competition-entrance'
+          || backView == null
+        ) {
+          handleBackToModeSelection();
+          return;
+        }
+
+        handleBackToModeSelection();
+      }
     };
 
     window.addEventListener('popstate', handleBrowserBack);
     return () => window.removeEventListener('popstate', handleBrowserBack);
-  }, [showPerformanceDetails]);
+  }, [showPerformanceDetails, showPublicPerformanceDetails, showResults, selectedMode]);
 
   // 저장된 공연 제목 클릭 시 상세 정보 로드
   const handleSavedPerformanceClick = async (performanceId) => {
@@ -163,8 +269,8 @@ export default function MainPage({ user, loading, lastInputUrl, onSubmitUrl, onL
   }
 
   return (
-    <main className={`main-shell ${showPerformanceDetails ? 'full-width' : ''}`}>
-      {!showPerformanceDetails && (
+    <main className={`main-shell ${showPerformanceDetails || showPublicPerformanceDetails ? 'full-width' : ''}`}>
+      {!showPerformanceDetails && !showPublicPerformanceDetails && (
       <header className="main-header">
         <div>
           <p className="tag">COPY TICKET</p>
@@ -184,7 +290,7 @@ export default function MainPage({ user, loading, lastInputUrl, onSubmitUrl, onL
               : selectedMode === "practice"
                 ? "기존처럼 URL을 입력해 개인 연습을 진행할 수 있습니다."
                 : selectedMode === "competition"
-                  ? "공개 라운드는 아직 준비 중입니다."
+                  ? "가상의 공연으로 공개 티켓팅 연습 페이지를 시작할 수 있습니다."
                   : "개인 연습과 공개 경쟁 중 원하는 모드를 선택해 주세요."
             }
           </p>
@@ -239,27 +345,28 @@ export default function MainPage({ user, loading, lastInputUrl, onSubmitUrl, onL
           />
           <div style={{ textAlign: "center", marginTop: "40px", marginBottom: "40px" }}>
             <button onClick={handleBackToInput} className="ghost" style={{ padding: "10px 20px" }}>
-              ← 다른 URL 입력하기
+              ← URL 입력 화면으로 돌아가기
+            </button>
+          </div>
+        </div>
+      ) : showPublicPerformanceDetails ? (
+        <div>
+          <PublicPerformanceDetails
+            user={user}
+            onGoMain={handleNavigateBackFromPublicPerformanceDetails}
+          />
+          <div style={{ textAlign: "center", marginTop: "40px", marginBottom: "40px" }}>
+            <button onClick={handleNavigateBackFromPublicPerformanceDetails} className="ghost" style={{ padding: "10px 20px" }}>
+              ← 참가 준비 화면으로 돌아가기
             </button>
           </div>
         </div>
       ) : selectedMode === "competition" ? (
-        <section className="mode-card competition-card">
-          <p className="mode-card-label">공개 경쟁</p>
-          <h2>공개 라운드 참가 준비 중</h2>
-          <p>
-            여러 사용자가 함께 경쟁하는 공개 예매 화면은 다음 단계에서 연결됩니다.
-          </p>
-
-          <div className="mode-card-actions">
-            <button type="button" className="ghost" onClick={handleBackToModeSelection} disabled={loading}>
-              모드 다시 선택
-            </button>
-            <button type="button" disabled>
-              공개 라운드 준비 중
-            </button>
-          </div>
-        </section>
+        <PublicPerformanceEntrance
+          loading={loading}
+          onBackToModeSelection={handleBackToModeSelection}
+          onEnterPublicPractice={handleNavigateToPublicPerformanceDetails}
+        />
       ) : showResults ? (
         <div>
           <PerformanceSummationCard initialUrl={url} onBookingSuccess={handleNavigateToPerformanceDetails} /> {/* 입력한 URL을 PerformanceSummationCard.jsx로 전달 및 예매 성공 콜백 */}

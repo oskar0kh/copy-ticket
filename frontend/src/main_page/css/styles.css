@@ -174,16 +174,7 @@ body {
   background: #f8fafc;
 }
 
-.url-card {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 1rem;
-  padding: 1.5rem;
-  box-shadow: 0 12px 30px rgba(16, 24, 40, 0.08);
-}
-
-.mode-selection-card,
-.mode-card {
+.mode-selection-card {
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 1rem;
@@ -220,12 +211,27 @@ body {
 }
 
 .mode-option[data-mode="competition"] {
-  background: #f8fafc;
+  background: #0f172a;
+  border-color: #0f172a;
+  color: #ffffff;
 }
 
 .mode-option[data-mode="competition"]:hover {
-  background: #f1f5f9;
-  border-color: #d9dee7;
+  background: #1e293b;
+  border-color: #334155;
+}
+
+.mode-option[data-mode="competition"] strong {
+  color: #ffffff;
+}
+
+.mode-option[data-mode="competition"] .mode-option-label {
+  background: rgba(255, 255, 255, 0.12);
+  color: #c7d2fe;
+}
+
+.mode-option[data-mode="competition"] .mode-option-description {
+  color: #cbd5e1;
 }
 
 .mode-option strong {
@@ -240,7 +246,7 @@ body {
   align-items: center;
   border-radius: 100px;
   padding: 0.3rem 0.625rem;
-  background: #5d5df5;
+  background: #111827;
   color: #fff;
   font-size: 0.8125rem;
   font-weight: 500;
@@ -253,31 +259,23 @@ body {
   line-height: 1.6;
 }
 
-.mode-card-label {
-  margin: 0 0 0.625rem;
-  color: var(--muted);
-  font-size: 0.8125rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-}
-
-.mode-card h2,
 .mode-selection-card h2 {
   margin: 0 0 0.5rem;
 }
 
-.mode-card p,
 .mode-selection-card > p {
   margin: 0;
   color: var(--muted);
   line-height: 1.6;
 }
 
-.mode-card-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.625rem;
-  margin-top: 1.25rem;
+.url-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  margin: 0 0 2rem 0;
+  padding: 1.5rem;
+  box-shadow: 0 12px 30px rgba(16, 24, 40, 0.08);
 }
 
 .url-card h2 {
@@ -335,99 +333,6 @@ body {
   color: #344054;
 }
 
-/* 저장된 공연 목록 스타일 */
-.saved-performances {
-  margin-top: 1.5rem;
-  padding: 1rem;
-  border: 1px solid var(--line);
-  border-radius: 0.75rem;
-  background: #f8fafc;
-}
-
-.saved-performances strong {
-  display: block;
-  margin-bottom: 0.75rem;
-  font-size: 0.9375rem;
-  color: var(--text);
-}
-
-.saved-performances-notice {
-  margin: 0 0 1rem 0;
-  font-size: 0.8125rem;
-  color: #666;
-  font-weight: 400;
-}
-
-.saved-performances-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 0.5rem;
-}
-
-.saved-perf-item {
-  display: flex;
-  align-items: center;
-  padding: 0.75rem 0.875rem;
-  background: #fff;
-  border: 1px solid var(--line);
-  border-radius: 0.5rem;
-  transition: all 0.16s ease;
-}
-
-.saved-perf-button {
-  flex: 1;
-  background: none;
-  border: none;
-  color: #0066cc;
-  cursor: pointer;
-  padding: 0;
-  text-align: left;
-  font-size: 0.9375rem;
-  font-weight: 500;
-  transition: color 0.16s ease;
-}
-
-.saved-perf-button:hover,
-.saved-perf-button:active {
-  background: none;
-  color: #0066cc;
-}
-
-.saved-perf-button:disabled {
-  opacity: 0.65;
-  cursor: not-allowed;
-}
-
-.saved-perf-delete-btn {
-  flex-shrink: 0;
-  width: 28px !important;
-  height: 28px !important;
-  padding: 0 !important;
-  margin-left: 0.5rem;
-  background: none !important;
-  border: none !important;
-  color: #dc2626;
-  font-size: 1.25rem;
-  font-weight: 300;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: color 0.16s ease, background-color 0.16s ease;
-}
-
-.saved-perf-delete-btn:hover {
-  color: #991b1b;
-  background: #fef2f2 !important;
-}
-
-.saved-perf-delete-btn:disabled {
-  opacity: 0.65;
-  cursor: not-allowed;
-}
 
 .brand-panel {
   padding: 2.25rem;
@@ -529,12 +434,12 @@ button.ghost:hover {
 }
 
 button.danger {
-  background: #5d5df5;
+  background: #111827;
   color: #fff;
 }
 
 button.danger:hover {
-  background: #4a4ae0;
+  background: #2b3547;
 }
 
 .mode-switch button {
@@ -681,14 +586,6 @@ button.danger:hover {
 
   .mode-selection-grid {
     grid-template-columns: 1fr;
-  }
-
-  .saved-performances-list {
-    grid-template-columns: 1fr;
-  }
-
-  .saved-perf-meta {
-    display: none;
   }
 
   .brand-panel {

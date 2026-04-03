@@ -1,0 +1,134 @@
+.mode-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  margin: 0 0 2rem 0;
+  box-shadow: 0 12px 30px rgba(16, 24, 40, 0.08);
+}
+
+.public-entrance-card {
+  position: relative;
+}
+
+.mode-card-label {
+  margin: 0 0 0.625rem;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.mode-card h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1.5rem;
+}
+
+.public-entrance-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.public-entrance-subtitle {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
+.public-round-time-grid {
+  margin-top: 1rem;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.625rem;
+}
+
+.public-round-time-card {
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
+  background: #f8fafc;
+  padding: 0.8rem 0.95rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.public-round-time-card.highlight {
+  background: #0f172a;
+  border-color: #0f172a;
+}
+
+.public-round-time-label {
+  color: #475467;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.public-round-time-card.highlight .public-round-time-label {
+  color: #c7d2fe;
+}
+
+.public-round-time-value {
+  color: #111827;
+  font-size: 1.2rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+}
+
+.public-round-time-value.countdown {
+  color: #ffffff;
+}
+
+.public-entrance-guide-grid {
+  margin-top: 0.9rem;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.public-entrance-guide-card {
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
+  background: #fcfcfd;
+  padding: 0.9rem 1rem;
+}
+
+.public-entrance-guide-card h3 {
+  margin: 0;
+  font-size: 1rem;
+  color: #101828;
+}
+
+.public-entrance-guide-card ul,
+.public-entrance-guide-card ol {
+  margin: 0.75rem 0 0;
+  padding-left: 1.2rem;
+  color: #667085;
+  font-size: 0.875rem;
+  line-height: 1.7;
+}
+
+.public-entrance-guide-card li + li {
+  margin-top: 0.25rem;
+}
+
+.mode-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.625rem;
+  margin-top: 1rem;
+}
+
+@media (max-width: 56.25rem) {
+  .public-round-time-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .public-entrance-guide-grid {
+    grid-template-columns: 1fr;
+  }
+}

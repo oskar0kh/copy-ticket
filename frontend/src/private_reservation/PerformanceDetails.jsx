@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import './css/PerformanceDetails.css';
-import LoadingScreen from '../reservation_page/LoadingScreen';
-import CaptchaModal from '../reservation_page/CaptchaModal';
-import SeatSelection from '../reservation_page/SeatSelection';
-import BookingSuccess from '../reservation_page/BookingSuccess';
+import LoadingScreen from './seat_selection/LoadingScreen';
+import CaptchaModal from './seat_selection/CaptchaModal';
+import SeatSelection from './seat_selection/SeatSelection';
+import BookingSuccess from './seat_selection/BookingSuccess';
+import { formatRemaining } from '../public_reservation/roundTime';
 
-const PerformanceDetails = ({ user, performanceData, onGoMain }) => {
+const PerformanceDetails = ({ user, performanceData, onGoMain, showTimerButton = true, bookingOpenAt = null }) => {
   const performanceKey = useMemo(() => (
     performanceData?.goodsCode
       || performanceData?.goodsName
@@ -32,6 +33,7 @@ const PerformanceDetails = ({ user, performanceData, onGoMain }) => {
   const [timerTargetAt, setTimerTargetAt] = useState(null);
   const timerTimeoutRef = useRef(null);
   const timerIntervalRef = useRef(null);
+  const [now, setNow] = useState(() => new Date());
 
   useEffect(() => {
     if (captchaCompleted) {
@@ -91,6 +93,34 @@ const PerformanceDetails = ({ user, performanceData, onGoMain }) => {
       }
     };
   }, []);
+
+  useEffect(() => {
+    const timerId = window.setInterval(() => {
+      setNow(new Date());
+    }, 1000);
+
+    return () => {
+      window.clearInterval(timerId);
+    };
+  }, []);
+
+  const publicBookingWindow = useMemo(() => {
+    if (bookingOpenAt == null) return null;
+
+    const openAt = new Date(bookingOpenAt).getTime();
+    const closeAt = openAt + 10 * 60 * 1000;
+    const currentAt = now.getTime();
+
+    if (currentAt < openAt) {
+      return { status: 'before', remaining: openAt - currentAt };
+    }
+
+    if (currentAt < closeAt) {
+      return { status: 'open', remaining: closeAt - currentAt };
+    }
+
+    return { status: 'closed', remaining: 0 };
+  }, [bookingOpenAt, now]);
 
   const handleStartReservationTimer = () => {
     const seconds = Number(selectedTimerSeconds);
@@ -202,9 +232,21 @@ const PerformanceDetails = ({ user, performanceData, onGoMain }) => {
   const calendarDays = generateCalendarDays();
   const weekDays = ['일', '월', '화', '수', '목', '금', '토'];
   const timerActive = !isReservationReady && remainingTimerSeconds !== null;
-  const buyNowButtonLabel = timerActive
-    ? `${remainingTimerSeconds}초 후 예매 오픈`
-    : (isReservationReady ? '예매하기' : '타이머를 사용해주세요');
+  const buyNowButtonLabel = bookingOpenAt != null
+    ? (publicBookingWindow?.status === 'before'
+      ? `${formatRemaining(publicBookingWindow.remaining)} 후 예매 오픈`
+      : publicBookingWindow?.status === 'open'
+        ? '예매하기'
+        : '예매 종료')
+    : (timerActive
+      ? `${remainingTimerSeconds}초 후 예매 오픈`
+      : (isReservationReady ? '예매하기' : '타이머를 사용해주세요'));
+  const buyNowButtonDisabled = bookingOpenAt != null
+    ? publicBookingWindow?.status !== 'open'
+    : !isReservationReady;
+  const showTicketOpenGuide = bookingOpenAt != null
+    ? publicBookingWindow?.status === 'before'
+    : timerActive;
   const today = new Date().getDate();
   const isCurrentMonth = currentMonth.month === new Date().getMonth() + 1 &&
                          currentMonth.year === new Date().getFullYear();
@@ -228,6 +270,10 @@ const PerformanceDetails = ({ user, performanceData, onGoMain }) => {
 
   // 예매하기 버튼 클릭 핸들러
   const handleReservationClick = () => {
+    if (bookingOpenAt != null && publicBookingWindow?.status !== 'open') {
+      return;
+    }
+
     // 1단계: 로딩 화면
     setReservationFlow('loading');
     setCaptchaCompleted(false);
@@ -326,17 +372,19 @@ const PerformanceDetails = ({ user, performanceData, onGoMain }) => {
           </div>
           <div className="perf-navbar-right">
             <span className="perf-navbar-user">{user?.name || '사용자'}</span>
-            <button
-              className="perf-navbar-btn perf-navbar-timer-btn"
-              onClick={() => setIsTimerModalOpen(true)}
-            >
-              타이머
-            </button>
+            {showTimerButton && (
+              <button
+                className="perf-navbar-btn perf-navbar-timer-btn"
+                onClick={() => setIsTimerModalOpen(true)}
+              >
+                타이머
+              </button>
+            )}
           </div>
         </div>
       </nav>
 
-      {isTimerModalOpen && (
+      {showTimerButton && isTimerModalOpen && (
         <div className="perf-timer-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="timer-modal-title">
           <div className="perf-timer-modal-card">
             <button
@@ -473,7 +521,7 @@ const PerformanceDetails = ({ user, performanceData, onGoMain }) => {
           <aside className="perf-right-sidebar">
             <div className="sticky-sidebar">
               <div className="sidebar-card">
-                {timerActive ? (
+                {showTicketOpenGuide ? (
                   <div className="ticket-open-guide">
                     <h4 className="ticket-open-guide-title">티켓오픈안내</h4>
                     <div className="ticket-open-guide-main">
@@ -549,7 +597,7 @@ const PerformanceDetails = ({ user, performanceData, onGoMain }) => {
                 )}
               </div>
 
-              <button className="btn-buy-now" onClick={handleReservationClick} disabled={!isReservationReady}>
+              <button className="btn-buy-now" onClick={handleReservationClick} disabled={buyNowButtonDisabled}>
                 {buyNowButtonLabel}
               </button>
               <button className="btn-foreign">BOOKING / 外國語</button>

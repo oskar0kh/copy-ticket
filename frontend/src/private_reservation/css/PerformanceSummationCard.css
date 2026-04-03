@@ -339,6 +339,99 @@
   box-shadow: 0 4px 12px rgba(93, 93, 245, 0.3);
 }
 
+.saved-performances {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
+  background: #f8fafc;
+}
+
+.saved-performances strong {
+  display: block;
+  margin-bottom: 0.75rem;
+  font-size: 0.9375rem;
+  color: var(--text);
+}
+
+.saved-performances-notice {
+  margin: 0 0 1rem 0;
+  font-size: 0.8125rem;
+  color: #666;
+  font-weight: 400;
+}
+
+.saved-performances-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.5rem;
+}
+
+.saved-perf-item {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 0.875rem;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+  transition: all 0.16s ease;
+}
+
+.saved-perf-button {
+  flex: 1;
+  background: none;
+  border: none;
+  color: #0066cc;
+  cursor: pointer;
+  padding: 0;
+  text-align: left;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  transition: color 0.16s ease;
+}
+
+.saved-perf-button:hover,
+.saved-perf-button:active {
+  background: none;
+  color: #0066cc;
+}
+
+.saved-perf-button:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.saved-perf-delete-btn {
+  flex-shrink: 0;
+  width: 28px !important;
+  height: 28px !important;
+  padding: 0 !important;
+  margin-left: 0.5rem;
+  background: none !important;
+  border: none !important;
+  color: #dc2626;
+  font-size: 1.25rem;
+  font-weight: 300;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.16s ease, background-color 0.16s ease;
+}
+
+.saved-perf-delete-btn:hover {
+  color: #991b1b;
+  background: #fef2f2 !important;
+}
+
+.saved-perf-delete-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
 .metadata {
   margin-top: 1.25rem;
   padding-top: 1.25rem;
@@ -367,5 +460,15 @@
 
   .performance-container {
     padding: 0.75rem;
+  }
+}
+
+@media (max-width: 860px) {
+  .saved-performances-list {
+    grid-template-columns: 1fr;
+  }
+
+  .saved-perf-meta {
+    display: none;
   }
 }

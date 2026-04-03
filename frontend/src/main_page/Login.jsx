@@ -52,8 +52,12 @@ export default function Login() {
   function clearMainPageTransientState() {
     try {
       const mainPageDetailsPrefix = "mainPage:performanceDetails:";
+      const mainPageViewStatePrefix = "mainPage:viewState:";
       Object.keys(window.localStorage).forEach((key) => {
         if (key.startsWith(mainPageDetailsPrefix)) {
+          window.localStorage.removeItem(key);
+        }
+        if (key.startsWith(mainPageViewStatePrefix)) {
           window.localStorage.removeItem(key);
         }
       });
@@ -181,13 +185,7 @@ export default function Login() {
         }
       });
 
-      window.localStorage.removeItem("reservationFlow");
-      const mainPageDetailsPrefix = "mainPage:performanceDetails:";
-      Object.keys(window.localStorage).forEach((key) => {
-        if (key.startsWith(mainPageDetailsPrefix)) {
-          window.localStorage.removeItem(key);
-        }
-      });
+      clearMainPageTransientState();
     } catch {
       // Ignore storage cleanup errors.
     }
