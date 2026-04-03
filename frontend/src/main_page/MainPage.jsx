@@ -335,7 +335,7 @@ export default function MainPage({ user, loading, lastInputUrl, onSubmitUrl, onL
             <button type="button" className="mode-option" data-mode="competition" onClick={() => handleSelectMode("competition")} disabled={loading}>
               <span className="mode-option-label">공개 경쟁</span>
               <strong>여러 사용자들과 경쟁하기</strong>
-              <span className="mode-option-description">정각 기준 30분 단위로 공개 티켓팅 페이지가 열립니다.<br></br>실제 사용자들과 경쟁해서 자신의 티켓팅 실력을 확인해보세요!</span>
+              <span className="mode-option-description">매시 00분/30분 기준, 공개 티켓팅 페이지가 열립니다.<br></br>실제 사용자들과 경쟁해서 자신의 티켓팅 실력을 확인해보세요!</span>
             </button>
           </div>
         </section>
