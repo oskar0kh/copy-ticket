@@ -9,7 +9,7 @@ function formatDateTime(date) {
 
 function formatDateTimeToMinute(date) {
   const pad = (value) => String(value).padStart(2, "0");
-  return `${date.getFullYear()}.${pad(date.getMonth() + 1)}.${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  return `${pad(date.getMonth() + 1)}.${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
 export default function PublicPerformanceEntrance({ loading, onBackToModeSelection, onEnterPublicPractice }) {
