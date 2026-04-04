@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import PerformanceSummationCard from "../private_reservation/PerformanceSummationCard";
 import PerformanceDetails from "../private_reservation/PerformanceDetails";
-import PublicPerformanceDetails from "../public_reservation/PublicPerformanceDetails";
+import PublicPerformanceData from "../public_reservation/PublicPerformanceData";
 import PublicPerformanceEntrance from "../public_reservation/PublicPerformanceEntrance";
 import { performanceApi } from "../api/performanceApi";
 import "../private_reservation/css/PerformanceSummationCard.css";
@@ -311,7 +311,7 @@ export default function MainPage({ user, loading, lastInputUrl, onSubmitUrl, onL
               <tr>
                 <th>로그아웃</th>
                 <td>
-                  <button className="ghost" onClick={onLogout} disabled={loading}>
+                  <button className="logout" onClick={onLogout} disabled={loading}>
                     로그아웃
                   </button>
                 </td>
@@ -351,7 +351,7 @@ export default function MainPage({ user, loading, lastInputUrl, onSubmitUrl, onL
         </div>
       ) : showPublicPerformanceDetails ? (
         <div>
-          <PublicPerformanceDetails
+          <PublicPerformanceData
             user={user}
             onGoMain={handleNavigateBackFromPublicPerformanceDetails}
           />

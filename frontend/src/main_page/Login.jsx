@@ -310,7 +310,7 @@ export default function Login() {
                   />
                 </label>
 
-                <button type="submit" disabled={loading}>
+                <button type="submit" className="login" disabled={loading}>
                   {loading ? "처리 중..." : "로그인"}
                 </button>
               </form>

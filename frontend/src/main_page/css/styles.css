@@ -433,12 +433,31 @@ button.ghost:hover {
   background: #eef1f5;
 }
 
+button.logout {
+  background: #f7f8fa;
+  color: #344054;
+}
+
+button.logout:hover {
+  background: #eef1f5;
+}
+
 button.danger {
-  background: #111827;
-  color: #fff;
+  background: var(--primary);
+  border-color: var(--line);
+  color: white;
 }
 
 button.danger:hover {
+  background: #2b3547;
+}
+
+button.login {
+  background: var(--primary);
+  color: #fff;
+}
+
+button.login:hover {
   background: #2b3547;
 }
 
@@ -450,7 +469,7 @@ button.danger:hover {
 
 .mode-switch button.active {
   background: var(--primary);
-  border-color: var(--primary);
+  border-color: var(--line);
   color: #fff;
 }
 

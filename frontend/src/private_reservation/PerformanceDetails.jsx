@@ -52,10 +52,12 @@ const PerformanceDetails = ({ user, performanceData, onGoMain, showTimerButton =
     }
   }, [reservationFlow]);
 
-  // "YYYY.MM.DD" 형식의 문자열을 Date 객체로 변환
+  // "YYYY.MM.DD" 또는 "YYYY-MM-DD" 형식의 문자열을 Date 객체로 변환
   const parsePlayDateString = (dateStr) => {
     if (!dateStr) return null;
-    const [year, month, day] = dateStr.split('.');
+    const normalized = String(dateStr).replace(/\./g, '-');
+    const [year, month, day] = normalized.split('-').map(Number);
+    if (!year || !month || !day) return null;
     return new Date(year, month - 1, day);
   };
 
@@ -63,6 +65,9 @@ const PerformanceDetails = ({ user, performanceData, onGoMain, showTimerButton =
   useEffect(() => {
     if (performanceData?.playStartDate) {
       const startDate = parsePlayDateString(performanceData.playStartDate);
+      if (!startDate || Number.isNaN(startDate.getTime())) {
+        return;
+      }
       setCurrentMonth({
         year: startDate.getFullYear(),
         month: startDate.getMonth() + 1
@@ -196,13 +201,16 @@ const PerformanceDetails = ({ user, performanceData, onGoMain, showTimerButton =
 
   // 날짜가 공연 가능 범위 내에 있는지 확인
   const isDateSelectable = (day) => {
-    if (!day || !performanceData?.playStartDate || !performanceData?.playEndDate) {
+    if (!day || !performanceData?.playStartDate) {
       return true;
     }
 
     const dateToCheck = new Date(currentMonth.year, currentMonth.month - 1, day);
     const startDate = parsePlayDateString(performanceData.playStartDate);
-    const endDate = parsePlayDateString(performanceData.playEndDate);
+    if (!startDate) {
+      return true;
+    }
+    const endDate = parsePlayDateString(performanceData.playEndDate) || startDate;
 
     // 날짜 비교는 시간을 무시하고 날짜 부분만 비교
     const checkDateAtMidnight = new Date(dateToCheck.getFullYear(), dateToCheck.getMonth(), dateToCheck.getDate());
@@ -214,13 +222,16 @@ const PerformanceDetails = ({ user, performanceData, onGoMain, showTimerButton =
 
   // 날짜가 공연 기간 범위에 속하는지 확인 (파란 동그라미 표시용)
   const isDateInPerformanceRange = (day) => {
-    if (!day || !performanceData?.playStartDate || !performanceData?.playEndDate) {
+    if (!day || !performanceData?.playStartDate) {
       return false;
     }
 
     const dateToCheck = new Date(currentMonth.year, currentMonth.month - 1, day);
     const startDate = parsePlayDateString(performanceData.playStartDate);
-    const endDate = parsePlayDateString(performanceData.playEndDate);
+    if (!startDate) {
+      return false;
+    }
+    const endDate = parsePlayDateString(performanceData.playEndDate) || startDate;
 
     const checkDateAtMidnight = new Date(dateToCheck.getFullYear(), dateToCheck.getMonth(), dateToCheck.getDate());
     const startDateAtMidnight = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
@@ -251,16 +262,21 @@ const PerformanceDetails = ({ user, performanceData, onGoMain, showTimerButton =
   const isCurrentMonth = currentMonth.month === new Date().getMonth() + 1 &&
                          currentMonth.year === new Date().getFullYear();
 
-  // 공연 기간 문자열 포맷팅 (playStartDate ~ playEndDate)
+  // 공연 기간 문자열 포맷팅
   const getPerformanceDateDisplay = () => {
-    // 1. playStartDate, playEndDate가 있으면 직접 사용 (이미 YYYY.MM.DD 포맷)
+    // 1. playStartDate가 있으면 직접 사용
+    if (performanceData?.playStartDate && !performanceData?.playEndDate) {
+      return performanceData.playStartDate;
+    }
+
+    // 2. playStartDate, playEndDate가 있으면 직접 사용
     if (performanceData?.playStartDate && performanceData?.playEndDate) {
       return performanceData.playStartDate === performanceData.playEndDate
         ? performanceData.playStartDate
         : `${performanceData.playStartDate} ~ ${performanceData.playEndDate}`;
     }
 
-    // 2. 이미 포맷팅된 playDate가 있으면 사용 (예: "26-05-02 ~ 26-05-03")
+    // 3. 이미 포맷팅된 playDate가 있으면 사용
     if (performanceData?.playDate) {
       return performanceData.playDate;
     }
