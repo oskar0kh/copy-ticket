@@ -4,8 +4,8 @@
   --text: #1f2933;
   --muted: #667085;
   --line: #e6e9ee;
-  --primary: #111827;
-  --primary-soft: #f3f4f6;
+  --primary: #5658f5;
+  --primary-soft: #ececff;
   --success-bg: #edf9f2;
   --success-text: #216e3a;
   --error-bg: #fff1f1;
@@ -211,14 +211,14 @@ body {
 }
 
 .mode-option[data-mode="competition"] {
-  background: #0f172a;
-  border-color: #0f172a;
+  background: var(--primary);
+  border-color: var(--primary);
   color: #ffffff;
 }
 
 .mode-option[data-mode="competition"]:hover {
-  background: #1e293b;
-  border-color: #334155;
+  background: #4a4ce6;
+  border-color: #4a4ce6;
 }
 
 .mode-option[data-mode="competition"] strong {
@@ -226,12 +226,12 @@ body {
 }
 
 .mode-option[data-mode="competition"] .mode-option-label {
-  background: rgba(255, 255, 255, 0.12);
-  color: #c7d2fe;
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
 }
 
 .mode-option[data-mode="competition"] .mode-option-description {
-  color: #cbd5e1;
+  color: #f3e8ff;
 }
 
 .mode-option strong {
@@ -246,7 +246,7 @@ body {
   align-items: center;
   border-radius: 100px;
   padding: 0.3rem 0.625rem;
-  background: #111827;
+  background: var(--primary);
   color: #fff;
   font-size: 0.8125rem;
   font-weight: 500;
@@ -414,7 +414,7 @@ button {
 }
 
 button:hover {
-  background: #2b3547;
+  background: #4a4ce6;
 }
 
 button:disabled {
@@ -449,7 +449,7 @@ button.danger {
 }
 
 button.danger:hover {
-  background: #2b3547;
+  background: #4a4ce6;
 }
 
 button.login {
@@ -458,7 +458,7 @@ button.login {
 }
 
 button.login:hover {
-  background: #2b3547;
+  background: #4a4ce6;
 }
 
 .mode-switch button {
@@ -469,7 +469,7 @@ button.login:hover {
 
 .mode-switch button.active {
   background: var(--primary);
-  border-color: var(--line);
+  border-color: var(--primary);
   color: #fff;
 }
 

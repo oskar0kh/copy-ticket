@@ -109,10 +109,25 @@ const PublicPerformanceDetails = ({ user, performanceData, onGoMain, showTimerBu
     };
   }, []);
 
-  const publicBookingWindow = useMemo(() => {
-    if (bookingOpenAt == null) return null;
+  // 예매 시작 시각을 localStorage에 저장
+  useEffect(() => {
+    if (bookingOpenAt != null) {
+      const storedBookingStart = window.localStorage.getItem('publicBookingStartTime');
+      // 저장된 값이 없거나, 현재 bookingOpenAt이 저장된 값보다 최신이면 업데이트
+      if (!storedBookingStart || +bookingOpenAt > +storedBookingStart) {
+        window.localStorage.setItem('publicBookingStartTime', bookingOpenAt);
+      }
+    }
+  }, [bookingOpenAt]);
 
-    const openAt = new Date(bookingOpenAt).getTime();
+  const publicBookingWindow = useMemo(() => {
+    // localStorage에서 저장된 예매 시작 시각 우선 사용
+    const storedBookingStart = window.localStorage.getItem('publicBookingStartTime');
+    const effectiveBookingOpenAt = storedBookingStart || bookingOpenAt;
+    
+    if (effectiveBookingOpenAt == null) return null;
+
+    const openAt = new Date(effectiveBookingOpenAt).getTime();
     const closeAt = openAt + 10 * 60 * 1000;
     const currentAt = now.getTime();
 
@@ -124,6 +139,8 @@ const PublicPerformanceDetails = ({ user, performanceData, onGoMain, showTimerBu
       return { status: 'open', remaining: closeAt - currentAt };
     }
 
+    // 10분 초과 시 localStorage 정리
+    window.localStorage.removeItem('publicBookingStartTime');
     return { status: 'closed', remaining: 0 };
   }, [bookingOpenAt, now]);
 
@@ -304,8 +321,11 @@ const PublicPerformanceDetails = ({ user, performanceData, onGoMain, showTimerBu
   useEffect(() => {
     if (reservationFlow !== 'seats') return;
 
-    const handleSeatSelectionBack = () => {
-      setReservationFlow(null);
+    const handleSeatSelectionBack = (event) => {
+      // 뒤로가기로 인한 popstate만 처리 (새로고침 시 popstate는 무시)
+      if (event.state?.view !== 'seat-selection') {
+        setReservationFlow(null);
+      }
     };
 
     window.addEventListener('popstate', handleSeatSelectionBack);
@@ -321,6 +341,7 @@ const PublicPerformanceDetails = ({ user, performanceData, onGoMain, showTimerBu
   const handleReservationClose = () => {
     setReservationFlow(null);
     setCaptchaCompleted(false);
+    window.localStorage.removeItem('publicBookingStartTime');
   };
 
   // 좌석 선택 완료 핸들러
@@ -334,6 +355,7 @@ const PublicPerformanceDetails = ({ user, performanceData, onGoMain, showTimerBu
     setReservationFlow(null);
     setCaptchaCompleted(false);
     setSelectedSeatsForSuccess([]);
+    window.localStorage.removeItem('reservationFlow');
     onGoMain?.();
   };
 

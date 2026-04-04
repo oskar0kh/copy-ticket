@@ -7,10 +7,12 @@ import { performanceApi } from "../api/performanceApi";
 import "../private_reservation/css/PerformanceSummationCard.css";
 
 export default function MainPage({ user, loading, lastInputUrl, onSubmitUrl, onLogout, onWithdraw }) {
-  const detailsStorageKey = `mainPage:performanceDetails:${user?.id || 'default-user'}`;
-  const viewStateStorageKey = `mainPage:viewState:${user?.id || 'default-user'}`;
+  const sharedDetailsStorageKey = 'mainPage:performanceDetails';
+  const sharedViewStateStorageKey = 'mainPage:viewState';
+  const detailsStorageKey = user?.id ? `mainPage:performanceDetails:${user.id}` : sharedDetailsStorageKey;
+  const viewStateStorageKey = user?.id ? `mainPage:viewState:${user.id}` : sharedViewStateStorageKey;
   const readSavedViewState = () => {
-    const raw = window.localStorage.getItem(viewStateStorageKey);
+    const raw = window.localStorage.getItem(viewStateStorageKey) || window.localStorage.getItem(sharedViewStateStorageKey);
     if (!raw) return null;
 
     try {
@@ -36,7 +38,7 @@ export default function MainPage({ user, loading, lastInputUrl, onSubmitUrl, onL
     return Boolean(savedViewState?.showResults);
   });
   const [performanceData, setPerformanceData] = useState(() => {
-    const raw = window.localStorage.getItem(detailsStorageKey);
+    const raw = window.localStorage.getItem(detailsStorageKey) || window.localStorage.getItem(sharedDetailsStorageKey);
     if (!raw) return null;
     try {
       return JSON.parse(raw);
@@ -45,7 +47,12 @@ export default function MainPage({ user, loading, lastInputUrl, onSubmitUrl, onL
     }
   });
   const [showPerformanceDetails, setShowPerformanceDetails] = useState(() => {
-    return Boolean(window.localStorage.getItem(detailsStorageKey));
+    const savedViewState = readSavedViewState();
+    return Boolean(
+      savedViewState?.showPerformanceDetails
+      || window.localStorage.getItem(detailsStorageKey)
+      || window.localStorage.getItem(sharedDetailsStorageKey)
+    );
   });
   const [showPublicPerformanceDetails, setShowPublicPerformanceDetails] = useState(() => {
     const savedViewState = readSavedViewState();
@@ -99,6 +106,7 @@ export default function MainPage({ user, loading, lastInputUrl, onSubmitUrl, onL
     setShowPublicPerformanceDetails(false);
     setPerformanceData(null);
     window.localStorage.removeItem(detailsStorageKey);
+    window.localStorage.removeItem(sharedDetailsStorageKey);
     window.localStorage.removeItem('reservationFlow');
 
     if (nextMode === 'practice') {
@@ -115,6 +123,7 @@ export default function MainPage({ user, loading, lastInputUrl, onSubmitUrl, onL
     setShowPublicPerformanceDetails(false);
     setPerformanceData(null);
     window.localStorage.removeItem(detailsStorageKey);
+    window.localStorage.removeItem(sharedDetailsStorageKey);
     window.localStorage.removeItem('reservationFlow');
     setUrl("");
   }
@@ -125,6 +134,7 @@ export default function MainPage({ user, loading, lastInputUrl, onSubmitUrl, onL
     setShowPublicPerformanceDetails(false);
     setPerformanceData(null);
     window.localStorage.removeItem(detailsStorageKey);
+    window.localStorage.removeItem(sharedDetailsStorageKey);
     window.localStorage.removeItem('reservationFlow');
     setUrl("");
     // 저장된 공연 목록 다시 로드
@@ -134,6 +144,7 @@ export default function MainPage({ user, loading, lastInputUrl, onSubmitUrl, onL
   function handleNavigateToPerformanceDetails(performance) {
     window.history.pushState({ view: 'performance-details' }, '');
     window.localStorage.setItem(detailsStorageKey, JSON.stringify(performance));
+    window.localStorage.setItem(sharedDetailsStorageKey, JSON.stringify(performance));
     window.localStorage.removeItem('reservationFlow');
     setPerformanceData(performance);
     setShowResults(false);
@@ -150,19 +161,26 @@ export default function MainPage({ user, loading, lastInputUrl, onSubmitUrl, onL
 
   function handleBackFromPublicPerformanceDetails() {
     setShowPublicPerformanceDetails(false);
-    window.localStorage.removeItem('reservationFlow');
+    // 공개 티켓팅 종료 시 예매 시작 시간 정리
+    window.localStorage.removeItem('publicBookingStartTime');
+    // reservationFlow는 유지하여 새로고침 시 화면 유지 가능하도록 함
   }
 
   function handleNavigateBackFromPublicPerformanceDetails() {
+    // 뒤로가기 시에만 reservationFlow 정리
+    window.localStorage.removeItem('reservationFlow');
+    window.localStorage.removeItem('publicBookingStartTime');
     window.history.back();
   }
 
   useEffect(() => {
     if (showPerformanceDetails && performanceData) {
       window.localStorage.setItem(detailsStorageKey, JSON.stringify(performanceData));
+      window.localStorage.setItem(sharedDetailsStorageKey, JSON.stringify(performanceData));
       return;
     }
     window.localStorage.removeItem(detailsStorageKey);
+    window.localStorage.removeItem(sharedDetailsStorageKey);
   }, [showPerformanceDetails, performanceData, detailsStorageKey]);
 
   useEffect(() => {
@@ -181,11 +199,13 @@ export default function MainPage({ user, loading, lastInputUrl, onSubmitUrl, onL
 
     if (shouldClearViewState) {
       window.localStorage.removeItem(viewStateStorageKey);
+      window.localStorage.removeItem(sharedViewStateStorageKey);
       return;
     }
 
     window.localStorage.setItem(viewStateStorageKey, JSON.stringify(nextViewState));
-  }, [selectedMode, showResults, showPublicPerformanceDetails, url, viewStateStorageKey]);
+    window.localStorage.setItem(sharedViewStateStorageKey, JSON.stringify(nextViewState));
+  }, [selectedMode, showResults, showPerformanceDetails, showPublicPerformanceDetails, url, viewStateStorageKey]);
 
   useEffect(() => {
     const handleBrowserBack = (event) => {

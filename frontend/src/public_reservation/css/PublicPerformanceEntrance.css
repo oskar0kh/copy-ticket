@@ -56,8 +56,8 @@
 }
 
 .public-round-time-card.highlight {
-  background: #0f172a;
-  border-color: #0f172a;
+  background: var(--primary);
+  border-color: var(--primary);
 }
 
 .public-round-time-label {
@@ -67,7 +67,7 @@
 }
 
 .public-round-time-card.highlight .public-round-time-label {
-  color: #c7d2fe;
+  color: #eef2ff;
 }
 
 .public-round-time-value {

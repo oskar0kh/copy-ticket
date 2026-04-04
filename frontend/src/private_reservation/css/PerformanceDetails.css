@@ -493,10 +493,6 @@
   color: #999;
 }
 
-.cal-day:not(.empty):not(.past):hover {
-  background-color: #f0f0f0;
-}
-
 .cal-day.past {
   color: #ccc;
   cursor: default;

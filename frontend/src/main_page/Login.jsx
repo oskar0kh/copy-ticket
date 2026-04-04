@@ -61,6 +61,8 @@ export default function Login() {
           window.localStorage.removeItem(key);
         }
       });
+      window.localStorage.removeItem("mainPage:performanceDetails");
+      window.localStorage.removeItem("mainPage:viewState");
       window.localStorage.removeItem("reservationFlow");
     } catch {
       // Ignore storage cleanup errors.
@@ -80,7 +82,6 @@ export default function Login() {
     async function checkAuthStatus() {
       try {
         const currentUser = await me();
-        clearMainPageTransientState();
         setUser(currentUser);
         setView("main");
       } catch (err) {
@@ -216,6 +217,7 @@ export default function Login() {
       setUser(null);
       setView("auth");
       setMode("login");
+      clearMainPageTransientState();
       setMessage(result?.message || "회원 탈퇴가 완료되었습니다.");
       showToast(result?.message || "회원 탈퇴가 완료되었습니다.", "success");
     } catch (err) {
