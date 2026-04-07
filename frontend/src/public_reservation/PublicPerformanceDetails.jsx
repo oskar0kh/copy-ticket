@@ -3,7 +3,7 @@ import '../private_reservation/css/PerformanceDetails.css';
 import LoadingScreen from './public_seat_selection/PublicLoadingScreen';
 import CaptchaModal from './public_seat_selection/PublicCaptchaModal';
 import SeatSelection from './public_seat_selection/PublicSeatSelection';
-import BookingSuccess from './public_seat_selection/PublicBookingSucces';
+import BookingSuccess from './public_seat_selection/PublicBookingSuccess';
 import { formatRemaining } from './roundTime';
 
 const PublicPerformanceDetails = ({ user, performanceData, onGoMain, showTimerButton = true, bookingOpenAt = null }) => {
