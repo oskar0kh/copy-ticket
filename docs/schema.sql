@@ -1,6 +1,6 @@
 -- 티켓팅 연습 플랫폼 — PostgreSQL DDL
 -- DBeaver 등에서 실행하여 테이블 생성
--- 실행 순서: users → performances → seats → bookings
+-- 실행 순서: users → performances → public_rounds → seats → bookings
 
 -- ---------------------------------------------------------------------------
 -- 1. users — 회원
@@ -47,7 +47,22 @@ CREATE INDEX idx_performances_source_url ON performances(source_url);
 CREATE INDEX idx_performances_created_by ON performances(created_by);
 
 -- ---------------------------------------------------------------------------
--- 3. seats — 좌석
+-- 3. public_rounds — 공개 라운드 (전역, 매시 :00, :30분마다 자동 생성)
+-- ---------------------------------------------------------------------------
+CREATE TABLE public_rounds (
+    id              BIGSERIAL PRIMARY KEY,
+    round_number    INTEGER NOT NULL UNIQUE,
+    status          VARCHAR(20) NOT NULL,
+    open_at         TIMESTAMP NOT NULL,
+    close_at        TIMESTAMP NOT NULL,
+    created_at      TIMESTAMP NOT NULL DEFAULT now(),
+    updated_at      TIMESTAMP NOT NULL DEFAULT now()
+);
+
+CREATE INDEX idx_public_rounds_status ON public_rounds(status);
+
+-- ---------------------------------------------------------------------------
+-- 4. seats — 좌석
 -- ---------------------------------------------------------------------------
 CREATE TABLE seats (
     id                  BIGSERIAL PRIMARY KEY,
@@ -65,7 +80,7 @@ CREATE INDEX idx_seats_performance_id ON seats(performance_id);
 CREATE INDEX idx_seats_status ON seats(performance_id, status);
 
 -- ---------------------------------------------------------------------------
--- 4. bookings — 예매 내역
+-- 5. bookings — 예매 내역
 -- ---------------------------------------------------------------------------
 CREATE TABLE bookings (
     id              BIGSERIAL PRIMARY KEY,
