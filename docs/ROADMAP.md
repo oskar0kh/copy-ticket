@@ -125,17 +125,29 @@ Phase 10 라운드 관리 및 데이터 정리
 
 ## 7. Phase 4 — 30분 단위 라운드 생성 + '예매하기' 버튼 활성화 로직 구현
 
-**목표:** 매시 00분/30분마다 새 라운드를 자동 생성하고, 스케줄러가 라운드 생성한 뒤 프론트로 전달하는 신호 받으면 “예매하기” 버튼을 10분 동안 활성화
+**목표:** 매시 00분/30분마다 라운드가 OPEN 상태로 전환되고, 그 10분 전후의 보정/복구 흐름까지 포함해 프론트의 '예매하기' 버튼 상태를 안정적으로 제어한다. 서버는 `WAITING → OPEN → CLOSED` 상태 머신을 관리하고, 프론트는 SSE와 동기화 API를 조합해 화면을 갱신한다.
 
 | 순서 | 작업 | 설명 |
 |------|------|------|
-| 4-1 | PublicRound 엔티티 설계 | `id`, `roundNumber`, `status(CLOSED/OPEN)`, `openAt`, `closeAt`, `performanceId` 등 |
-| 4-2 | 30분 주기 라운드 생성 Scheduler | 매시 :00, :30분에 새 라운드 자동 생성 (`@Scheduled(cron 잡)`) |
-| 4-3 | Scheduler 활성화 시, 프론트에 신호 전달 (SSE) | 라운드 생성할때 서버에서 프론트에 신호 전달, 프론트는 신호 받을때만 '예매하기' 버튼을 10분동안 활성화 |
-| 4-4 | 라운드 GET API들 구현 | 현재 시각 기준 진행 중인 라운드 조회 |
-| 4-5 | 라운드 상태 관리 | 라운드 종료 시 상태를 CLOSED로 변경, 신규 진입 차단 |
+| 4-1 | PublicRound 엔티티 설계 | `id`, `roundNumber`, `status(WAITING/OPEN/CLOSED)`, `openAt`, `closeAt`, `createdAt`, `updatedAt` 필드로 구현. `openAt`은 슬롯 시작 시각, `closeAt`은 `openAt + 10분`으로 저장 |
+| 4-2 | 라운드 생성/전환 스케줄러 | 매시 00/30분에는 `WAITING` 라운드를 `OPEN`으로 승격하고 SSE를 발행. 매시 10/40분에는 다음 슬롯용 `WAITING` 라운드를 미리 준비. 추가로 5초 주기로 만료된 `OPEN` 라운드를 `CLOSED`로 정리하고, 1분 주기로 `OPEN/WAITING`가 모두 없으면 다음 슬롯용 `WAITING` 라운드를 보정 생성 (`@Scheduled(cron = "0 0,30 * * * *")`, `@Scheduled(cron = "0 10,40 * * * *")`, `@Scheduled(cron = "0/5 * * * * *")`, `@Scheduled(cron = "0 * * * * *")`) |
+| 4-3 | Scheduler 신호 프론트 전달 (SSE) | 라운드가 실제로 `OPEN`으로 전환될 때 `roundCreated` 이벤트를 발행하고, `openAt/closeAt/serverNow`를 포함한 응답으로 프론트가 버튼 오픈/종료 시간을 계산하도록 구성. `WAITING` 생성만으로는 SSE를 보내지 않음 |
+| 4-4 | 라운드 조회 API | `sync`, `current`, `health` API로 현재 서버 시각/진행 라운드/구독자 수를 조회. `sync`는 서버 시각과 현재 라운드 정보를 함께 내려주고, `current`는 유효한 `OPEN` 라운드만 반환 |
+| 4-5 | 라운드 상태 관리 | `WAITING`는 슬롯 예약 상태, `OPEN`은 진입 가능 상태, `CLOSED`는 종료 상태로 구분. `openAt <= now < closeAt` 범위에서만 프론트/백엔드 모두 예매를 허용하고, overdue `WAITING`는 `OPEN`으로 승격하여 정시 스케줄 누락을 복구 |
 
-**산출물:** PublicRound 엔티티, 라운드 생성 Scheduler, 라운드 생성/조회/상태관리 API
+**백엔드 검증 규칙:**
+- 요청 시점의 서버 시간을 기준으로 `public_rounds`에서 `status = OPEN`이고 `openAt <= now < closeAt`인 경우만 예매를 허용한다.
+- 정시 스케줄을 놓쳤더라도 `openAt <= now < closeAt`인 overdue `WAITING`는 `OPEN`으로 승격한다.
+- `closeAt`이 지난 라운드는 주기 작업으로 `CLOSED` 처리하여 신규 진입을 차단한다.
+
+**현재 동작 요약:**
+- 라운드 생성: 매시 00분/30분에 `WAITING → OPEN` 전환, 매시 10분/40분에 다음 슬롯 `WAITING` 사전 생성
+- 버튼 활성화: 서버에서 전달한 `openAt~closeAt` 기준으로 10분 활성화
+- 상태 종료: 만료 `OPEN` 라운드는 5초 주기 정리로 `CLOSED` 처리
+- 유실 복구: `OPEN/WAITING`가 모두 없으면 1분 주기 fallback이 다음 슬롯용 `WAITING`를 생성하고, overdue `WAITING`는 `OPEN`으로 승격
+- 프론트 보조 로직: 서버 라운드 정보 부재 시 offset 기준 계산으로 임시 보정
+
+**산출물:** PublicRound 엔티티, 라운드 생성/전환/만료 스케줄러, SSE 이벤트 발행/구독 흐름, 라운드 조회 API(`sync/current/health`), 10분 윈도우 기반 버튼 활성화 로직, 유실 복구 fallback
 
 ---
 
@@ -242,13 +254,14 @@ Phase 10 라운드 관리 및 데이터 정리
 | **0** | 패키지 구조, DB 스키마 | ☐ |
 | **1** | Spring Security, 회원가입, 로그인, 모드 선택 메인 | ☐ |
 | **2** | (개인) URL 파싱, 공연 정보 DTO, 개인 연습 페이지 | ☐ |
-| **3** | PublicRound 엔티티, 30분 라운드 생성, UI 흐름(Loading/Captcha/Seats/Success) | ✅ (UI) / ⏳ (Backend API) |
-| **4** | 트랜잭션 세션 관리 (시작/복원/취소/종료) | ⏳ |
-| **5** | 좌석 선택, Redis 임시 락, DB 동기화 | ⏳ |
-| **6** | 예매 완료, bookings/seats DB 저장 | ⏳ |
-| **7** | 나의 예매내역 (마이페이지) | ⏳ |
-| **8** | Redis/Kafka 대기열, 트래픽 제어, 테스트 | ⏳ |
-| **9** | 라운드 관리, 데이터 정리 (soft delete) | ⏳ |
+| **3** | 공개 예매 UI 흐름(Loading/Captcha/Seats/Success) | ✅ |
+| **4** | PublicRound 엔티티, WAITING/OPEN/CLOSED 전환, SSE, 10분 버튼 활성화 | ✅ (핵심 흐름) / ⏳ (실서비스 연동 보강) |
+| **5** | 트랜잭션 세션 관리 (시작/복원/취소/종료) | ⏳ |
+| **6** | 좌석 선택, Redis 임시 락, DB 동기화 | ⏳ |
+| **7** | 예매 완료, bookings/seats DB 저장 | ⏳ |
+| **8** | 나의 예매내역 (마이페이지) | ⏳ |
+| **9** | Redis/Kafka 대기열, 트래픽 제어, 테스트 | ⏳ |
+| **10** | 라운드 관리, 데이터 정리 (soft delete) | ⏳ |
 
 ---
 
@@ -256,11 +269,11 @@ Phase 10 라운드 관리 및 데이터 정리
 
 | 구간 | 방식 |
 |------|------|
-| **라운드 기초** | 30분 주기 자동 라운드 생성, 매시 :00/:30 버튼 활성화 |
+| **라운드 기초** | `WAITING → OPEN → CLOSED` 상태 머신, 30분 슬롯 단위 생성/전환, openAt~closeAt 기반 버튼 활성화 |
 | **예매 흐름** | Loading → Captcha → SeatSelection → BookingSuccess (단계별 UI) |
 | **트랜잭션** | "예매하기" 시작 → sessionId 발급, 새로고침 유지, 뒤로가기 취소, BookingSuccess 도달 시 종료 |
 | **좌석 선택** | Redis 임시 락으로 선택 중 상태 관리, 새로고침마다 DB 동기화 (BOOKED 상태 반영) |
-| **예매 확정** | "선택 완료" → Redis 락 검증 → bookings/seats DB 저장 → 정보 표시 |
+| **예매 확정** | "선택 완료" → 서버 시각 기준 `openAt <= now < closeAt` 검증 → Redis 락 검증 → bookings/seats DB 저장 |
 | **마이페이지** | PublicPerformanceDetails 헤더의 "나의 예매내역" 버튼 → 예매 조회 |
 | **대기열** | 트래픽 과부하 시 Redis/Kafka 기반 대기열 처리 |
 | **데이터 정리** | 새 라운드 시작 시 이전 라운드 bookings/seats soft delete |

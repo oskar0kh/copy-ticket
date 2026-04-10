@@ -28,12 +28,12 @@ public class PerformanceService {
     @Transactional
     public Performance savePerformance(PerformanceSaveRequestDto saveRequestDto, String userId) {
         // 1. 사용자 조회
-        User user = userRepository.findByUserIdAndDeletedAtIsNull(userId)
+        User user = userRepository.findUserByUserIdWithoutSoftDeleted(userId)
                 .orElseThrow(() -> new RuntimeException("User not found: " + userId));
 
         // 2. goodsCode 기반 기존 레코드 확인 (soft delete되지 않은 것만)
         if (saveRequestDto.getGoodsCode() != null) {
-            List<Performance> existingList = performanceRepository.findByCreatedByIdAndGoodsCodeAndDeletedAtIsNull(
+            List<Performance> existingList = performanceRepository.findSameGoodsCodePerformance(
                     user.getId(), saveRequestDto.getGoodsCode());
 
             if (!existingList.isEmpty()) {
@@ -46,11 +46,11 @@ public class PerformanceService {
         }
 
         // 3. 사용자의 현재 공연 개수 확인 (삭제되지 않은 것만)
-        long currentCount = performanceRepository.countByCreatedByIdAndDeletedAtIsNull(user.getId());
+        long currentCount = performanceRepository.countNotSoftDeletedPerformance(user.getId());
 
         // 4. 5개 이상이면 가장 오래된 공연 soft delete
         if (currentCount >= MAX_PERFORMANCES_PER_USER) {
-            List<Performance> oldestList = performanceRepository.findOldestByUserIdOrderByCreatedAtAsc(user.getId());
+            List<Performance> oldestList = performanceRepository.findOldestPerformance(user.getId());
             if (!oldestList.isEmpty()) {
                 Performance toDelete = oldestList.get(0);
                 toDelete.setDeletedAt(Instant.now());
@@ -91,10 +91,10 @@ public class PerformanceService {
      */
     @Transactional(readOnly = true)
     public List<String> getPerformanceTitleListByUserId(String userId) {
-        User user = userRepository.findByUserIdAndDeletedAtIsNull(userId)
+        User user = userRepository.findUserByUserIdWithoutSoftDeleted(userId)
                 .orElseThrow(() -> new RuntimeException("User not found: " + userId));
 
-        return performanceRepository.findByCreatedByIdAndDeletedAtIsNullOrderByCreatedAtDesc(user.getId())
+        return performanceRepository.findAllPerformanceByUser(user.getId())
                 .stream()
                 .map(Performance::getGoodsName)
                 .collect(Collectors.toList());
@@ -108,10 +108,10 @@ public class PerformanceService {
      */
     @Transactional(readOnly = true)
     public List<PerformanceListItemDto> getPerformanceListByUserId(String userId) {
-        User user = userRepository.findByUserIdAndDeletedAtIsNull(userId)
+        User user = userRepository.findUserByUserIdWithoutSoftDeleted(userId)
                 .orElseThrow(() -> new RuntimeException("User not found: " + userId));
 
-        return performanceRepository.findByCreatedByIdAndDeletedAtIsNullOrderByCreatedAtDesc(user.getId())
+        return performanceRepository.findAllPerformanceByUser(user.getId())
                 .stream()
                 .map(perf -> new PerformanceListItemDto(perf.getId(), perf.getGoodsName()))
                 .collect(Collectors.toList());
@@ -127,7 +127,7 @@ public class PerformanceService {
      */
     @Transactional(readOnly = true)
     public PerformanceResponseDto getPerformanceById(Long performanceId, String userId) {
-        User user = userRepository.findByUserIdAndDeletedAtIsNull(userId)
+        User user = userRepository.findUserByUserIdWithoutSoftDeleted(userId)
                 .orElseThrow(() -> new RuntimeException("User not found: " + userId));
 
         Performance performance = performanceRepository.findById(performanceId)
@@ -156,7 +156,7 @@ public class PerformanceService {
      */
     @Transactional
     public void deletePerformance(Long performanceId, String userId) {
-        User user = userRepository.findByUserIdAndDeletedAtIsNull(userId)
+        User user = userRepository.findUserByUserIdWithoutSoftDeleted(userId)
                 .orElseThrow(() -> new RuntimeException("User not found: " + userId));
 
         Performance performance = performanceRepository.findById(performanceId)

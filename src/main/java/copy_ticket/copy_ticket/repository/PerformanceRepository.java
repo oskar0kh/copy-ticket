@@ -10,16 +10,42 @@ import java.util.List;
 public interface PerformanceRepository extends JpaRepository<Performance, Long> {
 
     // 사용자의 soft delete되지 않은 공연 개수 조회
-    long countByCreatedByIdAndDeletedAtIsNull(Long userId);
+    @Query("""
+            SELECT COUNT(p)
+            FROM Performance p
+            WHERE p.createdBy.id = :userId
+                AND p.deletedAt IS NULL
+            """)
+    long countNotSoftDeletedPerformance(@Param("userId") Long userId);
 
     // 사용자의 가장 오래된 공연 조회 (soft delete되지 않은 것 중에서)
-    @Query("SELECT p FROM Performance p WHERE p.createdBy.id = :userId AND p.deletedAt IS NULL ORDER BY p.createdAt ASC")
-    List<Performance> findOldestByUserIdOrderByCreatedAtAsc(@Param("userId") Long userId);
+    @Query("""
+            SELECT p
+            FROM Performance p
+            WHERE p.createdBy.id = :userId
+                AND p.deletedAt IS NULL
+            ORDER BY p.createdAt ASC
+            """)
+    List<Performance> findOldestPerformance(@Param("userId") Long userId);
 
     // 사용자의 모든 공연 조회 (soft delete되지 않은 것만)
-    List<Performance> findByCreatedByIdAndDeletedAtIsNullOrderByCreatedAtDesc(Long userId);
+    @Query("""
+            SELECT p
+            FROM Performance p
+            WHERE p.createdBy.id = :userId
+                AND p.deletedAt IS NULL
+            ORDER BY p.createdAt DESC
+            """)
+    List<Performance> findAllPerformanceByUser(@Param("userId") Long userId);
 
     // 같은 goodsCode 기존 레코드 조회 (soft delete되지 않은 것만)
-    List<Performance> findByCreatedByIdAndGoodsCodeAndDeletedAtIsNull(Long userId, String goodsCode);
+    @Query("""
+            SELECT p
+            FROM Performance p
+            WHERE p.createdBy.id = :userId
+                AND p.goodsCode = :goodsCode
+                AND p.deletedAt IS NULL
+            """)
+    List<Performance> findSameGoodsCodePerformance(@Param("userId") Long userId, @Param("goodsCode") String goodsCode);
 }
 

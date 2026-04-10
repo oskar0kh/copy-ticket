@@ -27,7 +27,7 @@ public class CustomUserDetailsService implements UserDetailsService {
     public UserDetails loadUserByUsername(String userId) throws UsernameNotFoundException {
 
         // 1. 'users' 테이블에서 사용자 아이디(userId)로 User 엔티티 조회
-        User user = userRepository.findByUserIdAndDeletedAtIsNull(userId)
+        User user = userRepository.findUserByUserIdWithoutSoftDeleted(userId)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found: " + userId));
 
         // 2. 조회된 사용자의 userId/PW를, Spring Security의 UserDetails 객체로 변환하여 반환
