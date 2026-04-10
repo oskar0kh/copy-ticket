@@ -1,7 +1,6 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import PublicPerformanceDetails from "./PublicPerformanceDetails";
 import "./css/PublicPerformanceData.css";
-import { getNextRoundOpenTime } from "./roundTime";
 
 function formatDateYmd(date) {
   const pad = (value) => String(value).padStart(2, "0");
@@ -55,7 +54,44 @@ const publicPerformanceData = {
 };
 
 export default function PublicPerformanceData({ user, onGoMain }) {
-  const bookingOpenAt = useMemo(() => getNextRoundOpenTime(new Date()).getTime(), []);
+  const [bookingOpenAt, setBookingOpenAt] = useState(null);
+  const [roundNumber, setRoundNumber] = useState(null);
+
+  // SSE 연결: 스케줄러가 라운드 생성할 때마다 이벤트 수신
+  useEffect(() => {
+    const eventSource = new EventSource('/api/public-round/subscribe');
+
+    // 라운드 생성 이벤트 수신
+    eventSource.addEventListener('roundCreated', (event) => {
+      try {
+        const roundData = JSON.parse(event.data);
+        console.log('라운드 생성 이벤트 수신:', roundData);
+
+        // 라운드 생성 시각을 예매 오픈 시각으로 설정
+        setBookingOpenAt(new Date(roundData.openAt).getTime());
+        setRoundNumber(roundData.roundNumber);
+
+        // 10분 후 자동으로 초기화 (라운드 종료)
+        setTimeout(() => {
+          setBookingOpenAt(null);
+          console.log('10분 경과: 예매 윈도우 종료');
+        }, 10 * 60 * 1000);
+      } catch (error) {
+        console.error('라운드 이벤트 파싱 오류:', error);
+      }
+    });
+
+    // 에러 처리
+    eventSource.onerror = () => {
+      console.error('SSE 연결 끊김');
+      eventSource.close();
+    };
+
+    // 클린업
+    return () => {
+      eventSource.close();
+    };
+  }, []);
 
   return (
     <div className="public-performance-page">

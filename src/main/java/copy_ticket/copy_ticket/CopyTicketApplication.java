@@ -2,8 +2,10 @@ package copy_ticket.copy_ticket;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 @SpringBootApplication
+@EnableScheduling
 public class CopyTicketApplication {
 
 	public static void main(String[] args) {
