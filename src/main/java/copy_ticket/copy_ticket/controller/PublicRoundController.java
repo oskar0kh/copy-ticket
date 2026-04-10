@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import java.time.Instant;
 import java.util.Optional;
 
 @RestController
@@ -53,6 +54,18 @@ public class PublicRoundController {
     }
 
     /**
+     * 초기 동기화 엔드포인트
+     * 현재 서버 시각과 현재 라운드 정보를 함께 반환
+     */
+    @GetMapping("/sync")
+    public ResponseEntity<SyncResponse> getSync() {
+        Optional<PublicRound> round = publicRoundService.getCurrentRound();
+        RoundEventDto dto = round.map(RoundEventDto::of).orElse(null);
+
+        return ResponseEntity.ok(new SyncResponse(Instant.now(), dto));
+    }
+
+    /**
      * 헬스 체크 (관리자용)
      */
     @GetMapping("/health")
@@ -77,5 +90,12 @@ public class PublicRoundController {
     static class HealthResponse {
         private Integer currentRoundNumber;
         private int activeSubscribers;
+    }
+
+    @lombok.Getter
+    @lombok.AllArgsConstructor
+    static class SyncResponse {
+        private Instant serverNow;
+        private RoundEventDto round;
     }
 }

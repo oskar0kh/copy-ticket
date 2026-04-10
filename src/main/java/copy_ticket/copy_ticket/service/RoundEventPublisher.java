@@ -7,6 +7,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -25,7 +26,11 @@ public class RoundEventPublisher {
 
         // 연결 확인 (heartbeat)
         try {
-            emitter.send(SseEmitter.event().id("heartbeat").name("init").data("connected").build());
+            emitter.send(SseEmitter.event()
+                    .id("heartbeat")
+                    .name("init")
+                    .data(new InitEventPayload("connected", Instant.now()))
+                    .build());
         } catch (IOException e) {
             log.warn("Failed to send heartbeat", e);
             emitters.remove(emitter);
@@ -87,5 +92,12 @@ public class RoundEventPublisher {
      */
     public int getActiveSubscriberCount() {
         return emitters.size();
+    }
+
+    @lombok.Getter
+    @lombok.AllArgsConstructor
+    static class InitEventPayload {
+        private String type;
+        private Instant serverNow;
     }
 }

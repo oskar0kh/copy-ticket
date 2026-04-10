@@ -4,9 +4,17 @@ import LoadingScreen from './public_seat_selection/PublicLoadingScreen';
 import CaptchaModal from './public_seat_selection/PublicCaptchaModal';
 import SeatSelection from './public_seat_selection/PublicSeatSelection';
 import BookingSuccess from './public_seat_selection/PublicBookingSuccess';
-import { formatRemaining } from './roundTime';
+import { formatRemaining, getNextRoundOpenTime } from './roundTime';
 
-const PublicPerformanceDetails = ({ user, performanceData, onGoMain, showTimerButton = true, bookingOpenAt = null }) => {
+const PublicPerformanceDetails = ({
+  user,
+  performanceData,
+  onGoMain,
+  showTimerButton = true,
+  bookingOpenAt = null,
+  bookingCloseAt = null,
+  serverTimeOffsetMs = 0,
+}) => {
   const performanceKey = useMemo(() => (
     performanceData?.goodsCode
       || performanceData?.goodsName
@@ -117,19 +125,27 @@ const PublicPerformanceDetails = ({ user, performanceData, onGoMain, showTimerBu
       if (!storedBookingStart || +bookingOpenAt > +storedBookingStart) {
         window.localStorage.setItem('publicBookingStartTime', bookingOpenAt);
       }
+
+      if (bookingCloseAt != null) {
+        window.localStorage.setItem('publicBookingCloseTime', bookingCloseAt);
+      }
     }
-  }, [bookingOpenAt]);
+  }, [bookingOpenAt, bookingCloseAt]);
 
   const publicBookingWindow = useMemo(() => {
     // localStorage에서 저장된 예매 시작 시각 우선 사용
     const storedBookingStart = window.localStorage.getItem('publicBookingStartTime');
+    const storedBookingClose = window.localStorage.getItem('publicBookingCloseTime');
     const effectiveBookingOpenAt = storedBookingStart || bookingOpenAt;
+    const effectiveBookingCloseAt = storedBookingClose || bookingCloseAt;
     
     if (effectiveBookingOpenAt == null) return null;
 
     const openAt = new Date(effectiveBookingOpenAt).getTime();
-    const closeAt = openAt + 10 * 60 * 1000;
-    const currentAt = now.getTime();
+    const closeAt = effectiveBookingCloseAt != null
+      ? new Date(effectiveBookingCloseAt).getTime()
+      : openAt + 10 * 60 * 1000;
+    const currentAt = now.getTime() + Number(serverTimeOffsetMs || 0);
 
     if (currentAt < openAt) {
       return { status: 'before', remaining: openAt - currentAt };
@@ -141,8 +157,9 @@ const PublicPerformanceDetails = ({ user, performanceData, onGoMain, showTimerBu
 
     // 10분 초과 시 localStorage 정리
     window.localStorage.removeItem('publicBookingStartTime');
+    window.localStorage.removeItem('publicBookingCloseTime');
     return { status: 'closed', remaining: 0 };
-  }, [bookingOpenAt, now]);
+  }, [bookingOpenAt, bookingCloseAt, now, serverTimeOffsetMs]);
 
   const handleStartReservationTimer = () => {
     const seconds = Number(selectedTimerSeconds);
@@ -259,22 +276,24 @@ const PublicPerformanceDetails = ({ user, performanceData, onGoMain, showTimerBu
 
   const calendarDays = generateCalendarDays();
   const weekDays = ['일', '월', '화', '수', '목', '금', '토'];
-  const timerActive = !isReservationReady && remainingTimerSeconds !== null;
+  const nextRoundRemainingMs = useMemo(() => {
+    const adjustedNow = new Date(now.getTime() + Number(serverTimeOffsetMs || 0));
+    const nextOpenAt = getNextRoundOpenTime(adjustedNow).getTime();
+    return Math.max(0, nextOpenAt - adjustedNow.getTime());
+  }, [now, serverTimeOffsetMs]);
   const buyNowButtonLabel = bookingOpenAt != null
     ? (publicBookingWindow?.status === 'before'
       ? `${formatRemaining(publicBookingWindow.remaining)} 후 예매 오픈`
       : publicBookingWindow?.status === 'open'
         ? '예매하기'
         : '예매 종료')
-    : (timerActive
-      ? `${remainingTimerSeconds}초 후 예매 오픈`
-      : (isReservationReady ? '예매하기' : '타이머를 사용해주세요'));
+    : (isReservationReady
+      ? '예매하기'
+      : `${formatRemaining(nextRoundRemainingMs)} 후 예매 오픈`);
   const buyNowButtonDisabled = bookingOpenAt != null
     ? publicBookingWindow?.status !== 'open'
     : !isReservationReady;
-  const showTicketOpenGuide = bookingOpenAt != null
-    ? publicBookingWindow?.status === 'before'
-    : timerActive;
+  const showTicketOpenGuide = buyNowButtonDisabled;
   const today = new Date().getDate();
   const isCurrentMonth = currentMonth.month === new Date().getMonth() + 1 &&
                          currentMonth.year === new Date().getFullYear();

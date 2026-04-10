@@ -25,6 +25,9 @@ public class RoundEventDto {
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss'Z'", timezone = "UTC")
     private Instant closeAt;
 
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss'Z'", timezone = "UTC")
+    private Instant serverNow;
+
     public static RoundEventDto of(PublicRound round) {
         return RoundEventDto.builder()
                 .id(round.getId())
@@ -32,6 +35,7 @@ public class RoundEventDto {
                 .status(round.getStatus().name())
                 .openAt(round.getOpenAt())
                 .closeAt(round.getCloseAt())
+                .serverNow(Instant.now())
                 .build();
     }
 }

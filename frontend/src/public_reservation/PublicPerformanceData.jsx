@@ -55,11 +55,64 @@ const publicPerformanceData = {
 
 export default function PublicPerformanceData({ user, onGoMain }) {
   const [bookingOpenAt, setBookingOpenAt] = useState(null);
+  const [bookingCloseAt, setBookingCloseAt] = useState(null);
   const [roundNumber, setRoundNumber] = useState(null);
+  const [serverTimeOffsetMs, setServerTimeOffsetMs] = useState(0);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const syncWithServer = async () => {
+      try {
+        const response = await fetch('/api/public-round/sync');
+        if (!response.ok) {
+          return;
+        }
+
+        const payload = await response.json();
+        if (!isMounted) return;
+
+        if (payload?.serverNow) {
+          const offset = new Date(payload.serverNow).getTime() - Date.now();
+          setServerTimeOffsetMs(offset);
+        }
+
+        if (payload?.round?.openAt) {
+          setBookingOpenAt(new Date(payload.round.openAt).getTime());
+          setBookingCloseAt(
+            payload.round.closeAt
+              ? new Date(payload.round.closeAt).getTime()
+              : null
+          );
+          setRoundNumber(payload.round.roundNumber ?? null);
+        }
+      } catch (error) {
+        console.error('초기 라운드 동기화 실패:', error);
+      }
+    };
+
+    syncWithServer();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // SSE 연결: 스케줄러가 라운드 생성할 때마다 이벤트 수신
   useEffect(() => {
     const eventSource = new EventSource('/api/public-round/subscribe');
+
+    eventSource.addEventListener('init', (event) => {
+      try {
+        const initData = JSON.parse(event.data);
+        if (initData?.serverNow) {
+          const offset = new Date(initData.serverNow).getTime() - Date.now();
+          setServerTimeOffsetMs(offset);
+        }
+      } catch (error) {
+        console.error('SSE init 이벤트 파싱 오류:', error);
+      }
+    });
 
     // 라운드 생성 이벤트 수신
     eventSource.addEventListener('roundCreated', (event) => {
@@ -67,13 +120,22 @@ export default function PublicPerformanceData({ user, onGoMain }) {
         const roundData = JSON.parse(event.data);
         console.log('라운드 생성 이벤트 수신:', roundData);
 
+        if (roundData?.serverNow) {
+          const offset = new Date(roundData.serverNow).getTime() - Date.now();
+          setServerTimeOffsetMs(offset);
+        }
+
         // 라운드 생성 시각을 예매 오픈 시각으로 설정
         setBookingOpenAt(new Date(roundData.openAt).getTime());
+        setBookingCloseAt(
+          roundData.closeAt ? new Date(roundData.closeAt).getTime() : null
+        );
         setRoundNumber(roundData.roundNumber);
 
         // 10분 후 자동으로 초기화 (라운드 종료)
         setTimeout(() => {
           setBookingOpenAt(null);
+          setBookingCloseAt(null);
           console.log('10분 경과: 예매 윈도우 종료');
         }, 10 * 60 * 1000);
       } catch (error) {
@@ -100,6 +162,8 @@ export default function PublicPerformanceData({ user, onGoMain }) {
         performanceData={publicPerformanceData}
         onGoMain={onGoMain}
         bookingOpenAt={bookingOpenAt}
+        bookingCloseAt={bookingCloseAt}
+        serverTimeOffsetMs={serverTimeOffsetMs}
         showTimerButton={false}
       />
     </div>

@@ -14,6 +14,7 @@ function formatDateTimeToMinute(date) {
 
 export default function PublicPerformanceEntrance({ loading, onBackToModeSelection, onEnterPublicPractice }) {
   const [now, setNow] = useState(() => new Date());
+  const [serverTimeOffsetMs, setServerTimeOffsetMs] = useState(0);
 
   useEffect(() => {
     const timerId = window.setInterval(() => {
@@ -25,10 +26,43 @@ export default function PublicPerformanceEntrance({ loading, onBackToModeSelecti
     };
   }, []);
 
-  const nextRoundOpenTime = useMemo(() => getNextRoundOpenTime(now), [now]);
+  useEffect(() => {
+    let isMounted = true;
+
+    const syncServerTime = async () => {
+      try {
+        const response = await fetch('/api/public-round/sync');
+        if (!response.ok) {
+          return;
+        }
+
+        const payload = await response.json();
+        if (!isMounted) return;
+
+        if (payload?.serverNow) {
+          const offset = new Date(payload.serverNow).getTime() - Date.now();
+          setServerTimeOffsetMs(offset);
+        }
+      } catch (error) {
+        console.error('공개 라운드 입장 시간 동기화 실패:', error);
+      }
+    };
+
+    syncServerTime();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const adjustedNow = useMemo(
+    () => new Date(now.getTime() + Number(serverTimeOffsetMs || 0)),
+    [now, serverTimeOffsetMs]
+  );
+  const nextRoundOpenTime = useMemo(() => getNextRoundOpenTime(adjustedNow), [adjustedNow]);
   const remainingToNextRound = useMemo(() => (
-    formatRemaining(nextRoundOpenTime.getTime() - now.getTime())
-  ), [nextRoundOpenTime, now]);
+    formatRemaining(nextRoundOpenTime.getTime() - adjustedNow.getTime())
+  ), [nextRoundOpenTime, adjustedNow]);
 
   return (
     <section className="mode-card competition-card public-entrance-card">
@@ -45,7 +79,7 @@ export default function PublicPerformanceEntrance({ loading, onBackToModeSelecti
       <div className="public-round-time-grid" aria-live="polite">
         <div className="public-round-time-card">
           <span className="public-round-time-label">현재 시각</span>
-          <strong className="public-round-time-value">{formatDateTimeToMinute(now)}</strong>
+          <strong className="public-round-time-value">{formatDateTimeToMinute(adjustedNow)}</strong>
         </div>
         <div className="public-round-time-card">
           <span className="public-round-time-label">다음 공개 라운드</span>
