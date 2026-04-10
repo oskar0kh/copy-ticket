@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useState, useEffect, useRef } from "react";
 import PublicPerformanceDetails from "./PublicPerformanceDetails";
 import "./css/PublicPerformanceData.css";
 
@@ -58,6 +58,7 @@ export default function PublicPerformanceData({ user, onGoMain }) {
   const [bookingCloseAt, setBookingCloseAt] = useState(null);
   const [roundNumber, setRoundNumber] = useState(null);
   const [serverTimeOffsetMs, setServerTimeOffsetMs] = useState(0);
+  const roundCloseTimerRef = useRef(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -126,18 +127,31 @@ export default function PublicPerformanceData({ user, onGoMain }) {
         }
 
         // 라운드 생성 시각을 예매 오픈 시각으로 설정
-        setBookingOpenAt(new Date(roundData.openAt).getTime());
-        setBookingCloseAt(
-          roundData.closeAt ? new Date(roundData.closeAt).getTime() : null
-        );
+        const openAtMs = new Date(roundData.openAt).getTime();
+        const closeAtMs = roundData.closeAt
+          ? new Date(roundData.closeAt).getTime()
+          : openAtMs + 10 * 60 * 1000;
+
+        setBookingOpenAt(openAtMs);
+        setBookingCloseAt(closeAtMs);
         setRoundNumber(roundData.roundNumber);
 
-        // 10분 후 자동으로 초기화 (라운드 종료)
-        setTimeout(() => {
+        // closeAt 기준으로 자동 초기화 (라운드 종료)
+        if (roundCloseTimerRef.current) {
+          clearTimeout(roundCloseTimerRef.current);
+        }
+
+        const serverNowMs = roundData.serverNow
+          ? new Date(roundData.serverNow).getTime()
+          : Date.now();
+        const remainingMs = Math.max(0, closeAtMs - serverNowMs);
+
+        roundCloseTimerRef.current = setTimeout(() => {
           setBookingOpenAt(null);
           setBookingCloseAt(null);
-          console.log('10분 경과: 예매 윈도우 종료');
-        }, 10 * 60 * 1000);
+          console.log('라운드 종료: 예매 윈도우 종료');
+          roundCloseTimerRef.current = null;
+        }, remainingMs);
       } catch (error) {
         console.error('라운드 이벤트 파싱 오류:', error);
       }
@@ -151,6 +165,9 @@ export default function PublicPerformanceData({ user, onGoMain }) {
 
     // 클린업
     return () => {
+      if (roundCloseTimerRef.current) {
+        clearTimeout(roundCloseTimerRef.current);
+      }
       eventSource.close();
     };
   }, []);

@@ -40,4 +40,17 @@ public class PublicRoundScheduler {
             log.error("Error creating new round", e);
         }
     }
+
+    /**
+     * 만료된 OPEN 라운드를 주기적으로 정리
+        * cron: "0/5 * * * * *" = 5초마다 실행
+     */
+        @Scheduled(cron = "0/5 * * * * *")
+    public void closeExpiredRound() {
+        try {
+            publicRoundService.getCurrentRound();
+        } catch (Exception e) {
+            log.error("Error while closing expired round", e);
+        }
+    }
 }

@@ -36,7 +36,7 @@ public class PublicRoundService {
                 .roundNumber(nextRoundNumber)
                 .status(RoundStatus.OPEN)
                 .openAt(now)
-                .closeAt(now.plus(30, ChronoUnit.MINUTES))  // 30분 윈도우
+            .closeAt(now.plus(10, ChronoUnit.MINUTES))  // 10분 윈도우
                 .createdAt(now)
                 .updatedAt(now)
                 .build();
@@ -51,7 +51,18 @@ public class PublicRoundService {
      */
     @Transactional(readOnly = true)
     public Optional<PublicRound> getCurrentRound() {
-        return publicRoundRepository.findByStatus(RoundStatus.OPEN);
+        Optional<PublicRound> openRound = publicRoundRepository.findByStatus(RoundStatus.OPEN);
+        if (openRound.isEmpty()) {
+            return Optional.empty();
+        }
+
+        PublicRound round = openRound.get();
+        if (!round.getCloseAt().isAfter(Instant.now())) {
+            closeRound(round);
+            return Optional.empty();
+        }
+
+        return Optional.of(round);
     }
 
     /**

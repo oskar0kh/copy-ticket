@@ -128,6 +128,9 @@ const PublicPerformanceDetails = ({
 
       if (bookingCloseAt != null) {
         window.localStorage.setItem('publicBookingCloseTime', bookingCloseAt);
+      } else {
+        // closeAt이 없는 라운드는 openAt + 10분 규칙을 적용하기 위해 기존 값을 제거한다.
+        window.localStorage.removeItem('publicBookingCloseTime');
       }
     }
   }, [bookingOpenAt, bookingCloseAt]);
@@ -141,10 +144,16 @@ const PublicPerformanceDetails = ({
     
     if (effectiveBookingOpenAt == null) return null;
 
-    const openAt = new Date(effectiveBookingOpenAt).getTime();
+    const openAt = Number(effectiveBookingOpenAt);
+    if (Number.isNaN(openAt)) {
+      return null;
+    }
     const closeAt = effectiveBookingCloseAt != null
-      ? new Date(effectiveBookingCloseAt).getTime()
+      ? Number(effectiveBookingCloseAt)
       : openAt + 10 * 60 * 1000;
+    if (Number.isNaN(closeAt)) {
+      return null;
+    }
     const currentAt = now.getTime() + Number(serverTimeOffsetMs || 0);
 
     if (currentAt < openAt) {
@@ -281,18 +290,46 @@ const PublicPerformanceDetails = ({
     const nextOpenAt = getNextRoundOpenTime(adjustedNow).getTime();
     return Math.max(0, nextOpenAt - adjustedNow.getTime());
   }, [now, serverTimeOffsetMs]);
+  const scheduledBookingWindow = useMemo(() => {
+    const adjustedNow = new Date(now.getTime() + Number(serverTimeOffsetMs || 0));
+    const currentAt = adjustedNow.getTime();
+    const minute = adjustedNow.getMinutes();
+
+    if (minute < 10 || (minute >= 30 && minute < 40)) {
+      const openAtDate = new Date(adjustedNow);
+      if (minute < 10) {
+        openAtDate.setMinutes(0, 0, 0);
+      } else {
+        openAtDate.setMinutes(30, 0, 0);
+      }
+
+      const openAt = openAtDate.getTime();
+      const closeAt = openAt + 10 * 60 * 1000;
+      return {
+        status: currentAt < closeAt ? 'open' : 'closed',
+        remaining: Math.max(0, closeAt - currentAt)
+      };
+    }
+
+    const nextOpenAt = getNextRoundOpenTime(adjustedNow).getTime();
+    return {
+      status: 'before',
+      remaining: Math.max(0, nextOpenAt - currentAt)
+    };
+  }, [now, serverTimeOffsetMs]);
+  const activeBookingWindow = bookingOpenAt != null ? publicBookingWindow : scheduledBookingWindow;
   const buyNowButtonLabel = bookingOpenAt != null
     ? (publicBookingWindow?.status === 'before'
       ? `${formatRemaining(publicBookingWindow.remaining)} 후 예매 오픈`
       : publicBookingWindow?.status === 'open'
         ? '예매하기'
         : '예매 종료')
-    : (isReservationReady
+    : (activeBookingWindow?.status === 'open'
       ? '예매하기'
       : `${formatRemaining(nextRoundRemainingMs)} 후 예매 오픈`);
   const buyNowButtonDisabled = bookingOpenAt != null
     ? publicBookingWindow?.status !== 'open'
-    : !isReservationReady;
+    : activeBookingWindow?.status !== 'open';
   const showTicketOpenGuide = buyNowButtonDisabled;
   const today = new Date().getDate();
   const isCurrentMonth = currentMonth.month === new Date().getMonth() + 1 &&
@@ -361,6 +398,7 @@ const PublicPerformanceDetails = ({
     setReservationFlow(null);
     setCaptchaCompleted(false);
     window.localStorage.removeItem('publicBookingStartTime');
+    window.localStorage.removeItem('publicBookingCloseTime');
   };
 
   // 좌석 선택 완료 핸들러

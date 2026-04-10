@@ -308,9 +308,9 @@ export default function MainPage({ user, loading, lastInputUrl, onSubmitUrl, onL
             {showResults
               ? "인터파크에서 가져온 공연 정보입니다."
               : selectedMode === "practice"
-                ? "기존처럼 URL을 입력해 개인 연습을 진행할 수 있습니다."
+                ? "인터파크 URL을 입력해 개인 티켓팅 연습을 진행할 수 있습니다."
                 : selectedMode === "competition"
-                  ? "가상의 공연으로 공개 티켓팅 연습 페이지를 시작할 수 있습니다."
+                  ? "가상의 공연으로 다른 사용자들과 티켓팅 실력을 겨뤄보세요."
                   : "개인 연습과 공개 경쟁 중 원하는 모드를 선택해 주세요."
             }
           </p>
