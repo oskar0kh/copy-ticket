@@ -30,15 +30,21 @@ Phase 1  로그인 / 회원가입 + 모드 선택 메인
     ↓
 Phase 2  (개인) URL 파싱 + 개인 연습 페이지
     ↓
-Phase 3  (공용) 공개 티켓팅 라운드(30분 단위) + 공개 예매 페이지
+Phase 3  (공용) 공개 예매 UI 흐름 (Loading → Captcha → Seats → Success)
     ↓
-Phase 4  공통 대기열 (Kafka + Redis) — 트래픽 제어
+Phase 4  공개 라운드 기초 + '예매하기' 버튼 활성화
     ↓
-Phase 5  공통 좌석 선택 + Redis 분산 락 + DB 락
+Phase 5  트랜잭션 세션 관리
     ↓
-Phase 6  공통 가상 결제 + 예매 완료
+Phase 6  좌석 선택 + Redis 임시 락 + DB 동기화
     ↓
-Phase 7  마이페이지(예매 내역) + 락 TTL 비정상 종료 처리
+Phase 7  예매 완료 + DB 저장
+    ↓
+Phase 8  나의 예매내역 (마이페이지)
+    ↓
+Phase 9  대기열 (Redis/Kafka) + 트래픽 제어
+    ↓
+Phase 10 라운드 관리 및 데이터 정리
 ```
 
 ---
@@ -73,7 +79,7 @@ Phase 7  마이페이지(예매 내역) + 락 TTL 비정상 종료 처리
 
 ---
 
-## 5. Phase 2 — (개인) 공연 정보 파싱 + 개인 연습 페이지 구현
+## 5. Phase 2 — (개인) 개인 연습 페이지 + 공연 정보 파싱 로직 구현
 
 **목표:** 입력 URL 기반으로 공연 정보를 추출하여, 사용자 전용 개인 연습 페이지를 구성.
 정적 html : Jsoup / SPA(JS 랜더링 사이트) : Playwright 사용 -> 이제 사용 안함
@@ -95,105 +101,179 @@ Phase 7  마이페이지(예매 내역) + 락 TTL 비정상 종료 처리
 
 ---
 
-## 6. Phase 3 — (공용) 공개 티켓팅 연습 페이지 구현
+## 6. Phase 3 — (공용) 공개 티켓팅 연습 페이지 UI 구현 (Loading → Captcha → SeatSelection → BookingSuccess)
 
-**목표:** 여러 사용자가 동일 라운드에 동시 진입해 경쟁 가능한 공개 티켓팅 모드 구현.
-
-| 순서 | 작업 | 설명 |
-|------|------|------|
-| 3-1 | 공개 라운드 진입 페이지 구현 | 현재 시각, 오픈 시각, 주의 사항 등 설명하는 '라운드 진입 페이지' 구현 |
-| 3-2 | 현재 시각 계산, 30분 단위로 예매하기 버튼 오픈 | 매시 00분/30분 기준으로 '예매하기' 버튼 활성화 |
-| 3-3 | 공개 라운드 진입 API | 로그인 사용자 누구나 라운드 참가 가능, 라운드 상태 검증(CLOSED/OPEN) |
-| 3-4 | 공개 예매 페이지 UI | 동일 라운드 참여자는 같은 공연/좌석 풀을 보도록 구성 |
-| 3-5 | 라운드 종료 정책 | 종료 시 신규 진입 차단, 미완료 좌석 정리 훅 제공 |
-
-**산출물:** 30분 주기 공개 라운드 활성화, 공개 라운드 생성/조회/입장 API, 30분 주기 공개 예매 화면
-
----
-
-## 7. Phase 4 — 공통 대기열 (Kafka + Redis)
-
-**목표:** 짧은 시간 대량 트래픽을 “진입 허용 수”로 제한하고, 나머지는 대기열로 관리.
+**목표:** 사용자가 “예매하기” 버튼을 누르면 Loading → Captcha → SeatSelection → BookingSuccess 순서로 진행되는 예매 흐름을 구현한다.
 
 | 순서 | 작업 | 설명 |
 |------|------|------|
-| 4-0 | Redis / Kafka 설정 | `build.gradle` 의존성, `application.yml` 프로파일별 설정 (로컬/테스트) |
-| 4-1 | 진입 제한 정책 | 모드별 동시 진입 허용 수 정의(개인/공용 분리 또는 공통 정책) |
-| 4-2 | Redis 대기열 | 토큰(또는 순번) 발급, 진입 시 토큰 소비 — Redis List/Sorted Set 또는 카운터+TTL 조합 |
-| 4-3 | Kafka 연동 | 대기 요청 이벤트 처리, Consumer에서 순차 진입 허용 |
-| 4-4 | API 설계 | `예매하기` → 대기열 등록 → 폴링/SSE로 진입 가능 알림 → 예매 페이지 이동 |
+| 3-1 | 단계별 UI 렌더링 | 상태(loading/captcha/seats/booking-success)별 조건부 렌더링 |
+| 3-2 | Session 상태 저장 | reservationFlow, captchaCompleted를 localStorage/sessionStorage에 저장 |
+| 3-3 | 새로고침 복원 | 새로고침 시 상태 자동 복원하여 트랜잭션 유지 |
+| 3-4 | 뒤로가기 취소 | SeatSelection에서 뒤로가기 시 모달로 확인, “취소” 선택하면 이전 페이지로 이동 |
 
-**산출물:** 대기열 등록/조회 API, 진입 허용 시 예매 페이지 진입 플로우
+**Frontend 구현 파일:**
+- `PublicPerformanceDetails.jsx` - 상태 관리, 단계별 전환
+- `PublicLoadingScreen.jsx` - 로딩 화면
+- `PublicCaptchaModal.jsx` - CAPTCHA 모달
+- `PublicSeatSelection.jsx` - 좌석 선택
+- `PublicBookingSuccess.jsx` - 예매 완료
+
+**산출물:** 공개 예매 UI 흐름 완성, 단계별 상태 관리
 
 ---
 
-## 8. Phase 5 — 공통 좌석 선택 + 분산 락 + DB 락
+## 7. Phase 4 — 30분 단위 라운드 생성 + '예매하기' 버튼 활성화 로직 구현
 
-**목표:** 좌석 선택 후 결제 페이지 진입 시 해당 좌석을 실시간으로 잠그고 중복 선택을 막는다.
+**목표:** 매시 00분/30분마다 새 라운드를 자동 생성하고, PublicPerformanceDetails에서 라운드 openAt 기준으로 “예매하기” 버튼을 활성화한다.
+
+| 순서 | 작업 | 설명 | 상태 |
+|------|------|------|------|
+| 4-1 | Round 엔티티 설계 | `id`, `roundNumber`, `status(CLOSED/OPEN)`, `openAt`, `closeAt`, `performanceId` 등 | ⏳ |
+| 4-2 | 30분 주기 라운드 생성 Scheduler | 매시 :00, :30분에 새 라운드 자동 생성 (`@Scheduled`) | ⏳ |
+| 4-3 | 현재 라운드 조회 API | GET `/api/public-round/current` — 현재 시각 기준 진행 중인 라운드 조회 | ⏳ |
+| 4-4 | 버튼 활성화 로직 | PublicPerformanceDetails에서 라운드 openAt 기준으로 “예매하기” 버튼 활성화 | ✅ (Frontend) / ⏳ (API) |
+| 4-5 | 라운드 상태 관리 | 라운드 종료 시 상태를 CLOSED로 변경, 신규 진입 차단 | ⏳ |
+
+**Backend 구현 필요 사항:**
+- Round 엔티티, Repository, Service, Controller
+- 30분 주기 Scheduler (`@Scheduled`)
+- GET `/api/public-round/current` API
+- 라운드 상태 관리 로직
+
+**산출물:** Round 엔티티, 라운드 생성/조회/상태관리 API
+
+---
+
+## 8. Phase 5 — 트랜잭션 세션 관리
+
+**목표:** “예매하기” 버튼 클릭 시 트랜잭션 세션을 시작하고, 중간 새로고침 시에도 유지하며, 뒤로가기 또는 페이지 이탈 시 취소한다.
 
 | 순서 | 작업 | 설명 |
 |------|------|------|
-| 5-1 | 좌석 도메인 | 세션/라운드 기준 좌석 상태: `AVAILABLE` / `LOCKED` / `BOOKED` |
-| 5-2 | Redis 분산 락 | `seat:{sessionId}:{seatId}` 키로 락, TTL 5분 |
-| 5-3 | DB 비관적 락(선택) | 결제 확정 시 `SELECT ... FOR UPDATE`로 최종 확정 |
-| 5-4 | 선점 실패 처리 | 이미 락이 있으면 안내 메시지 + 좌석 비활성 처리 |
-| 5-5 | 모드 공통화 | 개인/공용 모두 동일한 좌석 선점 API 사용 |
+| 4-1 | 트랜잭션 세션 API | POST `/api/public-booking/start` — 트랜잭션 시작, `sessionId` 발급 |
+| 4-2 | 세션 복원 | 새로고침 시 `sessionId`로 기존 세션 복원 (로컬스토리지/쿠키 저장) |
+| 4-3 | 세션 취소 | 뒤로가기 또는 페이지 이탈 시 `DELETE /api/public-booking/cancel/{sessionId}` → Redis 임시 락 삭제, 선택 초기화 |
+| 4-4 | 경고 메시지 | PublicSeatSelection에서 뒤로가기 시 “정말 나가실건가요? 선택된 좌석은 취소됩니다” 모달 |
+| 4-5 | 트랜잭션 종료 | PublicBookingSuccess 도달 시 `POST /api/public-booking/confirm/{sessionId}` → DB bookings/seats 저장 후 세션 종료 |
 
-**산출물:** 좌석 목록/상태 API(락 걸린 좌석 포함), 좌석 선택 → 락 시도 → 결제 페이지 진입/거절 플로우
+**산출물:** 트랜잭션 시작/복원/취소/종료 API, 세션 관리 로직
 
 ---
 
-## 9. Phase 6 — 공통 가상 결제 + 예매 완료
+## 9. Phase 6 — 좌석 선택 및 Redis 임시 락 + DB 동기화
 
-**목표:** 결제 버튼 클릭 시 DB에 예매 확정, 좌석 상태 `BOOKED`, Redis 락 해제.
+**목표:** 사용자가 좌석을 선택할 때 Redis 임시 락을 저장하고, 새로고침할 때마다 DB 'seats' 테이블에서 최신 상태를 불러와 동기화한다.
 
 | 순서 | 작업 | 설명 |
 |------|------|------|
-| 6-1 | 결제 요청 API | `결제하기` 클릭 시 트랜잭션: 좌석 `BOOKED`, Booking 생성, Redis 락 해제 |
-| 6-2 | 성공 응답 | `예매에 성공하셨습니다!` 메시지, 프론트 표시 |
-| 6-3 | 실패 처리 | 락 만료/중복 예매/세션 종료 등에 대한 에러 처리 |
+| 5-1 | 좌석 목록 조회 API | GET `/api/public-seat/{roundId}` — 현재 라운드의 모든 좌석 조회 (status: AVAILABLE/BOOKED) |
+| 5-2 | 좌석 선택 API | POST `/api/public-seat/select/{roundId}/{seatId}/{sessionId}` — 좌석 선택, Redis 임시 락 저장 (TTL 5분) |
+| 5-3 | 임시 락 확인 | 다른 사용자가 선택 중인 좌석(Redis 락 있음)은 프론트에서 비활성 처리 |
+| 5-4 | DB 동기화 | PublicSeatSelection에서 새로고침 시 GET `/api/public-seat/{roundId}` 호출, 현재 BOOKED 상태 동기화 (자신의 선택은 유지) |
+| 5-5 | 중복 선택 방지 | 좌석 상태가 BOOKED일 때 선택하려 하면 “이미 예매된 좌석입니다” 모달 표시, DB 상태 업데이트 취소 |
 
-**산출물:** 가상 결제 API, 예매 완료 후 마이페이지에서 조회 가능한 Booking 저장
+**산출물:** 좌석 목록 조회 API, 좌석 선택 API, Redis 임시 락 메커니즘
 
 ---
 
-## 10. Phase 7 — 마이페이지 + 비정상 종료(TTL)
+## 9. Phase 6 — 예매 완료 및 DB 저장
 
-**목표:** 예매 내역 조회, 좌석만 잡고 나간 경우 5분 후 자동 해제.
+**목표:** “선택 완료” 버튼 클릭 시 Redis 임시 락을 확인하고, DB 'bookings'와 'seats' 테이블에 최종 데이터를 저장한 후 트랜잭션을 종료한다.
 
 | 순서 | 작업 | 설명 |
 |------|------|------|
-| 7-1 | 마이페이지 API/화면 | 로그인 사용자별 Booking 목록 (공연명, 좌석, 예매 시각, 모드) |
-| 7-2 | Redis TTL | 좌석 락 5분 TTL — 만료 시 키 삭제, 좌석 `AVAILABLE` 복구 |
-| 7-3 | 일관성 | TTL 만료 시 DB `LOCKED` 상태 원복 (배치 또는 이벤트 기반) |
+| 6-1 | 선택 완료 API | POST `/api/public-booking/confirm/{sessionId}` — 선택된 좌석 최종 확정 |
+| 6-2 | Redis 락 검증 | 선택 완료 시 Redis 임시 락 유효성 확인, 만료됐으면 에러 처리 |
+| 6-3 | DB bookings 저장 | `roundId`, `userId`, `userName`, `goodsCode`, `goodsName`, `roundOpenAt`, `roundCloseAt`, `transactionStartAt`, `transactionEndAt`, `selectedSeats(최대 4개)` 저장 |
+| 6-4 | DB seats 업데이트 | 선택한 각 좌석의 `status` = BOOKED, `bookedAt` = 현재 시각 저장, `userId`/`userName` 기록 |
+| 6-5 | Redis 임시 락 삭제 | 저장 완료 후 Redis 임시 락 모두 삭제 |
 
-**산출물:** 마이페이지 예매 내역, 5분 미결제 시 좌석 자동 해제
+**저장할 정보:**
+- **bookings**: `roundId`, `userId`, `userName`, `goodsCode`, `goodsName`, `roundOpenAt`, `roundCloseAt`, `transactionStartAt`, `transactionEndAt`
+- **seats**: `seatId`, `status(BOOKED)`, `userId`, `userName`, `bookedAt`
+
+**산출물:** 선택 완료 API, bookings/seats 테이블 저장 로직
 
 ---
 
-## 11. 구현 체크리스트
+## 10. Phase 7 — 나의 예매내역 (마이페이지)
+
+**목표:** PublicPerformanceDetails 헤더의 사용자 이름 오른쪽에 “나의 예매내역” 버튼을 배치하고, 클릭 시 사용자가 현재 라운드에서 예매한 좌석 목록을 표시한다.
+
+| 순서 | 작업 | 설명 |
+|------|------|------|
+| 7-1 | 예매내역 조회 API | GET `/api/public-booking/my-bookings` — 로그인 사용자의 현재 라운드 bookings 레코드 조회 |
+| 7-2 | 예매내역 UI | PublicMyBookings 컴포넌트: 공연명, 선택한 좌석 목록(최대 4개), 예매 시각, 라운드 정보 등 표시 |
+| 7-3 | 버튼 배치 | PublicPerformanceDetails 헤더 우측 사용자 이름 옆에 “나의 예매내역” 버튼 추가 |
+| 7-4 | 모달 표시 | 클릭 시 모달로 예매내역 표시 (기존 접근 경로 유지) |
+
+**산출물:** 예매내역 조회 API, PublicMyBookings 컴포넌트, 헤더 버튼 추가
+
+---
+
+## 11. Phase 8 — 대기열 (Redis/Kafka) + 트래픽 제어
+
+**목표:** 대량 트래픽 발생 시 “예매하기” 요청을 대기열에서 처리하고, 동시 진입 허용 수를 제한한다.
+
+| 순서 | 작업 | 설명 |
+|------|------|------|
+| 8-1 | Redis/Kafka 설정 | `build.gradle` 의존성 추가, `application.yml` 프로파일별 설정 (로컬/테스트 환경) |
+| 8-2 | 진입 제한 정책 | 동시 진입 허용 수 정의 (예: 라운드당 최대 50명) |
+| 8-3 | Redis 대기열 | “예매하기” 요청 → Redis Queue에 저장, 진입 허용 시 토큰 발급, TTL 설정 |
+| 8-4 | Kafka Event | 대기 요청을 Kafka 토픽으로 발행, Consumer가 순차 처리 |
+| 8-5 | 트래픽 테스트 | 테스트 코드로 대량 요청 시뮬레이션, 대기열 처리 확인 |
+
+**산출물:** Redis/Kafka 기반 대기열 시스템, 트래픽 테스트 코드
+
+---
+
+## 12. Phase 9 — 라운드 관리 및 데이터 정리
+
+**목표:** 새로운 라운드 시작 시 이전 라운드의 bookings/seats 데이터를 soft delete하여 시스템을 정리한다.
+
+| 순서 | 작업 | 설명 |
+|------|------|------|
+| 9-1 | 라운드 종료 정책 | 라운드 closeAt 시각 도달 시 라운드 상태를 CLOSED로 변경, 신규 진입 차단 |
+| 9-2 | 데이터 정리 Scheduler | 새 라운드 생성 시, 이전 라운드의 모든 bookings/seats 레코드 soft delete |
+
+**산출물:** 라운드 종료 및 데이터 정리 로직
+
+---
+
+## 13. 구현 체크리스트
 
 | Phase | 항목 | 완료 |
 |-------|------|:----:|
 | **0** | 패키지 구조, DB 스키마 | ☐ |
 | **1** | Spring Security, 회원가입, 로그인, 모드 선택 메인 | ☐ |
 | **2** | (개인) URL 파싱, 공연 정보 DTO, 개인 연습 페이지 | ☐ |
-| **3** | (공용) 공개 라운드, 30분 단위 오픈, 공개 예매 페이지 | ☐ |
-| **4** | Redis/Kafka 설정, 대기열, 진입 제한 API | ☐ |
-| **5** | 좌석 도메인, Redis 분산 락, (선택) FOR UPDATE, 좌석 선점 API | ☐ |
-| **6** | 가상 결제 API, 예매 완료 처리 | ☐ |
-| **7** | 마이페이지, Redis TTL 비정상 종료 처리 | ☐ |
+| **3** | PublicRound 엔티티, 30분 라운드 생성, UI 흐름(Loading/Captcha/Seats/Success) | ✅ (UI) / ⏳ (Backend API) |
+| **4** | 트랜잭션 세션 관리 (시작/복원/취소/종료) | ⏳ |
+| **5** | 좌석 선택, Redis 임시 락, DB 동기화 | ⏳ |
+| **6** | 예매 완료, bookings/seats DB 저장 | ⏳ |
+| **7** | 나의 예매내역 (마이페이지) | ⏳ |
+| **8** | Redis/Kafka 대기열, 트래픽 제어, 테스트 | ⏳ |
+| **9** | 라운드 관리, 데이터 정리 (soft delete) | ⏳ |
 
 ---
 
-## 12. 아키텍처 요약
+## 14. 아키텍처 요약
 
 | 구간 | 방식 |
 |------|------|
-| **진입 모드** | 개인(URL 기반) + 공용(라운드 기반, 30분 오픈) |
-| **진입 제어** | Kafka + Redis 대기열(토큰) → 모드별 예매 페이지 진입량 제한 |
-| **좌석 선점** | Redis 분산 락(Redisson 권장), 키 `seat:{sessionId}:{seatId}` |
-| **정합성** | PostgreSQL에서 최종 `BOOKED` 확정, 필요 시 `FOR UPDATE` |
-| **비정상 종료** | Redis 락 TTL 5분 → 자동 해제 후 좌석 복구 |
+| **라운드 기초** | 30분 주기 자동 라운드 생성, 매시 :00/:30 버튼 활성화 |
+| **예매 흐름** | Loading → Captcha → SeatSelection → BookingSuccess (단계별 UI) |
+| **트랜잭션** | "예매하기" 시작 → sessionId 발급, 새로고침 유지, 뒤로가기 취소, BookingSuccess 도달 시 종료 |
+| **좌석 선택** | Redis 임시 락으로 선택 중 상태 관리, 새로고침마다 DB 동기화 (BOOKED 상태 반영) |
+| **예매 확정** | "선택 완료" → Redis 락 검증 → bookings/seats DB 저장 → 정보 표시 |
+| **마이페이지** | PublicPerformanceDetails 헤더의 "나의 예매내역" 버튼 → 예매 조회 |
+| **대기열** | 트래픽 과부하 시 Redis/Kafka 기반 대기열 처리 |
+| **데이터 정리** | 새 라운드 시작 시 이전 라운드 bookings/seats soft delete |
 
-상세 테이블·ER·Redis/Kafka 용도는 `docs/SCHEMA.md` 참고.
+**DB 테이블:**
+- `public_rounds`: roundId, roundNumber, status, openAt, closeAt, performanceId
+- `seats`: seatId, roundId, status(AVAILABLE/BOOKED), userId, userName, bookedAt
+- `bookings`: roundId, userId, userName, goodsCode, goodsName, roundOpenAt, roundCloseAt, transactionStartAt, transactionEndAt, selectedSeats
+
+상세 테이블·ER 다이어그램은 `docs/SCHEMA.md` 참고.
