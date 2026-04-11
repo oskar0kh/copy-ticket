@@ -133,12 +133,13 @@ Phase 10 라운드 관리 및 데이터 정리
 | 4-2 | OPEN 라운드 생성/만료 스케줄러 | 매시 00/30분에 새로운 OPEN 라운드 생성 & SSE를 발행. 5초 주기로 만료된 `OPEN` 라운드를 `CLOSED`로 정리 |
 | 4-3 | Scheduler 신호 프론트 전달 (SSE) | OPEN 라운드 생성 시 `roundCreated` 이벤트를 발행 -> 프론트에 RoundEventDto 전달 -> 프론트가 Dto 속 '현재 서버 시각(serverNow) 기준으로 버튼 오픈/종료 시간 계산 |
 | 4-4 | 라운드 조회/생성/삭제 API | (컨트롤러) `/sync`, `/current`, 등의 API로 클라이언트 구독,클라이언트-서버시각 동기화 등의 서비스 메서드 경로 지정 |
-| 4-5 | 라운드 상태 관리 | `WAITING`는 슬롯 예약 상태, `OPEN`은 진입 가능 상태, `CLOSED`는 종료 상태로 구분. `openAt <= now < closeAt` 범위에서만 프론트/백엔드 모두 예매를 허용하고, overdue `WAITING`는 `OPEN`으로 승격하여 정시 스케줄 누락을 복구 |
+| 4-5 | OPEN 라운드 찾는 레포지토리 메서드 작성 | public_rounds 테이블에서 아래 2가지 조건 만족하는 라운드 찾는 native SQL 쿼리 메서드 작성 (openAt, closeAt 시간 비교는 UTC+9 기준) |
 
 **전체 흐름:**
-- 사용자가 '예매하기' 버튼 열렸을때 버튼 클릭하면, 레포지토리 쿼리 메서드 실행 -> 아래 2가지 조건 만족하는 레코드 조회
+- 사용자가 '예매하기' 버튼 열렸을때 버튼 클릭하면, 레포지토리 쿼리 메서드 실행
+- public_rounds 테이블에서 아래 2가지 조건 만족하는 레코드 조회
     1) `status = OPEN`
-    2) `openAt <= now < closeAt`
+    2) `openAt <= now < closeAt` (단, UTC+9 기준으로 openAt, closeAt 비교)
 - 요청 시점의 서버 시간을 기준으로 `public_rounds`에서 `status = OPEN`이고 `openAt <= now < closeAt`인 경우만 다음 창으로 넘어갈 수 있도록 막음.
 - `closeAt`이 지난 `OPEN` 라운드는 스케줄러가 주기적으로 확인해서 `CLOSED` 처리함.
 
