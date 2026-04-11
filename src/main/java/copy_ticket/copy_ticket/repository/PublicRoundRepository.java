@@ -43,4 +43,16 @@ public interface PublicRoundRepository extends JpaRepository<PublicRound, Long> 
         LIMIT 1
         """, nativeQuery = true)
     Optional<PublicRound> findNotPromotedRound(@Param("now") Instant now);
+
+    // 현재 시각 기준으로 실제 예매 가능한 OPEN 라운드 1개 조회 (openAt <= now < closeAt)
+    @Query(value = """
+        SELECT *
+        FROM public_rounds
+        WHERE status = 'OPEN'
+          AND open_at <= :now
+          AND close_at > :now
+        ORDER BY open_at ASC
+        LIMIT 1
+        """, nativeQuery = true)
+    Optional<PublicRound> findBookableOpenRound(@Param("now") Instant now);
 }

@@ -39,6 +39,7 @@ const PublicPerformanceDetails = ({
   const [isReservationReady, setIsReservationReady] = useState(false);
   const [remainingTimerSeconds, setRemainingTimerSeconds] = useState(null);
   const [timerTargetAt, setTimerTargetAt] = useState(null);
+  const [isCheckingRound, setIsCheckingRound] = useState(false);
   const timerTimeoutRef = useRef(null);
   const timerIntervalRef = useRef(null);
   const [now, setNow] = useState(() => new Date());
@@ -329,7 +330,7 @@ const PublicPerformanceDetails = ({
       : `${formatRemaining(nextRoundRemainingMs)} 후 예매 오픈`);
   const buyNowButtonDisabled = bookingOpenAt != null
     ? publicBookingWindow?.status !== 'open'
-    : activeBookingWindow?.status !== 'open';
+    : activeBookingWindow?.status !== 'open' || isCheckingRound;
   const showTicketOpenGuide = buyNowButtonDisabled;
   const today = new Date().getDate();
   const isCurrentMonth = currentMonth.month === new Date().getMonth() + 1 &&
@@ -358,20 +359,45 @@ const PublicPerformanceDetails = ({
   };
 
   // 예매하기 버튼 클릭 핸들러
-  const handleReservationClick = () => {
+  const handleReservationClick = async () => {
+    if (isCheckingRound) {
+      return;
+    }
+
     if (bookingOpenAt != null && publicBookingWindow?.status !== 'open') {
       return;
     }
 
-    // 1단계: 로딩 화면
-    setReservationFlow('loading');
-    setCaptchaCompleted(false);
+    setIsCheckingRound(true);
 
-    // 2초 후 좌석 선택 화면으로 전환
-    setTimeout(() => {
-      window.history.pushState({ view: 'seat-selection' }, '');
-      setReservationFlow('seats');
-    }, 2000);
+    try {
+      const response = await fetch('/api/public-round/current', {
+        method: 'GET',
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        window.localStorage.removeItem('publicBookingStartTime');
+        window.localStorage.removeItem('publicBookingCloseTime');
+        window.alert('현재 열려있는 라운드가 없습니다');
+        return;
+      }
+
+      // 1단계: 로딩 화면
+      setReservationFlow('loading');
+      setCaptchaCompleted(false);
+
+      // 2초 후 좌석 선택 화면으로 전환
+      setTimeout(() => {
+        window.history.pushState({ view: 'seat-selection' }, '');
+        setReservationFlow('seats');
+      }, 2000);
+    } catch (error) {
+      console.error('현재 라운드 조회 실패:', error);
+      window.alert('현재 열려있는 라운드가 없습니다');
+    } finally {
+      setIsCheckingRound(false);
+    }
   };
 
   useEffect(() => {

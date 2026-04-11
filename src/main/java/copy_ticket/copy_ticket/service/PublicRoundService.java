@@ -130,11 +130,11 @@ public class PublicRoundService {
 
     /**
      * 현재 OPEN 상태인 라운드 조회
+     * 기존 레포지토리 메서드 (getCurrentRound) -> findBookableOpenRound로 대체 (이유: 현재 시각 기준으로 OPEN인 라운드만 조회하기 위함)
      */
     @Transactional(readOnly = true)
     public Optional<PublicRound> getCurrentRound() {
-        return publicRoundRepository.findOpenRound(RoundStatus.OPEN)
-                .filter(round -> round.getCloseAt().isAfter(Instant.now()));
+        return publicRoundRepository.findBookableOpenRound(Instant.now());
     }
 
     /**
