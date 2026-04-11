@@ -376,7 +376,16 @@ const PublicPerformanceDetails = ({
         credentials: 'include'
       });
 
-      if (!response.ok) {
+      const contentType = response.headers.get('content-type') || '';
+      if (!response.ok || !contentType.includes('application/json')) {
+        window.localStorage.removeItem('publicBookingStartTime');
+        window.localStorage.removeItem('publicBookingCloseTime');
+        window.alert('현재 열려있는 라운드가 없습니다');
+        return;
+      }
+
+      const currentRound = await response.json();
+      if (currentRound?.status !== 'OPEN' || !currentRound?.openAt) {
         window.localStorage.removeItem('publicBookingStartTime');
         window.localStorage.removeItem('publicBookingCloseTime');
         window.alert('현재 열려있는 라운드가 없습니다');
