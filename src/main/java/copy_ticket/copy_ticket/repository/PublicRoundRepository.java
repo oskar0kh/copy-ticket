@@ -13,6 +13,19 @@ public interface PublicRoundRepository extends JpaRepository<PublicRound, Long> 
 
     boolean existsByStatus(RoundStatus status);
 
+    /* 새로운 라운드 생성할 때, 기존에 존재하는 WAITING 라운드 중에서 openAt 시각이 같은 라운드가 있는지 조회
+    *  -> 만약 있으면 새로운 라운드 생성 X (이 메서드에서 라운드 생성 관리하는건 아님)
+    */
+    @Query(value = """
+            SELECT *
+            FROM public_rounds
+            WHERE status = 'WAITING'
+                AND open_at = :openAt
+            ORDER BY updated_at DESC
+            LIMIT 1
+            """, nativeQuery = true)
+    Optional<PublicRound> findWaitingRoundWithSameOpenAt(@Param("openAt") Instant openAt);
+
     // 현재 OPEN 상태인 라운드 조회
     @Query(value = """
         SELECT *

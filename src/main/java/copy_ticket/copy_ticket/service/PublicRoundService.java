@@ -24,12 +24,24 @@ public class PublicRoundService {
     // 새로운 라운드 생성 (WAITING 상태)
     @Transactional
     public PublicRound createWaitingRound(Instant openAt) {
+        Instant normalizedOpenAt = openAt.truncatedTo(ChronoUnit.MINUTES);
+
+        // 새로운 라운드 생성하기 전에, openAt 시각이 같은 WAITING 라운드가 이미 존재하는지 확인
+        Optional<PublicRound> existingWaitingRound = publicRoundRepository
+            .findWaitingRoundWithSameOpenAt(normalizedOpenAt);
+
+        // 이미 동일한 openAt 시각의 WAITING 라운드가 존재하면, 새로운 라운드 생성하지 않고 기존 라운드 반환
+        if (existingWaitingRound.isPresent()) {
+            log.info("Waiting round already exists: roundNumber={}, openAt={}", existingWaitingRound.get().getRoundNumber(), normalizedOpenAt);
+            return existingWaitingRound.get();
+        }
+
+        // WAITIGN 라운드가 없으면 새로운 라운드 생성
         int nextRoundNumber = publicRoundRepository.findAll().stream()
                 .mapToInt(PublicRound::getRoundNumber)
                 .max()
                 .orElse(0) + 1;
 
-        Instant normalizedOpenAt = openAt.truncatedTo(ChronoUnit.MINUTES);
         Instant now = Instant.now();
         PublicRound newRound = PublicRound.builder()
                 .roundNumber(nextRoundNumber)
