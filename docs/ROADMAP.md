@@ -251,7 +251,7 @@ Phase 10 라운드 관리 및 데이터 정리
 | **1** | Spring Security, 회원가입, 로그인, 모드 선택 메인 | ☐ |
 | **2** | (개인) URL 파싱, 공연 정보 DTO, 개인 연습 페이지 | ☐ |
 | **3** | 공개 예매 UI 흐름(Loading/Captcha/Seats/Success) | ✅ |
-| **4** | PublicRound 엔티티, WAITING/OPEN/CLOSED 전환, SSE, 10분 버튼 활성화 | ✅ (핵심 흐름) / ⏳ (실서비스 연동 보강) |
+| **4** | PublicRound 엔티티, OPEN/CLOSED 전환, SSE, 10분 버튼 활성화 | ✅ (핵심 흐름) / ⏳ (실서비스 연동 보강) |
 | **5** | 트랜잭션 세션 관리 (시작/복원/취소/종료) | ⏳ |
 | **6** | 좌석 선택, Redis 임시 락, DB 동기화 | ⏳ |
 | **7** | 예매 완료, bookings/seats DB 저장 | ⏳ |
@@ -265,9 +265,9 @@ Phase 10 라운드 관리 및 데이터 정리
 
 | 구간 | 방식 |
 |------|------|
-| **라운드 기초** | `WAITING → OPEN → CLOSED` 상태 머신, 30분 슬롯 단위 생성/전환, openAt~closeAt 기반 버튼 활성화 |
+| **라운드 기초** | `OPEN → CLOSED` 상태 전환, 30분 슬롯 단위 OPEN 생성/만료, openAt~closeAt 기반 버튼 활성화 |
 | **예매 흐름** | Loading → Captcha → SeatSelection → BookingSuccess (단계별 UI) |
-| **트랜잭션** | "예매하기" 시작 → sessionId 발급, 새로고침 유지, 뒤로가기 취소, BookingSuccess 도달 시 종료 |
+| **트랜잭션** | "예매하기" 버튼 클릭 → sessionId 발급, 새로고침 유지, 뒤로가기 취소, BookingSuccess 도달 시 종료 |
 | **좌석 선택** | Redis 임시 락으로 선택 중 상태 관리, 새로고침마다 DB 동기화 (BOOKED 상태 반영) |
 | **예매 확정** | "선택 완료" → 서버 시각 기준 `openAt <= now < closeAt` 검증 → Redis 락 검증 → bookings/seats DB 저장 |
 | **마이페이지** | PublicPerformanceDetails 헤더의 "나의 예매내역" 버튼 → 예매 조회 |
