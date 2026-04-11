@@ -2,6 +2,7 @@ package copy_ticket.copy_ticket.scheduler;
 
 import copy_ticket.copy_ticket.service.PublicRoundService;
 import copy_ticket.copy_ticket.service.RoundEventPublisher;
+import copy_ticket.copy_ticket.domain.entity.PublicRound;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -22,9 +23,16 @@ public class PublicRoundScheduler {
     @Scheduled(cron = "0 0,30 * * * *")
     public void openRoundForSlot() {
         try {
+            log.info("PublicRoundScheduler: openRoundForSlot started");
             log.info("=== PublicRoundScheduler: Opening current slot round ===");
             publicRoundService.openRoundForCurrentSlot()
-                    .ifPresent(roundEventPublisher::publishRoundCreated); // OPEN된 라운드가 있으면 SSE 이벤트 발행
+                    .ifPresentOrElse(
+                            round -> {
+                                roundEventPublisher.publishRoundCreated(round); // OPEN된 라운드가 있으면 SSE 이벤트 발행
+                                log.info("PublicRoundScheduler: openRoundForSlot completed with roundNumber={}", round.getRoundNumber());
+                            },
+                            () -> log.info("PublicRoundScheduler: openRoundForSlot completed without opening a round")
+                    );
             log.info("=== PublicRoundScheduler: Open flow done ===");
         } catch (Exception e) {
             log.error("Error opening current slot round", e);
@@ -38,7 +46,9 @@ public class PublicRoundScheduler {
     @Scheduled(cron = "0 10,40 * * * *")
     public void prepareNextWaitingRound() {
         try {
-            publicRoundService.prepareNextWaitingRound();
+            log.info("PublicRoundScheduler: prepareNextWaitingRound started");
+            PublicRound round = publicRoundService.prepareNextWaitingRound();
+            log.info("PublicRoundScheduler: prepareNextWaitingRound completed with roundNumber={}, openAt={}", round.getRoundNumber(), round.getOpenAt());
         } catch (Exception e) {
             log.error("Error preparing next waiting round", e);
         }
@@ -51,7 +61,9 @@ public class PublicRoundScheduler {
     @Scheduled(cron = "0/5 * * * * *")
     public void closeExpiredRound() {
         try {
+            log.info("PublicRoundScheduler: closeExpiredRound started");
             publicRoundService.closeExpiredOpenRounds();
+            log.info("PublicRoundScheduler: closeExpiredRound completed");
         } catch (Exception e) {
             log.error("Error while closing expired round", e);
         }
@@ -64,9 +76,21 @@ public class PublicRoundScheduler {
     @Scheduled(cron = "0 * * * * *")
     public void ensureWaitingRoundFallback() {
         try {
+            log.info("PublicRoundScheduler: ensureWaitingRoundFallback started");
             publicRoundService.promoteOverdueWaitingRound()
-                    .ifPresent(roundEventPublisher::publishRoundCreated);
-            publicRoundService.ensureWaitingRoundWhenNoActiveRounds();
+                    .ifPresentOrElse(
+                            round -> {
+                                roundEventPublisher.publishRoundCreated(round);
+                                log.info("PublicRoundScheduler: promoted overdue waiting round roundNumber={}", round.getRoundNumber());
+                            },
+                            () -> log.info("PublicRoundScheduler: no overdue waiting round to promote")
+                    );
+            publicRoundService.ensureWaitingRoundWhenNoActiveRounds()
+                    .ifPresentOrElse(
+                            round -> log.info("PublicRoundScheduler: fallback waiting round created roundNumber={}, openAt={}", round.getRoundNumber(), round.getOpenAt()),
+                            () -> log.info("PublicRoundScheduler: fallback waiting round not needed")
+                    );
+            log.info("PublicRoundScheduler: ensureWaitingRoundFallback completed");
         } catch (Exception e) {
             log.error("Error while running fallback round recovery", e);
         }
