@@ -43,6 +43,7 @@ const PublicPerformanceDetails = ({
   const timerTimeoutRef = useRef(null);
   const timerIntervalRef = useRef(null);
   const [now, setNow] = useState(() => new Date());
+  const [errorModal, setErrorModal] = useState({ isOpen: false, title: '', message: '', onClose: null });
 
   useEffect(() => {
     if (captchaCompleted) {
@@ -377,10 +378,41 @@ const PublicPerformanceDetails = ({
       });
 
       const contentType = response.headers.get('content-type') || '';
+
+      // 401: 로그인 필요
+      if (response.status === 401) {
+        setErrorModal({
+          isOpen: true,
+          title: '로그인 필요',
+          message: '예매를 진행하려면 로그인이 필요합니다.',
+          onClose: () => setErrorModal({ ...errorModal, isOpen: false })
+        });
+        return;
+      }
+
+      // 404: 라운드 없음
+      if (response.status === 404) {
+        window.localStorage.removeItem('publicBookingStartTime');
+        window.localStorage.removeItem('publicBookingCloseTime');
+        setErrorModal({
+          isOpen: true,
+          title: '라운드 없음',
+          message: '현재 열려있는 라운드가 없습니다. 잠시 후 다시 시도해주세요.',
+          onClose: () => setErrorModal({ ...errorModal, isOpen: false })
+        });
+        return;
+      }
+
+      // 기타 에러
       if (!response.ok || !contentType.includes('application/json')) {
         window.localStorage.removeItem('publicBookingStartTime');
         window.localStorage.removeItem('publicBookingCloseTime');
-        window.alert('현재 열려있는 라운드가 없습니다');
+        setErrorModal({
+          isOpen: true,
+          title: '조회 실패',
+          message: '라운드 정보 조회 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.',
+          onClose: () => setErrorModal({ ...errorModal, isOpen: false })
+        });
         return;
       }
 
@@ -388,7 +420,12 @@ const PublicPerformanceDetails = ({
       if (currentRound?.status !== 'OPEN' || !currentRound?.openAt) {
         window.localStorage.removeItem('publicBookingStartTime');
         window.localStorage.removeItem('publicBookingCloseTime');
-        window.alert('현재 열려있는 라운드가 없습니다');
+        setErrorModal({
+          isOpen: true,
+          title: '라운드 없음',
+          message: '현재 열려있는 라운드가 없습니다. 잠시 후 다시 시도해주세요.',
+          onClose: () => setErrorModal({ ...errorModal, isOpen: false })
+        });
         return;
       }
 
@@ -403,7 +440,12 @@ const PublicPerformanceDetails = ({
       }, 2000);
     } catch (error) {
       console.error('현재 라운드 조회 실패:', error);
-      window.alert('현재 열려있는 라운드가 없습니다');
+      setErrorModal({
+        isOpen: true,
+        title: '네트워크 오류',
+        message: '라운드 정보 조회 중 네트워크 오류가 발생했습니다. 잠시 후 다시 시도해주세요.',
+        onClose: () => setErrorModal({ ...errorModal, isOpen: false })
+      });
     } finally {
       setIsCheckingRound(false);
     }
@@ -432,6 +474,7 @@ const PublicPerformanceDetails = ({
   const handleReservationClose = () => {
     setReservationFlow(null);
     setCaptchaCompleted(false);
+    setErrorModal({ ...errorModal, isOpen: false });
     window.localStorage.removeItem('publicBookingStartTime');
     window.localStorage.removeItem('publicBookingCloseTime');
   };
@@ -481,6 +524,21 @@ const PublicPerformanceDetails = ({
 
   return (
     <div className="perf-page-wrapper">
+      {/* 에러 모달 */}
+      {errorModal.isOpen && (
+        <div className="perf-error-modal-backdrop" role="dialog" aria-modal="true" onClick={() => errorModal.onClose?.()}>
+          <div className="perf-error-modal-card" onClick={(e) => e.stopPropagation()}>
+            <h3 className="perf-error-modal-title">{errorModal.title}</h3>
+            <p className="perf-error-modal-message">{errorModal.message}</p>
+            <button 
+              className="perf-error-modal-btn" 
+              onClick={() => errorModal.onClose?.()}
+            >
+              확인
+            </button>
+          </div>
+        </div>
+      )}
       {/* 상단 네비게이션 배너 */}
       <nav className="perf-navbar">
         <div className="perf-navbar-inner">

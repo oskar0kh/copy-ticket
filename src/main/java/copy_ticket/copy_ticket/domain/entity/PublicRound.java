@@ -19,9 +19,7 @@ import java.time.Instant;
 
 /**
  * 공개 라운드 관리 (전역)
- * - 매시 10/40분 : 기존 라운드 CLOSED 처리, 새로운 라운드 생성 (WAITING 상태)
- * - 매시 00/30분 : WAITING 중인 라운드 → OPEN 상태로 변경
- * 모든 공연이 동일한 라운드를 공유
+ * 매시 00/30분 : OPEN 라운드 생성 (이전 OPEN 라운드는 CLOSED로 전환)
  */
 @Entity
 @Table(name = "public_rounds", indexes = {
@@ -58,7 +56,6 @@ public class PublicRound {
     private Instant updatedAt;
 
     public enum RoundStatus {
-        WAITING,   // 오픈 대기
         OPEN,      // 라운드 진행 중
         CLOSED     // 라운드 종료
     }

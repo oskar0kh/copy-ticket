@@ -25,6 +25,7 @@ public class RoundEventDto {
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss'Z'", timezone = "UTC")
     private Instant closeAt;
 
+    // 서버 시각 (클라이언트와의 시간 동기화 용도)
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss'Z'", timezone = "UTC")
     private Instant serverNow;
 

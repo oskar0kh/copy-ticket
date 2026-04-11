@@ -1,7 +1,6 @@
 package copy_ticket.copy_ticket.repository;
 
 import copy_ticket.copy_ticket.domain.entity.PublicRound;
-import copy_ticket.copy_ticket.domain.entity.PublicRound.RoundStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -11,21 +10,6 @@ import java.util.Optional;
 
 public interface PublicRoundRepository extends JpaRepository<PublicRound, Long> {
 
-    boolean existsByStatus(RoundStatus status);
-
-    /* 새로운 라운드 생성할 때, 기존에 존재하는 WAITING 라운드 중에서 openAt 시각이 같은 라운드가 있는지 조회
-    *  -> 만약 있으면 새로운 라운드 생성 X (이 메서드에서 라운드 생성 관리하는건 아님)
-    */
-    @Query(value = """
-            SELECT *
-            FROM public_rounds
-            WHERE status = 'WAITING'
-                AND open_at = :openAt
-            ORDER BY updated_at DESC
-            LIMIT 1
-            """, nativeQuery = true)
-    Optional<PublicRound> findWaitingRoundWithSameOpenAt(@Param("openAt") Instant openAt);
-
     // 현재 OPEN 상태인 라운드 조회
     @Query(value = """
         SELECT *
@@ -34,40 +18,17 @@ public interface PublicRoundRepository extends JpaRepository<PublicRound, Long> 
         ORDER BY updated_at DESC
         LIMIT 1
         """, nativeQuery = true)
-    Optional<PublicRound> findOpenRound(@Param("status") String status);
+    Optional<PublicRound> findOneOpenRound(@Param("status") String status);
 
-    // 특정 슬롯 시작 시각의 WAITING 라운드 조회
-    @Query(value = """
-        SELECT *
-        FROM public_rounds
-        WHERE status = :status
-          AND open_at = :openAt
-        ORDER BY updated_at DESC
-        LIMIT 1
-        """, nativeQuery = true)
-    Optional<PublicRound> findWaitingRoundOpenAt(@Param("status") String status, @Param("openAt") Instant openAt);
-
-    // openAt이 지났지만 closeAt은 아직 지나지 않은 WAITING 라운드 중 가장 오래된 라운드 조회
-    @Query(value = """
-        SELECT *
-        FROM public_rounds
-        WHERE status = 'WAITING'
-            AND open_at <= :now
-            AND close_at > :now
-        ORDER BY open_at ASC
-        LIMIT 1
-        """, nativeQuery = true)
-    Optional<PublicRound> findNotPromotedRound(@Param("now") Instant now);
-
-    // 현재 시각 기준으로 실제 예매 가능한 OPEN 라운드 1개 조회 (openAt <= now < closeAt)
+    // 현재 시각 기준으로 실제 예매 가능한 OPEN 라운드 1개 조회 (Asia/Seoul 기준: openAt <= now < closeAt)
     @Query(value = """
         SELECT *
         FROM public_rounds
         WHERE status = 'OPEN'
-          AND open_at <= :now
-          AND close_at > :now
+                    AND (open_at AT TIME ZONE 'Asia/Seoul') <= (:now AT TIME ZONE 'Asia/Seoul')
+                    AND (close_at AT TIME ZONE 'Asia/Seoul') > (:now AT TIME ZONE 'Asia/Seoul')
         ORDER BY open_at ASC
         LIMIT 1
         """, nativeQuery = true)
-    Optional<PublicRound> findBookableOpenRound(@Param("now") Instant now);
+    Optional<PublicRound> findOneBookableOpenRound(@Param("now") Instant now);
 }
