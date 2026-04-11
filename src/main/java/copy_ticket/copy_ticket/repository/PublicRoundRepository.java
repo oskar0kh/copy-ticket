@@ -11,6 +11,8 @@ import java.util.Optional;
 
 public interface PublicRoundRepository extends JpaRepository<PublicRound, Long> {
 
+    boolean existsByStatus(RoundStatus status);
+
     // 현재 OPEN 상태인 라운드 조회
     @Query(value = """
         SELECT *
@@ -19,7 +21,7 @@ public interface PublicRoundRepository extends JpaRepository<PublicRound, Long> 
         ORDER BY updated_at DESC
         LIMIT 1
         """, nativeQuery = true)
-    Optional<PublicRound> findOpenRound(@Param("status") RoundStatus status);
+    Optional<PublicRound> findOpenRound(@Param("status") String status);
 
     // 특정 슬롯 시작 시각의 WAITING 라운드 조회
     @Query(value = """
@@ -30,7 +32,7 @@ public interface PublicRoundRepository extends JpaRepository<PublicRound, Long> 
         ORDER BY updated_at DESC
         LIMIT 1
         """, nativeQuery = true)
-    Optional<PublicRound> findWaitingRoundOpenAt(@Param("status") RoundStatus status, @Param("openAt") Instant openAt);
+    Optional<PublicRound> findWaitingRoundOpenAt(@Param("status") String status, @Param("openAt") Instant openAt);
 
     // openAt이 지났지만 closeAt은 아직 지나지 않은 WAITING 라운드 중 가장 오래된 라운드 조회
     @Query(value = """

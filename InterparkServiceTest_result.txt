@@ -10,7 +10,7 @@
 ✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅
 ✅ PARSING COMPLETED ✅
 ✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅
-⏱️  Execution time: 0.58 seconds
+⏱️  Execution time: 0.42 seconds
 
 ────────────────────────────────────────────────────────────────────────────────────────────────────
 📊 12 CORE FIELDS EXTRACTED:
@@ -26,14 +26,14 @@
 ✅ [ 9] 9. goodsLargeImageUrl          = https://ticketimage.interpark.com/Play/image/large/26/26003142_p.gif
 ✅ [10] 10. ticketOpenDate             = 202603131200
 ✅ [11] 11. bookingEndDate             = 202604041100
-✅ [12] 12. ticketCastCount            = 293
+✅ [12] 12. ticketCastCount            = 305
 
 ────────────────────────────────────────────────────────────────────────────────────────────────────
 🔍 API REQUEST & RESPONSE:
 ────────────────────────────────────────────────────────────────────────────────────────────────────
 
 📡 API REQUEST URL:
-   https://api-ticketfront.interpark.com/v1/goods/26003142/summary?goodsCode=26003142&passCode=&priceGrade=&seatGrade=&ts=1774624818522
+   https://api-ticketfront.interpark.com/v1/goods/26003142/summary?goodsCode=26003142&passCode=&priceGrade=&seatGrade=&ts=1775905356042
 
 📋 PARSED RESULT (JSON Format):
 {
@@ -49,9 +49,9 @@
   "goodsLargeImageUrl" : "https://ticketimage.interpark.com/Play/image/large/26/26003142_p.gif",
   "ticketOpenDate" : "202603131200",
   "bookingEndDate" : "202604041100",
-  "ticketCastCount" : 293,
-  "weekRank" : "50",
-  "parsedAt" : [ 2026, 3, 28, 0, 20, 18, 498610128 ]
+  "ticketCastCount" : 305,
+  "weekRank" : "999",
+  "parsedAt" : [ 2026, 4, 11, 20, 2, 36, 16027556 ]
 }
 
 ====================================================================================================

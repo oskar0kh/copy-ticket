@@ -49,7 +49,7 @@ public class PublicRoundService {
     @Transactional
     public PublicRound prepareNextWaitingRound() {
         Instant nextSlotOpenAt = resolveNextSlotStart(Instant.now());
-        return publicRoundRepository.findWaitingRoundOpenAt(RoundStatus.WAITING, nextSlotOpenAt)
+        return publicRoundRepository.findWaitingRoundOpenAt(RoundStatus.WAITING.name(), nextSlotOpenAt)
                 .orElseGet(() -> createWaitingRound(nextSlotOpenAt));
     }
 
@@ -60,7 +60,7 @@ public class PublicRoundService {
 
         Instant now = Instant.now();
         Instant currentSlotOpenAt = resolveCurrentSlotStart(now); // 현재 시각 기준으로 이번 슬롯의 시작 시각 계산 (매시 00분 또는 30분)
-        Optional<PublicRound> existingOpenRound = publicRoundRepository.findOpenRound(RoundStatus.OPEN) // 이미 OPEN 상태인 라운드가 이번 슬롯의 시작 시각과 일치하는지 확인
+        Optional<PublicRound> existingOpenRound = publicRoundRepository.findOpenRound(RoundStatus.OPEN.name()) // 이미 OPEN 상태인 라운드가 이번 슬롯의 시작 시각과 일치하는지 확인
                 .filter(round -> round.getOpenAt().equals(currentSlotOpenAt));
         
         // 이번 슬롯에 이미 OPEN 상태인 라운드가 존재하면 새로 OPEN하지 않고 빈 Optional 반환
@@ -70,7 +70,7 @@ public class PublicRoundService {
 
         // 이번 슬롯의 시작 시각에 맞는 WAITING 라운드를 조회하거나, 없으면 생성
         PublicRound waitingRound = publicRoundRepository
-            .findWaitingRoundOpenAt(RoundStatus.WAITING, currentSlotOpenAt)
+            .findWaitingRoundOpenAt(RoundStatus.WAITING.name(), currentSlotOpenAt)
                 .orElseGet(() -> createWaitingRound(currentSlotOpenAt));
 
         // WAITING → OPEN으로 상태 변경
@@ -101,7 +101,7 @@ public class PublicRoundService {
     // 만료된 OPEN 라운드를 CLOSED로 전환
     @Transactional
     public void closeExpiredOpenRounds() {
-        Optional<PublicRound> openRound = publicRoundRepository.findOpenRound(RoundStatus.OPEN);
+        Optional<PublicRound> openRound = publicRoundRepository.findOpenRound(RoundStatus.OPEN.name());
         if (openRound.isEmpty()) {
             return;
         }
@@ -115,8 +115,8 @@ public class PublicRoundService {
     // OPEN/WATING 라운드가 모두 없을 때 현재 시각 기준 가장 가까운 다음 슬롯으로 WAITING 라운드를 생성
     @Transactional
     public Optional<PublicRound> ensureWaitingRoundWhenNoActiveRounds() {
-        boolean hasOpenRound = publicRoundRepository.findOpenRound(RoundStatus.OPEN).isPresent();
-        boolean hasWaitingRound = publicRoundRepository.findOpenRound(RoundStatus.WAITING).isPresent();
+        boolean hasOpenRound = publicRoundRepository.existsByStatus(RoundStatus.OPEN);
+        boolean hasWaitingRound = publicRoundRepository.existsByStatus(RoundStatus.WAITING);
 
         if (hasOpenRound || hasWaitingRound) {
             return Optional.empty();

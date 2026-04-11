@@ -70,10 +70,9 @@ public class PublicRoundScheduler {
     }
 
     /**
-     * 1분마다 라운드 유실 상태를 점검하여 OPEN/WAITING가 모두 없으면 WAITING 라운드를 보정 생성
-     * cron: "0 * * * * *" = 매 분 0초마다 실행
+     * 60초마다 라운드 유실 상태를 점검하여 OPEN/WAITING가 모두 없으면 WAITING 라운드를 보정 생성
      */
-    @Scheduled(cron = "0 * * * * *")
+    @Scheduled(fixedDelayString = "60000", initialDelayString = "0")
     public void ensureWaitingRoundFallback() {
         try {
             log.info("PublicRoundScheduler: ensureWaitingRoundFallback started");
