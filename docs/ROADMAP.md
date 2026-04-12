@@ -149,15 +149,15 @@ Phase 8  라운드 관리 및 데이터 정리
 
 | 순서 | 작업 | 설명 |
 |------|------|------|
-| 4-1 | 공개 라운드 좌석 사전 생성 | OPEN 라운드 생성 시 `public_seats` 400개 레코드 생성 (status=AVAILABLE) |
-| 4-2 | 좌석 목록 조회 API | GET `/api/public-seat/{roundId}` — 현재 라운드 좌석 조회 (status: AVAILABLE/BOOKED) |
-| 4-3 | 좌석 선택 UI 상태 관리 | PublicSeatSelection에서 사용자가 고른 좌석을 프론트 상태로 관리하고, 새로고침 시 서버 좌석 상태를 다시 반영 |
-| 4-4 | 선택 완료 API | POST `/api/public-booking/confirm` — 라운드 검증 + 선택 좌석 최종 확정 |
-| 4-5 | 라운드 유효성 검증 | confirm 처리 시 `status=OPEN` 및 `openAt <= now < closeAt` 확인 |
-| 4-6 | 조건부 좌석 업데이트 | `UPDATE public_seats SET status = 'BOOKED' WHERE round_id = :roundId AND id IN (:seatIds) AND status = 'AVAILABLE'` 실행 |
-| 4-7 | 업데이트 결과 검증 | `updatedCount == seatIds.size()` 이면 성공, 아니면 이미 예약된 좌석 포함으로 판단하고 롤백 |
-| 4-8 | DB bookings 저장 | `roundId`, `userId`, `seatId`, `status`, `createdAt`, `completedAt` 저장 |
-| 4-9 | 성공 화면 전환 | 모든 저장이 끝나면 PublicBookingSuccess로 이동 |
+| 5-1 | 공개 라운드 좌석 사전 생성 | OPEN 라운드 생성 시 `public_seats` 400개 레코드 생성 (status=AVAILABLE) |
+| 5-2 | 좌석 목록 조회 API | GET `/api/public-seat/{roundId}` — 현재 라운드 좌석 조회 (status: AVAILABLE/BOOKED) |
+| 5-3 | 좌석 선택 UI 상태 관리 | PublicSeatSelection에서 사용자가 고른 좌석을 프론트 상태로 관리하고, 새로고침 시 서버 좌석 상태를 다시 반영 |
+| 5-4 | 선택 완료 API | POST `/api/public-booking/confirm` — 라운드 검증 + 선택 좌석 최종 확정 |
+| 5-5 | 라운드 유효성 검증 | confirm 처리 시 `status=OPEN` 및 `openAt <= now < closeAt` 확인 |
+| 5-6 | 조건부 좌석 업데이트 | `UPDATE public_seats SET status = 'BOOKED' WHERE round_id = :roundId AND id IN (:seatIds) AND status = 'AVAILABLE'` 실행 |
+| 5-7 | 업데이트 결과 검증 | `updatedCount == seatIds.size()` 이면 성공, 아니면 이미 예약된 좌석 포함으로 판단하고 롤백 |
+| 5-8 | DB bookings 저장 | `roundId`, `userId`, `seatId`, `status`, `createdAt`, `completedAt` 저장 |
+| 5-9 | 성공 화면 전환 | 모든 저장이 끝나면 PublicBookingSuccess로 이동 |
 
 **산출물:** 선택 완료 API, 조건부 UPDATE 트랜잭션, public_bookings 저장 로직
 
@@ -169,10 +169,10 @@ Phase 8  라운드 관리 및 데이터 정리
 
 | 순서 | 작업 | 설명 |
 |------|------|------|
-| 7-1 | 예매내역 조회 API | GET `/api/public-booking/my-bookings` — 로그인 사용자의 현재 라운드 bookings 레코드 조회 |
-| 7-2 | 예매내역 UI | PublicMyBookings 컴포넌트: 공연명, 선택한 좌석 목록(최대 4개), 예매 시각, 라운드 정보 등 표시 |
-| 7-3 | 버튼 배치 | PublicPerformanceDetails 헤더 우측 사용자 이름 옆에 “나의 예매내역” 버튼 추가 |
-| 7-4 | 모달 표시 | 클릭 시 모달로 예매내역 표시 (기존 접근 경로 유지) |
+| 6-1 | 예매내역 조회 API | GET `/api/public-booking/my-bookings` — 로그인 사용자의 현재 라운드 bookings 레코드 조회 |
+| 6-2 | 예매내역 UI | PublicMyBookings 컴포넌트: 공연명, 선택한 좌석 목록(최대 4개), 예매 시각, 라운드 정보 등 표시 |
+| 6-3 | 버튼 배치 | PublicPerformanceDetails 헤더 우측 사용자 이름 옆에 “나의 예매내역” 버튼 추가 |
+| 6-4 | 모달 표시 | 클릭 시 모달로 예매내역 표시 (기존 접근 경로 유지) |
 
 **산출물:** 예매내역 조회 API, PublicMyBookings 컴포넌트, 헤더 버튼 추가
 
@@ -184,11 +184,11 @@ Phase 8  라운드 관리 및 데이터 정리
 
 | 순서 | 작업 | 설명 |
 |------|------|------|
-| 8-1 | Redis/Kafka 설정 | `build.gradle` 의존성 추가, `application.yml` 프로파일별 설정 (로컬/테스트 환경) |
-| 8-2 | 진입 제한 정책 | 동시 진입 허용 수 정의 (예: 라운드당 최대 50명) |
-| 8-3 | Redis 대기열 | “예매하기” 요청 → Redis Queue에 저장, 진입 허용 시 토큰 발급, TTL 설정 |
-| 8-4 | Kafka Event | 대기 요청을 Kafka 토픽으로 발행, Consumer가 순차 처리 |
-| 8-5 | 트래픽 테스트 | 테스트 코드로 대량 요청 시뮬레이션, 대기열 처리 확인 |
+| 7-1 | Redis/Kafka 설정 | `build.gradle` 의존성 추가, `application.yml` 프로파일별 설정 (로컬/테스트 환경) |
+| 7-2 | 진입 제한 정책 | 동시 진입 허용 수 정의 (예: 라운드당 최대 50명) |
+| 7-3 | Redis 대기열 | “예매하기” 요청 → Redis Queue에 저장, 진입 허용 시 토큰 발급, TTL 설정 |
+| 7-4 | Kafka Event | 대기 요청을 Kafka 토픽으로 발행, Consumer가 순차 처리 |
+| 7-5 | 트래픽 테스트 | 테스트 코드로 대량 요청 시뮬레이션, 대기열 처리 확인 |
 
 **산출물:** Redis/Kafka 기반 대기열 시스템, 트래픽 테스트 코드
 
@@ -200,8 +200,8 @@ Phase 8  라운드 관리 및 데이터 정리
 
 | 순서 | 작업 | 설명 |
 |------|------|------|
-| 9-1 | 라운드 종료 정책 | 라운드 closeAt 시각 도달 시 라운드 상태를 CLOSED로 변경, 신규 진입 차단 |
-| 9-2 | 데이터 정리 Scheduler | 새 라운드 생성 시, 이전 라운드의 모든 public_bookings/public_seats 레코드 soft delete |
+| 8-1 | 라운드 종료 정책 | 라운드 closeAt 시각 도달 시 라운드 상태를 CLOSED로 변경, 신규 진입 차단 |
+| 8-2 | 데이터 정리 Scheduler | 새 라운드 생성 시, 이전 라운드의 모든 public_bookings/public_seats 레코드 soft delete |
 
 **산출물:** 라운드 종료 및 데이터 정리 로직
 
