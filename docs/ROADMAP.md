@@ -24,7 +24,7 @@
 ## 2. Phase 흐름도
 
 ```
-Phase 0  기반 작업 (패키지·DB) — Redis/Kafka 설정은 Phase 5에서 진행
+Phase 0  기반 작업 (패키지·DB) — Redis/Kafka 설정은 대기열 단계에서 진행
     ↓
 Phase 1  로그인 / 회원가입 + 모드 선택 메인
     ↓
@@ -34,17 +34,13 @@ Phase 3  (공용) 공개 예매 UI 흐름 (Loading → Captcha → Seats → Suc
     ↓
 Phase 4  공개 라운드 기초 + '예매하기' 버튼 활성화
     ↓
-Phase 5  트랜잭션 세션 관리
+Phase 5  좌석 선택 + 예매 완료
     ↓
-Phase 6  좌석 선택 + Redis 임시 락 + DB 동기화
+Phase 6  나의 예매내역 (마이페이지)
     ↓
-Phase 7  예매 완료 + DB 저장
+Phase 7  대기열 (Redis/Kafka) + 트래픽 제어
     ↓
-Phase 8  나의 예매내역 (마이페이지)
-    ↓
-Phase 9  대기열 (Redis/Kafka) + 트래픽 제어
-    ↓
-Phase 10 라운드 관리 및 데이터 정리
+Phase 8  라운드 관리 및 데이터 정리
 ```
 
 ---
@@ -147,59 +143,27 @@ Phase 10 라운드 관리 및 데이터 정리
 
 ---
 
-## 8. Phase 5 — 트랜잭션 세션 관리
+## 8. Phase 5 — 좌석 선택 + 예매 완료
 
-**목표:** “예매하기” 버튼 클릭 시 트랜잭션 세션을 시작하고, 중간 새로고침 시에도 유지하며, 뒤로가기 또는 페이지 이탈 시 취소한다.
-
-| 순서 | 작업 | 설명 |
-|------|------|------|
-| 4-1 | 트랜잭션 세션 API | POST `/api/public-booking/start` — 트랜잭션 시작, `sessionId` 발급 |
-| 4-2 | 세션 복원 | 새로고침 시 `sessionId`로 기존 세션 복원 (로컬스토리지/쿠키 저장) |
-| 4-3 | 세션 취소 | 뒤로가기 또는 페이지 이탈 시 `DELETE /api/public-booking/cancel/{sessionId}` → (phase 6) Redis 임시 락 삭제, 선택 초기화 |
-| 4-4 | 경고 메시지 | PublicSeatSelection에서 뒤로가기 시 “정말 나가실건가요? 선택된 좌석은 취소됩니다” 모달 |
-| 4-5 | 트랜잭션 종료 | PublicBookingSuccess 도달 시 `POST /api/public-booking/confirm/{sessionId}` → DB bookings/seats 저장 후 세션 종료 |
-
-**산출물:** 트랜잭션 시작/복원/취소/종료 API, 세션 관리 로직
-
----
-
-## 9. Phase 6 — 좌석 선택 및 Redis 임시 락 + DB 동기화
-
-**목표:** 사용자가 좌석을 선택할 때 Redis 임시 락을 저장하고, 새로고침할 때마다 DB 'seats' 테이블에서 최신 상태를 불러와 동기화한다.
+**목표:** OPEN 라운드 생성 시 `public_seats` 400개를 미리 준비하고, 사용자는 좌석 목록을 조회/선택한 뒤 “선택 완료” 버튼에서 라운드 검증 + 조건부 UPDATE + `public_bookings` 저장을 한 번에 처리한다.
 
 | 순서 | 작업 | 설명 |
 |------|------|------|
-| 5-1 | 좌석 목록 조회 API | GET `/api/public-seat/{roundId}` — 현재 라운드의 모든 좌석 조회 (status: AVAILABLE/BOOKED) |
-| 5-2 | 좌석 선택 API | POST `/api/public-seat/select/{roundId}/{seatId}/{sessionId}` — 좌석 선택, Redis 임시 락 저장 (TTL 5분) |
-| 5-3 | 임시 락 확인 | 다른 사용자가 선택 중인 좌석(Redis 락 있음)은 프론트에서 비활성 처리 |
-| 5-4 | DB 동기화 | PublicSeatSelection에서 새로고침 시 GET `/api/public-seat/{roundId}` 호출, 현재 BOOKED 상태 동기화 (자신의 선택은 유지) |
-| 5-5 | 중복 선택 방지 | 좌석 상태가 BOOKED일 때 선택하려 하면 “이미 예매된 좌석입니다” 모달 표시, DB 상태 업데이트 취소 |
+| 4-1 | 공개 라운드 좌석 사전 생성 | OPEN 라운드 생성 시 `public_seats` 400개 레코드 생성 (status=AVAILABLE) |
+| 4-2 | 좌석 목록 조회 API | GET `/api/public-seat/{roundId}` — 현재 라운드 좌석 조회 (status: AVAILABLE/BOOKED) |
+| 4-3 | 좌석 선택 UI 상태 관리 | PublicSeatSelection에서 사용자가 고른 좌석을 프론트 상태로 관리하고, 새로고침 시 서버 좌석 상태를 다시 반영 |
+| 4-4 | 선택 완료 API | POST `/api/public-booking/confirm` — 라운드 검증 + 선택 좌석 최종 확정 |
+| 4-5 | 라운드 유효성 검증 | confirm 처리 시 `status=OPEN` 및 `openAt <= now < closeAt` 확인 |
+| 4-6 | 조건부 좌석 업데이트 | `UPDATE public_seats SET status = 'BOOKED' WHERE round_id = :roundId AND id IN (:seatIds) AND status = 'AVAILABLE'` 실행 |
+| 4-7 | 업데이트 결과 검증 | `updatedCount == seatIds.size()` 이면 성공, 아니면 이미 예약된 좌석 포함으로 판단하고 롤백 |
+| 4-8 | DB bookings 저장 | `roundId`, `userId`, `seatId`, `status`, `createdAt`, `completedAt` 저장 |
+| 4-9 | 성공 화면 전환 | 모든 저장이 끝나면 PublicBookingSuccess로 이동 |
 
-**산출물:** 좌석 목록 조회 API, 좌석 선택 API, Redis 임시 락 메커니즘
-
----
-
-## 10. Phase 7 — 예매 완료 및 DB 저장
-
-**목표:** “선택 완료” 버튼 클릭 시 Redis 임시 락을 확인하고, DB 'bookings'와 'seats' 테이블에 최종 데이터를 저장한 후 트랜잭션을 종료한다.
-
-| 순서 | 작업 | 설명 |
-|------|------|------|
-| 6-1 | 선택 완료 API | POST `/api/public-booking/confirm/{sessionId}` — 선택된 좌석 최종 확정 |
-| 6-2 | Redis 락 검증 | 선택 완료 시 Redis 임시 락 유효성 확인, 만료됐으면 에러 처리 |
-| 6-3 | DB bookings 저장 | `roundId`, `userId`, `userName`, `goodsCode`, `goodsName`, `roundOpenAt`, `roundCloseAt`, `transactionStartAt`, `transactionEndAt`, `selectedSeats(최대 4개)` 저장 |
-| 6-4 | DB seats 업데이트 | 선택한 각 좌석의 `status` = BOOKED, `bookedAt` = 현재 시각 저장, `userId`/`userName` 기록 |
-| 6-5 | Redis 임시 락 삭제 | 저장 완료 후 Redis 임시 락 모두 삭제 |
-
-**저장할 정보:**
-- **bookings**: `roundId`, `userId`, `userName`, `goodsCode`, `goodsName`, `roundOpenAt`, `roundCloseAt`, `transactionStartAt`, `transactionEndAt`
-- **seats**: `seatId`, `status(BOOKED)`, `userId`, `userName`, `bookedAt`
-
-**산출물:** 선택 완료 API, bookings/seats 테이블 저장 로직
+**산출물:** 선택 완료 API, 조건부 UPDATE 트랜잭션, public_bookings 저장 로직
 
 ---
 
-## 11. Phase 8 — 나의 예매내역 (마이페이지)
+## 9. Phase 6 — 나의 예매내역 (마이페이지)
 
 **목표:** PublicPerformanceDetails 헤더의 사용자 이름 오른쪽에 “나의 예매내역” 버튼을 배치하고, 클릭 시 사용자가 현재 라운드에서 예매한 좌석 목록을 표시한다.
 
@@ -214,7 +178,7 @@ Phase 10 라운드 관리 및 데이터 정리
 
 ---
 
-## 12. Phase 9 — 대기열 (Redis/Kafka) + 트래픽 제어
+## 10. Phase 7 — 대기열 (Redis/Kafka) + 트래픽 제어
 
 **목표:** 대량 트래픽 발생 시 “예매하기” 요청을 대기열에서 처리하고, 동시 진입 허용 수를 제한한다.
 
@@ -230,14 +194,14 @@ Phase 10 라운드 관리 및 데이터 정리
 
 ---
 
-## 13. Phase 10 — 라운드 관리 및 데이터 정리
+## 11. Phase 8 — 라운드 관리 및 데이터 정리
 
-**목표:** 새로운 라운드 시작 시 이전 라운드의 bookings/seats 데이터를 soft delete하여 시스템을 정리한다.
+**목표:** 새로운 라운드 시작 시 이전 라운드의 public_bookings/public_seats 데이터를 soft delete하여 시스템을 정리한다.
 
 | 순서 | 작업 | 설명 |
 |------|------|------|
 | 9-1 | 라운드 종료 정책 | 라운드 closeAt 시각 도달 시 라운드 상태를 CLOSED로 변경, 신규 진입 차단 |
-| 9-2 | 데이터 정리 Scheduler | 새 라운드 생성 시, 이전 라운드의 모든 bookings/seats 레코드 soft delete |
+| 9-2 | 데이터 정리 Scheduler | 새 라운드 생성 시, 이전 라운드의 모든 public_bookings/public_seats 레코드 soft delete |
 
 **산출물:** 라운드 종료 및 데이터 정리 로직
 
@@ -252,12 +216,10 @@ Phase 10 라운드 관리 및 데이터 정리
 | **2** | (개인) URL 파싱, 공연 정보 DTO, 개인 연습 페이지 | ☐ |
 | **3** | 공개 예매 UI 흐름(Loading/Captcha/Seats/Success) | ✅ |
 | **4** | PublicRound 엔티티, OPEN/CLOSED 전환, SSE, 10분 버튼 활성화 | ✅ (핵심 흐름) / ⏳ (실서비스 연동 보강) |
-| **5** | 트랜잭션 세션 관리 (시작/복원/취소/종료) | ⏳ |
-| **6** | 좌석 선택, Redis 임시 락, DB 동기화 | ⏳ |
-| **7** | 예매 완료, bookings/seats DB 저장 | ⏳ |
-| **8** | 나의 예매내역 (마이페이지) | ⏳ |
-| **9** | Redis/Kafka 대기열, 트래픽 제어, 테스트 | ⏳ |
-| **10** | 라운드 관리, 데이터 정리 (soft delete) | ⏳ |
+| **5** | 좌석 조회/선택, 라운드 검증, 선택 완료, public_bookings 저장 | ⏳ |
+| **6** | 나의 예매내역 (마이페이지) | ⏳ |
+| **7** | Redis/Kafka 대기열, 트래픽 제어, 테스트 | ⏳ |
+| **8** | 라운드 관리, 데이터 정리 (soft delete) | ⏳ |
 
 ---
 
@@ -267,16 +229,15 @@ Phase 10 라운드 관리 및 데이터 정리
 |------|------|
 | **라운드 기초** | `OPEN → CLOSED` 상태 전환, 30분 슬롯 단위 OPEN 생성/만료, openAt~closeAt 기반 버튼 활성화 |
 | **예매 흐름** | Loading → Captcha → SeatSelection → BookingSuccess (단계별 UI) |
-| **트랜잭션** | "예매하기" 버튼 클릭 → sessionId 발급, 새로고침 유지, 뒤로가기 취소, BookingSuccess 도달 시 종료 |
-| **좌석 선택** | Redis 임시 락으로 선택 중 상태 관리, 새로고침마다 DB 동기화 (BOOKED 상태 반영) |
-| **예매 확정** | "선택 완료" → 서버 시각 기준 `openAt <= now < closeAt` 검증 → Redis 락 검증 → bookings/seats DB 저장 |
+| **좌석 선택** | 프론트 선택 상태 + DB 좌석 목록 재조회로 화면 갱신, 중복 상태는 public_seats BOOKED로 판단 |
+| **예매 확정** | "선택 완료" → 라운드 유효성 검증 → 조건부 UPDATE로 `public_seats`의 AVAILABLE 좌석만 BOOKED 전환 → 업데이트 건수 검증 후 public_bookings 저장 |
 | **마이페이지** | PublicPerformanceDetails 헤더의 "나의 예매내역" 버튼 → 예매 조회 |
 | **대기열** | 트래픽 과부하 시 Redis/Kafka 기반 대기열 처리 |
-| **데이터 정리** | 새 라운드 시작 시 이전 라운드 bookings/seats soft delete |
+| **데이터 정리** | 새 라운드 시작 시 이전 라운드 public_bookings/public_seats soft delete |
 
 **DB 테이블:**
-- `public_rounds`: roundId, roundNumber, status, openAt, closeAt, performanceId
-- `seats`: seatId, roundId, status(AVAILABLE/BOOKED), userId, userName, bookedAt
-- `bookings`: roundId, userId, userName, goodsCode, goodsName, roundOpenAt, roundCloseAt, transactionStartAt, transactionEndAt, selectedSeats
+- `public_rounds`: id, roundId, status, openAt, closeAt, createdAt, updatedAt
+- `public_seats`: id, roundId, seatNumber, status, lockedAt, lockedByUserId
+- `public_bookings`: id, userId, roundId, seatId, status, createdAt, completedAt
 
 상세 테이블·ER 다이어그램은 `docs/SCHEMA.md` 참고.
