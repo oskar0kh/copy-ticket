@@ -1,6 +1,5 @@
 -- 티켓팅 연습 플랫폼 — PostgreSQL DDL
--- DBeaver 등에서 실행하여 테이블 생성
--- 실행 순서: users → performances → public_rounds → seats → bookings
+-- 실행 순서: users → performances → public_rounds → public_seats → public_bookings
 
 -- ---------------------------------------------------------------------------
 -- 1. users — 회원
@@ -51,7 +50,7 @@ CREATE INDEX idx_performances_created_by ON performances(created_by);
 -- ---------------------------------------------------------------------------
 CREATE TABLE public_rounds (
     id              BIGSERIAL PRIMARY KEY,
-    round_number    INTEGER NOT NULL UNIQUE,
+    round_id        INTEGER NOT NULL UNIQUE,
     status          VARCHAR(20) NOT NULL,
     open_at         TIMESTAMP NOT NULL,
     close_at        TIMESTAMP NOT NULL,
@@ -62,35 +61,33 @@ CREATE TABLE public_rounds (
 CREATE INDEX idx_public_rounds_status ON public_rounds(status);
 
 -- ---------------------------------------------------------------------------
--- 4. seats — 좌석
+-- 4. public_seats — 좌석
 -- ---------------------------------------------------------------------------
-CREATE TABLE seats (
+CREATE TABLE public_seats (
     id                  BIGSERIAL PRIMARY KEY,
-    performance_id      BIGINT NOT NULL REFERENCES performances(id),
-    section             VARCHAR(50),
-    row_name            VARCHAR(20) NOT NULL,
+    round_id            BIGINT NOT NULL REFERENCES public_rounds(id),
     seat_number         VARCHAR(20) NOT NULL,
     status              VARCHAR(20) NOT NULL,
     locked_at           TIMESTAMP,
     locked_by_user_id   BIGINT REFERENCES users(id),
-    CONSTRAINT uq_seat_performance_row_number UNIQUE (performance_id, row_name, seat_number)
+    CONSTRAINT uq_public_seat_round_seat_number UNIQUE (round_id, seat_number)
 );
 
-CREATE INDEX idx_seats_performance_id ON seats(performance_id);
-CREATE INDEX idx_seats_status ON seats(performance_id, status);
+CREATE INDEX idx_public_seats_round_id ON public_seats(round_id);
+CREATE INDEX idx_public_seats_status ON public_seats(round_id, status);
 
 -- ---------------------------------------------------------------------------
--- 5. bookings — 예매 내역
+-- 5. public_bookings — 예매 내역
 -- ---------------------------------------------------------------------------
-CREATE TABLE bookings (
+CREATE TABLE public_bookings (
     id              BIGSERIAL PRIMARY KEY,
     user_id         BIGINT NOT NULL REFERENCES users(id),
-    performance_id  BIGINT NOT NULL REFERENCES performances(id),
-    seat_id         BIGINT NOT NULL REFERENCES seats(id),
+    round_id        BIGINT NOT NULL REFERENCES public_rounds(id),
+    seat_id         BIGINT NOT NULL REFERENCES public_seats(id),
     status          VARCHAR(20) NOT NULL,
     created_at      TIMESTAMP NOT NULL DEFAULT now(),
     completed_at    TIMESTAMP,
-    CONSTRAINT uq_booking_performance_seat UNIQUE (performance_id, seat_id)
+    CONSTRAINT uq_public_booking_round_seat UNIQUE (round_id, seat_id)
 );
 
-CREATE INDEX idx_bookings_user_created ON bookings(user_id, created_at DESC);
+CREATE INDEX idx_public_bookings_user_created ON public_bookings(user_id, created_at DESC);

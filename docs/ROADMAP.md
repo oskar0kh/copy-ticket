@@ -155,7 +155,7 @@ Phase 10 라운드 관리 및 데이터 정리
 |------|------|------|
 | 4-1 | 트랜잭션 세션 API | POST `/api/public-booking/start` — 트랜잭션 시작, `sessionId` 발급 |
 | 4-2 | 세션 복원 | 새로고침 시 `sessionId`로 기존 세션 복원 (로컬스토리지/쿠키 저장) |
-| 4-3 | 세션 취소 | 뒤로가기 또는 페이지 이탈 시 `DELETE /api/public-booking/cancel/{sessionId}` → Redis 임시 락 삭제, 선택 초기화 |
+| 4-3 | 세션 취소 | 뒤로가기 또는 페이지 이탈 시 `DELETE /api/public-booking/cancel/{sessionId}` → (phase 6) Redis 임시 락 삭제, 선택 초기화 |
 | 4-4 | 경고 메시지 | PublicSeatSelection에서 뒤로가기 시 “정말 나가실건가요? 선택된 좌석은 취소됩니다” 모달 |
 | 4-5 | 트랜잭션 종료 | PublicBookingSuccess 도달 시 `POST /api/public-booking/confirm/{sessionId}` → DB bookings/seats 저장 후 세션 종료 |
 

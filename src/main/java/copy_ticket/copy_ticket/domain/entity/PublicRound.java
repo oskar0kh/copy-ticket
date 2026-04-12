@@ -36,8 +36,8 @@ public class PublicRound {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "round_number", nullable = false, unique = true)
-    private Integer roundNumber;
+    @Column(name = "round_id", nullable = false, unique = true)
+    private Integer roundId;
 
     @Column(name = "status", nullable = false, length = 20)
     @Enumerated(EnumType.STRING)

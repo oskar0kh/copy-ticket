@@ -16,7 +16,7 @@ import java.time.Instant;
 public class RoundEventDto {
 
     private Long id;
-    private Integer roundNumber;
+    private Integer roundId;
     private String status;
 
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss'Z'", timezone = "UTC")
@@ -32,7 +32,7 @@ public class RoundEventDto {
     public static RoundEventDto of(PublicRound round) {
         return RoundEventDto.builder()
                 .id(round.getId())
-                .roundNumber(round.getRoundNumber())
+                .roundId(round.getRoundId())
                 .status(round.getStatus().name())
                 .openAt(round.getOpenAt())
                 .closeAt(round.getCloseAt())

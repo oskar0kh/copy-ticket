@@ -26,30 +26,24 @@ import java.time.Instant;
  * 결제 페이지 진입 시 Redis 분산 락과 연동해 선점(LOCKED), 결제 완료 시 BOOKED
  */
 @Entity
-@Table(name = "seats",
-        uniqueConstraints = @UniqueConstraint(name = "uq_seat_performance_row_number", columnNames = {"performance_id", "row_name", "seat_number"}),
+@Table(name = "public_seats",
+        uniqueConstraints = @UniqueConstraint(name = "uq_public_seat_round_seat_number", columnNames = {"round_id", "seat_number"}),
         indexes = {
-                @Index(name = "idx_seats_performance_id", columnList = "performance_id"),
-                @Index(name = "idx_seats_status", columnList = "performance_id, status")
+                @Index(name = "idx_public_seats_round_id", columnList = "round_id"),
+                @Index(name = "idx_public_seats_status", columnList = "round_id, status")
         })
 @Getter
 @Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class Seat {
+public class PublicSeat {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "performance_id", nullable = false)
-    private Performance performance;
-
-    @Column(length = 50)
-    private String section;
-
-    @Column(name = "row_name", nullable = false, length = 20)
-    private String rowName;
+    @JoinColumn(name = "round_id", nullable = false)
+    private PublicRound round;
 
     @Column(name = "seat_number", nullable = false, length = 20)
     private String seatNumber;

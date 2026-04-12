@@ -26,13 +26,13 @@ import java.time.Instant;
  * "결제하기" 클릭 시 트랜잭션: 좌석 BOOKED, bookings에 COMPLETED 기록, Redis 락 해제
  */
 @Entity
-@Table(name = "bookings",
-        uniqueConstraints = @UniqueConstraint(name = "uq_booking_performance_seat", columnNames = {"performance_id", "seat_id"}),
-        indexes = @Index(name = "idx_bookings_user_created", columnList = "user_id, created_at"))
+@Table(name = "public_bookings",
+    uniqueConstraints = @UniqueConstraint(name = "uq_public_booking_round_seat", columnNames = {"round_id", "seat_id"}),
+    indexes = @Index(name = "idx_public_bookings_user_created", columnList = "user_id, created_at"))
 @Getter
 @Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class Booking {
+public class PublicBooking {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -43,12 +43,12 @@ public class Booking {
     private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "performance_id", nullable = false)
-    private Performance performance;
+    @JoinColumn(name = "round_id", nullable = false)
+    private PublicRound round;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "seat_id", nullable = false)
-    private Seat seat;
+    private PublicSeat seat;
 
     @Column(nullable = false, length = 20)
     @Enumerated(EnumType.STRING)

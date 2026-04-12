@@ -74,7 +74,7 @@ public class PublicRoundController {
         int subscriberCount = roundEventPublisher.getActiveSubscriberCount();
 
         return ResponseEntity.ok(new HealthResponse(
-                round.isPresent() ? round.get().getRoundNumber() : null,
+                round.isPresent() ? round.get().getRoundId() : null,
                 subscriberCount
         ));
     }
@@ -88,7 +88,7 @@ public class PublicRoundController {
     @lombok.Getter
     @lombok.AllArgsConstructor
     static class HealthResponse {
-        private Integer currentRoundNumber;
+        private Integer currentRoundId;
         private int activeSubscribers;
     }
 

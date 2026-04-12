@@ -56,7 +56,7 @@ const publicPerformanceData = {
 export default function PublicPerformanceData({ user, onGoMain }) {
   const [bookingOpenAt, setBookingOpenAt] = useState(null);
   const [bookingCloseAt, setBookingCloseAt] = useState(null);
-  const [roundNumber, setRoundNumber] = useState(null);
+  const [roundId, setRoundId] = useState(null);
   const [serverTimeOffsetMs, setServerTimeOffsetMs] = useState(0);
   const roundCloseTimerRef = useRef(null);
 
@@ -85,7 +85,7 @@ export default function PublicPerformanceData({ user, onGoMain }) {
               ? new Date(payload.round.closeAt).getTime()
               : null
           );
-          setRoundNumber(payload.round.roundNumber ?? null);
+          setRoundId(payload.round.roundId ?? null);
         }
       } catch (error) {
         console.error('초기 라운드 동기화 실패:', error);
@@ -134,7 +134,7 @@ export default function PublicPerformanceData({ user, onGoMain }) {
 
         setBookingOpenAt(openAtMs);
         setBookingCloseAt(closeAtMs);
-        setRoundNumber(roundData.roundNumber);
+        setRoundId(roundData.roundId);
 
         // closeAt 기준으로 자동 초기화 (라운드 종료)
         if (roundCloseTimerRef.current) {

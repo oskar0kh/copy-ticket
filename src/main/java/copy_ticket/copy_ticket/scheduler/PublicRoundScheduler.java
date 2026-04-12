@@ -28,7 +28,7 @@ public class PublicRoundScheduler {
                     .ifPresentOrElse(
                             round -> {
                                 roundEventPublisher.publishRoundCreated(round); // OPEN된 라운드가 있으면 SSE 이벤트 발행
-                                log.info("PublicRoundScheduler: openRoundForSlot completed with roundNumber={}", round.getRoundNumber());
+                                log.info("PublicRoundScheduler: openRoundForSlot completed with roundId={}", round.getRoundId());
                             },
                             () -> log.info("PublicRoundScheduler: openRoundForSlot completed without opening a round")
                     );

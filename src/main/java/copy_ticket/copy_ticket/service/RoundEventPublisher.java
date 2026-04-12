@@ -73,7 +73,7 @@ public class RoundEventPublisher {
                         .data(eventDto)
                         .reconnectTime(1000);
                 emitter.send(event.build());
-                log.debug("Event sent to emitter: roundNumber={}", round.getRoundNumber());
+                log.debug("Event sent to emitter: roundId={}", round.getRoundId());
             } catch (IOException e) {
                 log.warn("Failed to send event to emitter", e);
                 failedEmitters.add(emitter);

@@ -46,7 +46,7 @@ public class PublicRoundService {
         }
 
         PublicRound openedRound = createOpenRoundForSlot(currentSlotOpenAt, now);
-        log.info("Round created/opened for slot: roundNumber={}, openAt={}, closeAt={}", openedRound.getRoundNumber(), openedRound.getOpenAt(), openedRound.getCloseAt());
+        log.info("Round created/opened for slot: roundId={}, openAt={}, closeAt={}", openedRound.getRoundId(), openedRound.getOpenAt(), openedRound.getCloseAt());
         return Optional.of(openedRound);
     }
 
@@ -80,7 +80,7 @@ public class PublicRoundService {
         round.setStatus(RoundStatus.CLOSED);
         round.setUpdatedAt(Instant.now());
         publicRoundRepository.save(round);
-        log.info("Public round closed: roundNumber={}", round.getRoundNumber());
+        log.info("Public round closed: roundId={}", round.getRoundId());
     }
 
     // 5. 현재 슬롯의 시작 시각 계산 (매시 00분 또는 30분)
@@ -98,14 +98,14 @@ public class PublicRoundService {
     private PublicRound createOpenRoundForSlot(Instant slotOpenAt, Instant now) {
 
         // 이번 슬롯에 OPEN 라운드가 이미 존재하는지 다시 한번 확인 (동시성 대비)
-        int nextRoundNumber = publicRoundRepository.findAll().stream()
-                .mapToInt(PublicRound::getRoundNumber)
+        int nextRoundId = publicRoundRepository.findAll().stream()
+                .mapToInt(PublicRound::getRoundId)
                 .max()
                 .orElse(0) + 1;
 
         // 새 OPEN 라운드 생성
         PublicRound newRound = PublicRound.builder()
-                .roundNumber(nextRoundNumber)
+                .roundId(nextRoundId)
                 .status(RoundStatus.OPEN)
                 .openAt(slotOpenAt)
                 .closeAt(slotOpenAt.plus(10, ChronoUnit.MINUTES))
