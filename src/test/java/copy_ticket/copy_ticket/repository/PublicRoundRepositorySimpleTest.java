@@ -34,11 +34,6 @@ public class PublicRoundRepositorySimpleTest {
     private Instant openAt;
     private Instant closeAt;
 
-    // Native query에서 AT TIME ZONE 비교를 사용하므로 테스트 입력 시각을 동일 기준으로 맞춘다.
-    private Instant queryInstant(Instant instant) {
-        return instant.minusSeconds(9 * 3600L);
-    }
-
     @BeforeEach
     void setUp() {
         // 테스트 전 公開라운드 테이블 정리

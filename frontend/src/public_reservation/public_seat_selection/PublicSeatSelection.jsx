@@ -291,7 +291,7 @@ const PublicSeatSelection = ({ performanceData, roundId, onSuccess, onGoMain }) 
                     <div className="selected-seat-item" key={seat.id}>
                       <div className="selected-seat-left">
                         <span className="selected-seat-title">좌석</span>
-                        <span className="selected-seat-sub">{seat.seatNumber}</span>
+                        <span className="selected-seat-sub">{seat.displayOrder}번</span>
                       </div>
                       <div className="selected-seat-right">
                         <span className="seat-price">99,000원</span>
@@ -299,7 +299,7 @@ const PublicSeatSelection = ({ performanceData, roundId, onSuccess, onGoMain }) 
                           type="button"
                           className="seat-remove-btn"
                           onClick={() => toggleSeat(seat)}
-                          aria-label={`${seat.seatNumber} 삭제`}
+                          aria-label={`${seat.displayOrder}번 삭제`}
                         >
                           ×
                         </button>
