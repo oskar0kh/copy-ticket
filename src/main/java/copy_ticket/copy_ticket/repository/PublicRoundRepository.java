@@ -20,13 +20,13 @@ public interface PublicRoundRepository extends JpaRepository<PublicRound, Long> 
         """, nativeQuery = true)
     Optional<PublicRound> findOneOpenRound(@Param("status") String status);
 
-    // 현재 시각 기준으로 실제 예매 가능한 OPEN 라운드 1개 조회 (Asia/Seoul 기준: openAt <= now < closeAt)
+    // 현재 시각 기준으로 실제 예매 가능한 OPEN 라운드 1개 조회 (KST 로컬 시각 기준: openAt <= now < closeAt)
     @Query(value = """
         SELECT *
         FROM public_rounds
         WHERE status = 'OPEN'
-                    AND (open_at AT TIME ZONE 'Asia/Seoul') <= (:now AT TIME ZONE 'Asia/Seoul')
-                    AND (close_at AT TIME ZONE 'Asia/Seoul') > (:now AT TIME ZONE 'Asia/Seoul')
+                    AND open_at <= :now
+                    AND close_at > :now
         ORDER BY open_at ASC
         LIMIT 1
         """, nativeQuery = true)

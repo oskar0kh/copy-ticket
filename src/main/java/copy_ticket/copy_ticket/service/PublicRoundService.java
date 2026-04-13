@@ -3,6 +3,7 @@ package copy_ticket.copy_ticket.service;
 import copy_ticket.copy_ticket.domain.entity.PublicRound;
 import copy_ticket.copy_ticket.domain.entity.PublicRound.RoundStatus;
 import copy_ticket.copy_ticket.domain.entity.PublicSeat;
+import copy_ticket.copy_ticket.config.time.KstDateTimeUtils;
 import copy_ticket.copy_ticket.repository.PublicRoundRepository;
 import copy_ticket.copy_ticket.repository.PublicSeatRepository;
 import lombok.RequiredArgsConstructor;
@@ -36,7 +37,7 @@ public class PublicRoundService {
         // 만료된 OPEN 라운드 -> CLOSED로 전환
         closeExpiredOpenRounds();
 
-        Instant now = Instant.now();
+        Instant now = KstDateTimeUtils.nowInstant();
 
         /* 현재 시각 기준으로 이번 슬롯의 시작 시각 계산 (매시 00분 또는 30분)
          * 스케줄 경계(예: xx:29:59.9)에 아주 근접하게 실행될 때, openAt 시간이 이전 시간으로 계산되는 현상 방지
@@ -67,7 +68,7 @@ public class PublicRoundService {
         }
 
         PublicRound round = openRound.get();
-        if (!round.getCloseAt().isAfter(Instant.now())) {
+        if (!round.getCloseAt().isAfter(KstDateTimeUtils.nowInstant())) {
             closeRound(round);
         }
     }
@@ -77,7 +78,7 @@ public class PublicRoundService {
      */
     @Transactional(readOnly = true)
     public Optional<PublicRound> getCurrentRound() {
-        return publicRoundRepository.findOneBookableOpenRound(Instant.now());
+        return publicRoundRepository.findOneBookableOpenRound(KstDateTimeUtils.nowInstant());
     }
 
     /**
@@ -86,7 +87,7 @@ public class PublicRoundService {
     @Transactional
     public void closeRound(PublicRound round) {
         round.setStatus(RoundStatus.CLOSED);
-        round.setUpdatedAt(Instant.now());
+        round.setUpdatedAt(KstDateTimeUtils.nowInstant());
         publicRoundRepository.save(round);
         log.info("Public round closed: roundId={}", round.getRoundId());
     }
