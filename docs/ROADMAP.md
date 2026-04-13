@@ -172,6 +172,8 @@ Phase 7  라운드 관리 및 데이터 정리
 
 **산출물:** 선점(LOCKED) 및 확정(BOOKED) 2단계 API, hold_token/hold_expires_at 관리 로직, 선택 좌석 확인 화면, TTL 만료 자동 복구 배치, Redis 대기열/진입 제한, 고동시성 트래픽 테스트 코드
 
+**참고 링크:** https://velog.io/@zvyg1023/Spring-RedisRedisson-%EB%B6%84%EC%82%B0%EB%9D%BD%EC%9D%84-%ED%99%9C%EC%9A%A9%ED%95%9C-%EC%A2%8C%EC%84%9D-%EC%84%A0%EC%A0%90-%EA%B0%9C%EB%B0%9C
+
 ---
 
 ## 9. Phase 6 — 나의 예매내역 (마이페이지)

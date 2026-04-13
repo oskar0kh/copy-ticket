@@ -30,7 +30,9 @@ import java.time.Instant;
         uniqueConstraints = @UniqueConstraint(name = "uq_public_seat_round_seat_number", columnNames = {"round_id", "seat_number"}),
         indexes = {
                 @Index(name = "idx_public_seats_round_id", columnList = "round_id"),
-                @Index(name = "idx_public_seats_status", columnList = "round_id, status")
+                @Index(name = "idx_public_seats_status", columnList = "round_id, status"),
+                @Index(name = "idx_public_seats_round_status_expires", columnList = "round_id, status, hold_expires_at"),
+                @Index(name = "idx_public_seats_lock_owner_token", columnList = "locked_by_user_id, hold_token")
         })
 @Getter
 @Setter
@@ -58,4 +60,18 @@ public class PublicSeat {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "locked_by_user_id")
     private User lockedByUser;
+
+    @Column(name = "hold_token", length = 120)
+    private String holdToken;
+
+    @Column(name = "hold_expires_at")
+    private Instant holdExpiresAt;
+
+    public static PublicSeat available(PublicRound round, String seatNumber) {
+        PublicSeat seat = new PublicSeat();
+        seat.setRound(round);
+        seat.setSeatNumber(seatNumber);
+        seat.setStatus(SeatStatus.AVAILABLE);
+        return seat;
+    }
 }

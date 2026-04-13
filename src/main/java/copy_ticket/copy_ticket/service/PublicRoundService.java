@@ -2,24 +2,32 @@ package copy_ticket.copy_ticket.service;
 
 import copy_ticket.copy_ticket.domain.entity.PublicRound;
 import copy_ticket.copy_ticket.domain.entity.PublicRound.RoundStatus;
+import copy_ticket.copy_ticket.domain.entity.PublicSeat;
 import copy_ticket.copy_ticket.repository.PublicRoundRepository;
+import copy_ticket.copy_ticket.repository.PublicSeatRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class PublicRoundService {
+    
+    // 전체 좌석 수 (400석 고정, 필요에 따라 조정 가능)
+    private static final int TOTAL_PUBLIC_SEATS = 400;
 
     private final PublicRoundRepository publicRoundRepository;
+    private final PublicSeatRepository publicSeatRepository;
 
     // 1. 매시 00/30분에 OPEN 라운드 생성
     @Transactional
@@ -113,6 +121,26 @@ public class PublicRoundService {
                 .updatedAt(now)
                 .build();
 
-        return publicRoundRepository.save(newRound);
+        // 라운드 저장 후, 해당 라운드에 대한 좌석도 함께 생성
+        PublicRound savedRound = publicRoundRepository.save(newRound);
+        createSeatsForRound(savedRound);
+
+        // 저장된 라운드 반환
+        return savedRound;
+    }
+
+    // 7. 라운드 생성 시, 해당 라운드에 대한 좌석도 함께 생성 (400석)
+    private void createSeatsForRound(PublicRound round) {
+
+        // 좌석 번호는 S001, S002, ..., S400 형식으로 생성
+        List<PublicSeat> seats = new ArrayList<>(TOTAL_PUBLIC_SEATS);
+
+        // 좌석 번호 생성 및 초기 상태 설정 (AVAILABLE)
+        for (int i = 1; i <= TOTAL_PUBLIC_SEATS; i++) {
+            seats.add(PublicSeat.available(round, String.format("S%03d", i)));
+        }
+
+        // 일괄 저장
+        publicSeatRepository.saveAll(seats);
     }
 }
