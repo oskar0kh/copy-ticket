@@ -71,7 +71,7 @@ export default function PublicPerformanceEntrance({ loading, onBackToModeSelecti
           <p className="mode-card-label">공개 경쟁</p>
           <h2>공개 라운드 참가 준비</h2>
           <p className="public-entrance-subtitle">
-            매시 00분과 30분에 열리는 공개 라운드에 맞춰 접속 상태와 진입 시간을 확인하세요.
+            매시 00분과 30분에 열리는 공개 라운드에서 자신의 티켓팅 실력을 확인하세요!
           </p>
         </div>
       </div>
@@ -97,9 +97,8 @@ export default function PublicPerformanceEntrance({ loading, onBackToModeSelecti
           <ul>
             <li>로그인 상태를 유지해 주세요.</li>
             <li>브라우저 탭은 한 개만 열어 두는 것을 권장합니다.</li>
-            <li>라운드가 열리면 다른 사용자들과 같은 공연과 좌석 풀을 공유하게 됩니다.</li>
-            <li>라운드는 10분 동안 진행되며, 10분이 지나면 라운드가 종료되며 '예매하기' 버튼도 비활성화 됩니다. 이후 20분 뒤에 새로운 라운드가 시작됩니다.</li>
-            <li>여러 사용자들과 경쟁하여 자신의 티켓팅 실력을 확인하세요!</li>
+            <li>라운드가 열리면 다른 사용자들과 같은 공연과 좌석 풀을 공유합니다.</li>
+            <li>라운드는 10분 동안 진행되며, 10분이 지나면 라운드가 종료되고 '예매하기' 버튼도 비활성화 됩니다. 이후 20분 뒤에 새로운 라운드가 시작됩니다.</li>
           </ul>
         </article>
         <article className="public-entrance-guide-card">

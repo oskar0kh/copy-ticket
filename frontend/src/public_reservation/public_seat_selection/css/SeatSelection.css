@@ -690,3 +690,130 @@
 .success-btn:active {
   transform: translateY(0);
 }
+
+/* PublicSeatCheck 페이지 스타일 */
+.public-seat-check-outer {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(160deg, #eceffc 0%, #d7e1ff 100%);
+  padding: 1.5rem;
+}
+
+.public-seat-check-container {
+  width: 100%;
+  max-width: 560px;
+}
+
+.public-seat-check-card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 2rem;
+  box-shadow: 0 14px 40px rgba(44, 61, 127, 0.15);
+  border: 1px solid #dbe3ff;
+}
+
+.public-seat-check-title {
+  margin: 0;
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #2a3774;
+}
+
+.public-seat-check-message {
+  margin: 0.8rem 0 1.5rem;
+  color: #4a5485;
+  font-size: 1rem;
+}
+
+.public-seat-check-list {
+  border: 1px solid #e1e6fb;
+  border-radius: 12px;
+  padding: 0.6rem 1rem;
+  max-height: 260px;
+  overflow-y: auto;
+  background: #f8faff;
+}
+
+.public-seat-check-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.85rem 0;
+  border-bottom: 1px solid #e7ebff;
+}
+
+.public-seat-check-item:last-child {
+  border-bottom: none;
+}
+
+.public-seat-check-label {
+  font-size: 0.98rem;
+  color: #51608d;
+}
+
+.public-seat-check-value {
+  font-weight: 700;
+  color: #24346c;
+}
+
+.public-seat-check-empty {
+  text-align: center;
+  color: #7d87b5;
+  margin: 1rem 0;
+}
+
+.public-seat-check-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.8rem;
+  margin-top: 1.4rem;
+}
+
+.public-seat-check-btn {
+  border: none;
+  border-radius: 10px;
+  padding: 0.85rem 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.public-seat-check-btn.secondary {
+  background: #ecf0ff;
+  color: #3e4b80;
+}
+
+.public-seat-check-btn.secondary:hover {
+  background: #dfe6ff;
+}
+
+.public-seat-check-btn.primary {
+  background: #3f5bda;
+  color: #fff;
+}
+
+.public-seat-check-btn.primary:hover {
+  background: #334dc4;
+}
+
+.public-seat-check-btn:disabled {
+  background: #c9cee5;
+  color: #f6f7fb;
+  cursor: not-allowed;
+}
+
+@media (max-width: 640px) {
+  .public-seat-check-card {
+    padding: 1.4rem;
+  }
+
+  .public-seat-check-title {
+    font-size: 1.5rem;
+  }
+
+  .public-seat-check-actions {
+    grid-template-columns: 1fr;
+  }
+}

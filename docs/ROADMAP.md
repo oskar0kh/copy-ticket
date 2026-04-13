@@ -150,10 +150,11 @@ Phase 7  라운드 관리 및 데이터 정리
 | 순서 | 작업 | 설명 |
 |------|------|------|
 | 5-1 | 공개 라운드 좌석 사전 생성 | OPEN 라운드 생성 시 `public_seats` 400개 레코드 생성 (status=AVAILABLE) |
-| 5-2 | 좌석 목록 조회 API | GET `/api/public-seat/{roundId}` — 현재 라운드 좌석 조회, 각 좌석의 상태(AVAILABLE/LOCKED/BOOKED) 및 hold 만료 시간 반영 |
-| 5-3 | 좌석 선택 UI 상태 관리 | PublicSeatSelection에서 사용자가 고른 좌석을 프론트 상태로 관리, 새로고침 시 서버 좌석 상태(hold 여부/TTL) 재조회 |
-| 5-4 | 선택 완료(임시 선점) API | POST `/api/public-seat/hold` — 라운드 검증 + 조건부 UPDATE(AVAILABLE→LOCKED + hold_token/hold_expires_at 저장) + Redis hold TTL 시작 |
-| 5-5 | 선택 좌석 확인 화면 | PublicSeatSelection과 PublicBookingSuccess 사이에 "선택한 좌석 확인하기" 화면 추가 (선택 좌석 목록, hold 남은 시간 표시) |
+| 5-2 | 선택 좌석 확인 화면 구현 | PublicSeatSelection과 PublicBookingSuccess 사이에 "선택한 좌석 확인하기" 화면 추가 (선택 좌석 목록, hold 남은 시간 표시) |
+| 5-3 | 좌석 목록 조회 API | GET `/api/public-seat/{roundId}` — 현재 라운드 좌석 조회, 각 좌석의 상태(AVAILABLE/LOCKED/BOOKED) 및 hold 만료 시간 반영 |
+| 5-4 | 좌석 선택 UI 상태 관리 | PublicSeatSelection에서 사용자가 고른 좌석을 프론트 상태로 관리, 새로고침 시 서버 좌석 상태(hold 여부/TTL) 재조회 |
+| 5-5 | 선택 완료(임시 선점) API | POST `/api/public-seat/hold` — 라운드 검증 + 조건부 UPDATE(AVAILABLE→LOCKED + hold_token/hold_expires_at 저장) + Redis hold TTL 시작 |
+
 | 5-6 | 화면 이탈 시 선점 해제 | 확인 화면에서 나갈 때 DELETE `/api/public-seat/hold` 호출 — LOCKED→AVAILABLE 즉시 해제 |
 | 5-7 | 좌석 확정 API | POST `/api/public-booking/confirm` — 라운드 검증 + 소유권 검증(userId + holdToken) + 조건부 UPDATE(LOCKED→BOOKED + lock 컬럼 NULL 처리) + public_bookings 저장 |
 | 5-8 | 소유권/토큰 검증 | LOCKED 좌석은 `locked_by_user_id + hold_token + hold_expires_at > now()` 모두 일치해야만 BOOKED 전환 허용 |

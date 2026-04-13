@@ -3,6 +3,7 @@ import '../private_reservation/css/PerformanceDetails.css';
 import LoadingScreen from './public_seat_selection/PublicLoadingScreen';
 import CaptchaModal from './public_seat_selection/PublicCaptchaModal';
 import SeatSelection from './public_seat_selection/PublicSeatSelection';
+import PublicSeatCheck from './public_seat_selection/PublicSeatCheck';
 import BookingSuccess from './public_seat_selection/PublicBookingSuccess';
 import { formatRemaining, getNextRoundOpenTime } from './roundTime';
 
@@ -29,7 +30,7 @@ const PublicPerformanceDetails = ({
   const [reservationFlow, setReservationFlow] = useState(() => {
     const saved = window.localStorage.getItem('reservationFlow');
     return saved || null;
-  }); // 'loading', 'seats', 'booking-success', null
+  }); // 'loading', 'seats', 'seat-check', 'booking-success', null
   const [captchaCompleted, setCaptchaCompleted] = useState(() => {
     return window.sessionStorage.getItem(captchaStorageKey) === 'true';
   });
@@ -482,6 +483,14 @@ const PublicPerformanceDetails = ({
   // 좌석 선택 완료 핸들러
   const handleSeatSelectionSuccess = (selectedSeats) => {
     setSelectedSeatsForSuccess(selectedSeats);
+    setReservationFlow('seat-check');
+  };
+
+  const handleSeatCheckBack = () => {
+    setReservationFlow('seats');
+  };
+
+  const handleSeatCheckConfirm = () => {
     setReservationFlow('booking-success');
   };
 
@@ -520,6 +529,16 @@ const PublicPerformanceDetails = ({
 
   if (reservationFlow === 'booking-success') {
     return <BookingSuccess selectedSeats={selectedSeatsForSuccess} onReturn={handleBookingReturn} />;
+  }
+
+  if (reservationFlow === 'seat-check') {
+    return (
+      <PublicSeatCheck
+        selectedSeats={selectedSeatsForSuccess}
+        onBack={handleSeatCheckBack}
+        onConfirm={handleSeatCheckConfirm}
+      />
+    );
   }
 
   return (
