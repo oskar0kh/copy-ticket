@@ -6,7 +6,7 @@
 
 핵심 전략은 **진입 방식은 2개, 예매 엔진은 1개**다.  
 즉, 화면 진입 경로는 분리하되 대기열·좌석 락·트랜잭션·결제 로직은 공통으로 사용한다.  
-**프론트엔드:** React / **백엔드:** Spring Boot / **인프라:** PostgreSQL, Docker, Redis, Kafka
+**프론트엔드:** React / **백엔드:** Spring Boot / **인프라:** PostgreSQL, Docker, Redis
 
 ---
 
@@ -14,17 +14,17 @@
 
 | 구분 | 현재 |
 |------|------|
-| **Backend** | Spring Boot 4.x, Web, JPA, Validation, Spring Security, Redis, Kafka Client |
+| **Backend** | Spring Boot 4.x, Web, JPA, Validation, Spring Security, Redis |
 | **Frontend** | React |
 | **DB** | PostgreSQL |
-| **인프라** | Redis, Kafka, Docker |
+| **인프라** | Redis, Docker |
 
 ---
 
 ## 2. Phase 흐름도
 
 ```
-Phase 0  기반 작업 (패키지·DB) — Redis/Kafka 설정은 대기열 단계에서 진행
+Phase 0  기반 작업 (패키지·DB) — Redis 설정은 좌석 선점/대기열 단계에서 진행
     ↓
 Phase 1  로그인 / 회원가입 + 모드 선택 메인
     ↓
@@ -34,13 +34,11 @@ Phase 3  (공용) 공개 예매 UI 흐름 (Loading → Captcha → Seats → Suc
     ↓
 Phase 4  공개 라운드 기초 + '예매하기' 버튼 활성화
     ↓
-Phase 5  좌석 선택 + 예매 완료
+Phase 5  좌석 선택 + 예매 완료 + Redis 대기열/트래픽 제어
     ↓
 Phase 6  나의 예매내역 (마이페이지)
     ↓
-Phase 7  대기열 (Redis/Kafka) + 트래픽 제어
-    ↓
-Phase 8  라운드 관리 및 데이터 정리
+Phase 7  라운드 관리 및 데이터 정리
 ```
 
 ---
@@ -143,23 +141,36 @@ Phase 8  라운드 관리 및 데이터 정리
 
 ---
 
-## 8. Phase 5 — 좌석 선택 + 예매 완료
+## 8. Phase 5 — 좌석 선택 + 예매 완료 + Redis 선점/대기열/트래픽 제어
 
-**목표:** OPEN 라운드 생성 시 `public_seats` 400개를 미리 준비하고, 사용자는 좌석 목록을 조회/선택한 뒤 “선택 완료” 버튼에서 라운드 검증 + 조건부 UPDATE + `public_bookings` 저장을 한 번에 처리한다.
+**목표:** OPEN 라운드 생성 시 `public_seats` 400개를 미리 생성하고, 사용자는 좌석 목록을 조회/선택한 뒤 3단계(임시 선점 → 확인 → 최종 확정)를 거쳐 예매를 완료한다. 동시에 Redis 기반 대기열/진입 제한으로 트래픽을 제어하고, 만료/이탈 시 자동 복구한다.
+
+**상태 전이:** AVAILABLE → LOCKED(임시 선점, TTL) → BOOKED(최종 확정) / 또는 TTL 만료 시 AVAILABLE로 복구
 
 | 순서 | 작업 | 설명 |
 |------|------|------|
 | 5-1 | 공개 라운드 좌석 사전 생성 | OPEN 라운드 생성 시 `public_seats` 400개 레코드 생성 (status=AVAILABLE) |
-| 5-2 | 좌석 목록 조회 API | GET `/api/public-seat/{roundId}` — 현재 라운드 좌석 조회 (status: AVAILABLE/BOOKED) |
-| 5-3 | 좌석 선택 UI 상태 관리 | PublicSeatSelection에서 사용자가 고른 좌석을 프론트 상태로 관리하고, 새로고침 시 서버 좌석 상태를 다시 반영 |
-| 5-4 | 선택 완료 API | POST `/api/public-booking/confirm` — 라운드 검증 + 선택 좌석 최종 확정 |
-| 5-5 | 라운드 유효성 검증 | confirm 처리 시 `status=OPEN` 및 `openAt <= now < closeAt` 확인 |
-| 5-6 | 조건부 좌석 업데이트 | `UPDATE public_seats SET status = 'BOOKED' WHERE round_id = :roundId AND id IN (:seatIds) AND status = 'AVAILABLE'` 실행 |
-| 5-7 | 업데이트 결과 검증 | `updatedCount == seatIds.size()` 이면 성공, 아니면 이미 예약된 좌석 포함으로 판단하고 롤백 |
-| 5-8 | DB bookings 저장 | `roundId`, `userId`, `seatId`, `status`, `createdAt`, `completedAt` 저장 |
-| 5-9 | 성공 화면 전환 | 모든 저장이 끝나면 PublicBookingSuccess로 이동 |
+| 5-2 | 좌석 목록 조회 API | GET `/api/public-seat/{roundId}` — 현재 라운드 좌석 조회, 각 좌석의 상태(AVAILABLE/LOCKED/BOOKED) 및 hold 만료 시간 반영 |
+| 5-3 | 좌석 선택 UI 상태 관리 | PublicSeatSelection에서 사용자가 고른 좌석을 프론트 상태로 관리, 새로고침 시 서버 좌석 상태(hold 여부/TTL) 재조회 |
+| 5-4 | 선택 완료(임시 선점) API | POST `/api/public-seat/hold` — 라운드 검증 + 조건부 UPDATE(AVAILABLE→LOCKED + hold_token/hold_expires_at 저장) + Redis hold TTL 시작 |
+| 5-5 | 선택 좌석 확인 화면 | PublicSeatSelection과 PublicBookingSuccess 사이에 "선택한 좌석 확인하기" 화면 추가 (선택 좌석 목록, hold 남은 시간 표시) |
+| 5-6 | 화면 이탈 시 선점 해제 | 확인 화면에서 나갈 때 DELETE `/api/public-seat/hold` 호출 — LOCKED→AVAILABLE 즉시 해제 |
+| 5-7 | 좌석 확정 API | POST `/api/public-booking/confirm` — 라운드 검증 + 소유권 검증(userId + holdToken) + 조건부 UPDATE(LOCKED→BOOKED + lock 컬럼 NULL 처리) + public_bookings 저장 |
+| 5-8 | 소유권/토큰 검증 | LOCKED 좌석은 `locked_by_user_id + hold_token + hold_expires_at > now()` 모두 일치해야만 BOOKED 전환 허용 |
+| 5-9 | 다건 원자성 보장 | 좌석 여러 개 선점/확정 시 전부 성공만 허용, 일부 실패 시 전체 롤백. 실패한 seat_id를 응답으로 반환 |
+| 5-10 | 확정 트랜잭션 구조 | 1) 라운드 유효성 검증 2) LOCKED→BOOKED 조건부 UPDATE 3) updatedCount 검증 4) public_bookings INSERT 5) 커밋 후 Redis hold 삭제 |
+| 5-11 | TTL 만료 자동 복구 배치 | 1~5초 주기로 LOCKED 좌석 중 hold_expires_at <= now() 인 것을 AVAILABLE로 자동 복구 (스케줄러 실행) |
 
-**산출물:** 선택 완료 API, 조건부 UPDATE 트랜잭션, public_bookings 저장 로직
+| 5-12 | Redis 대기열/진입 제한 | "예매하기" 버튼 클릭 → Redis Queue에 요청 저장, 토큰 기반 진입량 제한(라운드당 예: 1000명 동시 진입) |
+| 5-13 | 트래픽 테스트 | 다중 사용자 고동시성 요청 시뮬레이션 — 중복 예매 0건, TTL 복구 동작, hold_expires_at 추적, 확정 정합성 검증 |
+
+**핵심 설계:**
+- **hold_token** : 같은 사용자 중복 요청 방지, UUID 기반
+- **hold_expires_at** : DB에 저장해 Redis 장애 시 복구 기준 제공, TTL 만료 후 AVAILABLE 자동 복구
+- **다건 처리** : 요청한 모든 좌석에 대해 성공/실패를 분리해 반환, FAILED 건수 > 0이면 전체 롤백
+- **만료 정책** : Redis TTL 만료 + 스케줄러 실행으로 DB 상태도 함께 복구
+
+**산출물:** 선점(LOCKED) 및 확정(BOOKED) 2단계 API, hold_token/hold_expires_at 관리 로직, 선택 좌석 확인 화면, TTL 만료 자동 복구 배치, Redis 대기열/진입 제한, 고동시성 트래픽 테스트 코드
 
 ---
 
@@ -178,23 +189,7 @@ Phase 8  라운드 관리 및 데이터 정리
 
 ---
 
-## 10. Phase 7 — 대기열 (Redis/Kafka) + 트래픽 제어
-
-**목표:** 대량 트래픽 발생 시 “예매하기” 요청을 대기열에서 처리하고, 동시 진입 허용 수를 제한한다.
-
-| 순서 | 작업 | 설명 |
-|------|------|------|
-| 7-1 | Redis/Kafka 설정 | `build.gradle` 의존성 추가, `application.yml` 프로파일별 설정 (로컬/테스트 환경) |
-| 7-2 | 진입 제한 정책 | 동시 진입 허용 수 정의 (예: 라운드당 최대 50명) |
-| 7-3 | Redis 대기열 | “예매하기” 요청 → Redis Queue에 저장, 진입 허용 시 토큰 발급, TTL 설정 |
-| 7-4 | Kafka Event | 대기 요청을 Kafka 토픽으로 발행, Consumer가 순차 처리 |
-| 7-5 | 트래픽 테스트 | 테스트 코드로 대량 요청 시뮬레이션, 대기열 처리 확인 |
-
-**산출물:** Redis/Kafka 기반 대기열 시스템, 트래픽 테스트 코드
-
----
-
-## 11. Phase 8 — 라운드 관리 및 데이터 정리
+## 10. Phase 7 — 라운드 관리 및 데이터 정리
 
 **목표:** 새로운 라운드 시작 시 이전 라운드의 public_bookings/public_seats 데이터를 soft delete하여 시스템을 정리한다.
 
@@ -207,7 +202,7 @@ Phase 8  라운드 관리 및 데이터 정리
 
 ---
 
-## 14. 구현 체크리스트
+## 11. 구현 체크리스트
 
 | Phase | 항목 | 완료 |
 |-------|------|:----:|
@@ -216,23 +211,22 @@ Phase 8  라운드 관리 및 데이터 정리
 | **2** | (개인) URL 파싱, 공연 정보 DTO, 개인 연습 페이지 | ☐ |
 | **3** | 공개 예매 UI 흐름(Loading/Captcha/Seats/Success) | ✅ |
 | **4** | PublicRound 엔티티, OPEN/CLOSED 전환, SSE, 10분 버튼 활성화 | ✅ (핵심 흐름) / ⏳ (실서비스 연동 보강) |
-| **5** | 좌석 조회/선택, 라운드 검증, 선택 완료, public_bookings 저장 | ⏳ |
+| **5** | 좌석 조회/선택, 임시 선점(LOCKED), 좌석 확정(BOOKED), Redis 대기열/트래픽 제어, public_bookings 저장 | ⏳ |
 | **6** | 나의 예매내역 (마이페이지) | ⏳ |
-| **7** | Redis/Kafka 대기열, 트래픽 제어, 테스트 | ⏳ |
-| **8** | 라운드 관리, 데이터 정리 (soft delete) | ⏳ |
+| **7** | 라운드 관리, 데이터 정리 (soft delete) | ⏳ |
 
 ---
 
-## 14. 아키텍처 요약
+## 12. 아키텍처 요약
 
 | 구간 | 방식 |
 |------|------|
 | **라운드 기초** | `OPEN → CLOSED` 상태 전환, 30분 슬롯 단위 OPEN 생성/만료, openAt~closeAt 기반 버튼 활성화 |
 | **예매 흐름** | Loading → Captcha → SeatSelection → BookingSuccess (단계별 UI) |
-| **좌석 선택** | 프론트 선택 상태 + DB 좌석 목록 재조회로 화면 갱신, 중복 상태는 public_seats BOOKED로 판단 |
-| **예매 확정** | "선택 완료" → 라운드 유효성 검증 → 조건부 UPDATE로 `public_seats`의 AVAILABLE 좌석만 BOOKED 전환 → 업데이트 건수 검증 후 public_bookings 저장 |
+| **좌석 선택/임시 선점** | "선택 완료" → 라운드 유효성 검증 → 조건부 UPDATE로 `public_seats`의 AVAILABLE 좌석을 LOCKED 전환 + Redis hold TTL 시작 + 확인 화면 이동 |
+| **좌석 확정** | "좌석 확정하기" → LOCKED(본인+holdToken 검증) 좌석만 BOOKED 전환 → 업데이트 건수 검증 후 public_bookings 저장 → Redis hold 해제 |
 | **마이페이지** | PublicPerformanceDetails 헤더의 "나의 예매내역" 버튼 → 예매 조회 |
-| **대기열** | 트래픽 과부하 시 Redis/Kafka 기반 대기열 처리 |
+| **대기열** | 트래픽 과부하 시 Redis 기반 대기열/토큰 처리 |
 | **데이터 정리** | 새 라운드 시작 시 이전 라운드 public_bookings/public_seats soft delete |
 
 **DB 테이블:**

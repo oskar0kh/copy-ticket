@@ -70,11 +70,35 @@ CREATE TABLE public_seats (
     status              VARCHAR(20) NOT NULL,
     locked_at           TIMESTAMP,
     locked_by_user_id   BIGINT REFERENCES users(id),
+    hold_token          VARCHAR(120),
+    hold_expires_at     TIMESTAMP,
+    CONSTRAINT ck_public_seats_status
+        CHECK (status IN ('AVAILABLE', 'LOCKED', 'BOOKED')),
+    CONSTRAINT ck_public_seats_lock_consistency
+        CHECK (
+            (
+                status = 'LOCKED'
+                AND locked_at IS NOT NULL
+                AND locked_by_user_id IS NOT NULL
+                AND hold_token IS NOT NULL
+                AND hold_expires_at IS NOT NULL
+            )
+            OR
+            (
+                status IN ('AVAILABLE', 'BOOKED')
+                AND locked_at IS NULL
+                AND locked_by_user_id IS NULL
+                AND hold_token IS NULL
+                AND hold_expires_at IS NULL
+            )
+        ),
     CONSTRAINT uq_public_seat_round_seat_number UNIQUE (round_id, seat_number)
 );
 
 CREATE INDEX idx_public_seats_round_id ON public_seats(round_id);
 CREATE INDEX idx_public_seats_status ON public_seats(round_id, status);
+CREATE INDEX idx_public_seats_round_status_expires ON public_seats(round_id, status, hold_expires_at);
+CREATE INDEX idx_public_seats_lock_owner_token ON public_seats(locked_by_user_id, hold_token);
 
 -- ---------------------------------------------------------------------------
 -- 5. public_bookings — 예매 내역
