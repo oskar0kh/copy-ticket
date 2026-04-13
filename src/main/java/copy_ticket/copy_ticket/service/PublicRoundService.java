@@ -54,6 +54,7 @@ public class PublicRoundService {
             return Optional.empty();
         }
 
+        // 이번 슬롯에 OPEN 상태인 라운드가 존재하지 않으면, 새로운 OPEN 라운드 생성
         PublicRound openedRound = createOpenRoundForSlot(currentSlotOpenAt, now);
         log.info("Round created/opened for slot: roundId={}, openAt={}, closeAt={}", openedRound.getRoundId(), openedRound.getOpenAt(), openedRound.getCloseAt());
         return Optional.of(openedRound);
@@ -78,7 +79,7 @@ public class PublicRoundService {
      */
     @Transactional(readOnly = true)
     public Optional<PublicRound> getCurrentRound() {
-        return publicRoundRepository.findOneBookableOpenRound(KstDateTimeUtils.nowInstant());
+        return publicRoundRepository.findOneBookableOpenRound();
     }
 
     /**
@@ -103,7 +104,7 @@ public class PublicRoundService {
                 .toInstant();
     }
 
-    // 6. 현재 OPEN 라운드가 없으면, 새로운 OPEN 라운드 생성
+    // 6. (실제 OPEN 라운드 생성 메서드) 현재 OPEN 라운드가 없으면, 새로운 OPEN 라운드 생성
     private PublicRound createOpenRoundForSlot(Instant slotOpenAt, Instant now) {
 
         // 이번 슬롯에 OPEN 라운드가 이미 존재하는지 다시 한번 확인 (동시성 대비)
@@ -117,7 +118,7 @@ public class PublicRoundService {
                 .roundId(nextRoundId)
                 .status(RoundStatus.OPEN)
                 .openAt(slotOpenAt)
-                .closeAt(slotOpenAt.plus(10, ChronoUnit.MINUTES))
+                .closeAt(slotOpenAt.plus(10, ChronoUnit.MINUTES)) // closeAt = openAt + 10분
                 .createdAt(now)
                 .updatedAt(now)
                 .build();

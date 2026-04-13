@@ -1,38 +1,43 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import './css/SeatSelection.css';
 
-const ROWS = Array.from({ length: 20 }, (_, index) => String.fromCharCode(65 + index));
-const SEATS_PER_ROW = 20;
 const MAX_SELECTABLE = 4;
 
-const buildAllAvailableSeats = () => {
-  const seats = [];
+const normalizeSeat = (seat, index) => ({
+  id: seat.id,
+  roundId: seat.roundId,
+  seatNumber: seat.seatNumber || `S${String(index + 1).padStart(3, '0')}`,
+  displayOrder: seat.displayOrder || index + 1,
+  status: String(seat.status || 'AVAILABLE').toLowerCase(),
+  lockedAt: seat.lockedAt || null,
+  holdExpiresAt: seat.holdExpiresAt || null,
+});
 
-  for (let rowIdx = 0; rowIdx < ROWS.length; rowIdx += 1) {
-    for (let number = 1; number <= SEATS_PER_ROW; number += 1) {
-      const flatIndex = rowIdx * SEATS_PER_ROW + (number - 1);
-      const row = ROWS[rowIdx];
-      const id = `${row}-${number}`;
+const parseStoredSeatIds = (value) => {
+  if (!value) return [];
 
-      seats.push({
-        id,
-        row,
-        number,
-        displayOrder: flatIndex + 1,
-        status: 'available'
-      });
-    }
+  try {
+    const parsed = JSON.parse(value);
+    if (!Array.isArray(parsed)) return [];
+
+    return parsed
+      .map((seatId) => Number(seatId))
+      .filter((seatId) => Number.isFinite(seatId));
+  } catch {
+    return [];
   }
-
-  return seats;
 };
 
-const SeatSelection = ({ performanceData, onSuccess, onGoMain }) => {
+const PublicSeatSelection = ({ performanceData, roundId, onSuccess, onGoMain }) => {
   const performanceKey = useMemo(() => (
     performanceData?.goodsCode
       || performanceData?.goodsName
       || 'default-performance'
   ), [performanceData]);
+
+  const storageKey = useMemo(() => (
+    `publicSeatSelection:selectedSeats:${roundId || 'no-round'}:${performanceKey}`
+  ), [roundId, performanceKey]);
 
   const bannerText = useMemo(() => {
     const title = performanceData?.goodsName || '공연';
@@ -49,33 +54,99 @@ const SeatSelection = ({ performanceData, onSuccess, onGoMain }) => {
     return dateText ? `${title} · ${dateText}` : title;
   }, [performanceData]);
 
-  const userSelectionStorageKey = `seatSelection:selectedSeats:${performanceKey}`;
-
   const [zoomLevel, setZoomLevel] = useState(1);
-  const seats = useMemo(() => buildAllAvailableSeats(), []);
+  const [seats, setSeats] = useState([]);
   const seatMap = useMemo(() => new Map(seats.map((seat) => [seat.id, seat])), [seats]);
-
   const [selectedSeatIds, setSelectedSeatIds] = useState([]);
-
+  const [isLoadingSeats, setIsLoadingSeats] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [modalMessage, setModalMessage] = useState('');
 
-  // SeatSelection 진입 시마다 사용자가 이전에 선택한 좌석 초기화
   useEffect(() => {
-    setSelectedSeatIds([]);
-    window.localStorage.removeItem(userSelectionStorageKey);
-  }, [userSelectionStorageKey]);
+    if (!roundId) {
+      setSeats([]);
+      setSelectedSeatIds([]);
+      return;
+    }
 
-  // SeatSelection을 떠날 때 좌석 상태 초기화
+    const savedSeatIds = parseStoredSeatIds(window.localStorage.getItem(storageKey));
+    setSelectedSeatIds(savedSeatIds);
+  }, [roundId, storageKey]);
+
   useEffect(() => {
-    return () => {
-      window.localStorage.removeItem(userSelectionStorageKey);
+    if (!roundId) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadSeats = async () => {
+      setIsLoadingSeats(true);
+
+      try {
+        const response = await fetch(`/api/public-seat/${roundId}`, {
+          method: 'GET',
+          credentials: 'include'
+        });
+
+        if (response.status === 404) {
+          throw new Error('현재 라운드의 좌석 정보를 찾을 수 없습니다.');
+        }
+
+        if (!response.ok) {
+          throw new Error('좌석 정보를 불러오지 못했습니다.');
+        }
+
+        const payload = await response.json();
+        const serverSeats = Array.isArray(payload) ? payload : (payload?.seats || []);
+        const normalizedSeats = serverSeats.map(normalizeSeat);
+
+        if (cancelled) return;
+
+        setSeats(normalizedSeats);
+        setSelectedSeatIds((prev) => {
+          const availableSeatIds = new Set(
+            normalizedSeats
+              .filter((seat) => seat.status === 'available')
+              .map((seat) => seat.id)
+          );
+          const next = prev.filter((seatId) => availableSeatIds.has(seatId));
+
+          if (prev.length !== next.length) {
+            setModalMessage('일부 좌석의 상태가 변경되어 선택이 조정되었습니다.');
+            setShowModal(true);
+          }
+
+          return next;
+        });
+      } catch (error) {
+        if (cancelled) return;
+
+        setSeats([]);
+        setSelectedSeatIds([]);
+        setModalMessage(error.message || '좌석 정보를 불러오지 못했습니다.');
+        setShowModal(true);
+      } finally {
+        if (!cancelled) {
+          setIsLoadingSeats(false);
+        }
+      }
     };
-  }, [userSelectionStorageKey]);
+
+    loadSeats();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [roundId]);
 
   useEffect(() => {
-    window.localStorage.setItem(userSelectionStorageKey, JSON.stringify(selectedSeatIds));
-  }, [selectedSeatIds, userSelectionStorageKey]);
+    if (!roundId) {
+      return;
+    }
+
+    window.localStorage.setItem(storageKey, JSON.stringify(selectedSeatIds));
+  }, [selectedSeatIds, storageKey, roundId]);
 
   const selectedSeats = useMemo(
     () => selectedSeatIds.map((id) => seatMap.get(id)).filter(Boolean),
@@ -105,9 +176,7 @@ const SeatSelection = ({ performanceData, onSuccess, onGoMain }) => {
   const handleComplete = () => {
     if (selectedSeats.length === 0) return;
 
-    if (onSuccess) {
-      onSuccess(selectedSeats);
-    }
+    onSuccess?.(selectedSeats);
   };
 
   const closeModal = () => {
@@ -155,7 +224,11 @@ const SeatSelection = ({ performanceData, onSuccess, onGoMain }) => {
         <main className="seat-content-wrapper">
           <div className="seat-zoom-layout" style={{ transform: `scale(${zoomLevel})` }}>
             <div className="seat-notice-outer">
-              <p>빠른 번호를 예매하실수록 먼저 입장할 수 있습니다.</p>
+              <p>
+                {isLoadingSeats
+                  ? '좌석 정보를 불러오는 중입니다.'
+                  : '원하는 좌석을 선택한 뒤 선택 완료를 눌러주세요.'}
+              </p>
             </div>
 
             <div className="stage-and-seats-wrapper">
@@ -172,8 +245,7 @@ const SeatSelection = ({ performanceData, onSuccess, onGoMain }) => {
                   <div className="seats-grid">
                     {seats.map((seat) => {
                       const isSelected = selectedSeatIds.includes(seat.id);
-                      const displayStatus = seat.status;
-                      const className = `seat ${displayStatus} ${isSelected ? 'selected' : ''}`.trim();
+                      const className = `seat ${seat.status === 'available' ? 'available' : 'unavailable'} ${isSelected ? 'selected' : ''}`.trim();
 
                       return (
                         <button
@@ -181,9 +253,9 @@ const SeatSelection = ({ performanceData, onSuccess, onGoMain }) => {
                           type="button"
                           className={className}
                           onClick={() => toggleSeat(seat)}
-                          disabled={displayStatus !== 'available'}
-                          aria-label={`${seat.row}열 ${seat.number}번 좌석`}
-                          title={`${seat.row}열 ${seat.number}번`}
+                          disabled={seat.status !== 'available'}
+                          aria-label={`${seat.seatNumber} 좌석`}
+                          title={seat.seatNumber}
                         />
                       );
                     })}
@@ -218,8 +290,8 @@ const SeatSelection = ({ performanceData, onSuccess, onGoMain }) => {
                   {selectedSeats.map((seat) => (
                     <div className="selected-seat-item" key={seat.id}>
                       <div className="selected-seat-left">
-                        <span className="selected-seat-title">스탠딩석</span>
-                        <span className="selected-seat-sub">{seat.displayOrder}번</span>
+                        <span className="selected-seat-title">좌석</span>
+                        <span className="selected-seat-sub">{seat.seatNumber}</span>
                       </div>
                       <div className="selected-seat-right">
                         <span className="seat-price">99,000원</span>
@@ -227,7 +299,7 @@ const SeatSelection = ({ performanceData, onSuccess, onGoMain }) => {
                           type="button"
                           className="seat-remove-btn"
                           onClick={() => toggleSeat(seat)}
-                          aria-label={`${seat.row}열 ${seat.number}번 삭제`}
+                          aria-label={`${seat.seatNumber} 삭제`}
                         >
                           ×
                         </button>
@@ -238,7 +310,7 @@ const SeatSelection = ({ performanceData, onSuccess, onGoMain }) => {
               )}
             </div>
 
-            <button type="button" className="btn-seat-complete" disabled={selectedSeats.length === 0} onClick={handleComplete}>
+            <button type="button" className="btn-seat-complete" disabled={selectedSeats.length === 0 || isLoadingSeats} onClick={handleComplete}>
               선택 완료
             </button>
           </section>
@@ -248,4 +320,4 @@ const SeatSelection = ({ performanceData, onSuccess, onGoMain }) => {
   );
 };
 
-export default SeatSelection;
+export default PublicSeatSelection;

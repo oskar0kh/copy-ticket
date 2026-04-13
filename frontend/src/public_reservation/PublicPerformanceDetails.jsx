@@ -31,6 +31,13 @@ const PublicPerformanceDetails = ({
     const saved = window.localStorage.getItem('reservationFlow');
     return saved || null;
   }); // 'loading', 'seats', 'seat-check', 'booking-success', null
+  const [currentRoundId, setCurrentRoundId] = useState(() => {
+    const saved = window.localStorage.getItem('publicReservationRoundId');
+    if (!saved) return null;
+
+    const parsed = Number(saved);
+    return Number.isFinite(parsed) ? parsed : null;
+  });
   const [captchaCompleted, setCaptchaCompleted] = useState(() => {
     return window.sessionStorage.getItem(captchaStorageKey) === 'true';
   });
@@ -94,6 +101,8 @@ const PublicPerformanceDetails = ({
       setIsReservationReady(false);
       setRemainingTimerSeconds(null);
       setTimerTargetAt(null);
+      setCurrentRoundId(null);
+      window.localStorage.removeItem('publicReservationRoundId');
     }
 
     previousPerformanceKeyRef.current = performanceKey;
@@ -395,6 +404,7 @@ const PublicPerformanceDetails = ({
       if (response.status === 404) {
         window.localStorage.removeItem('publicBookingStartTime');
         window.localStorage.removeItem('publicBookingCloseTime');
+        window.localStorage.removeItem('publicReservationRoundId');
         setErrorModal({
           isOpen: true,
           title: '라운드 없음',
@@ -408,6 +418,7 @@ const PublicPerformanceDetails = ({
       if (!response.ok || !contentType.includes('application/json')) {
         window.localStorage.removeItem('publicBookingStartTime');
         window.localStorage.removeItem('publicBookingCloseTime');
+        window.localStorage.removeItem('publicReservationRoundId');
         setErrorModal({
           isOpen: true,
           title: '조회 실패',
@@ -421,6 +432,7 @@ const PublicPerformanceDetails = ({
       if (currentRound?.status !== 'OPEN' || !currentRound?.openAt) {
         window.localStorage.removeItem('publicBookingStartTime');
         window.localStorage.removeItem('publicBookingCloseTime');
+        window.localStorage.removeItem('publicReservationRoundId');
         setErrorModal({
           isOpen: true,
           title: '라운드 없음',
@@ -433,6 +445,10 @@ const PublicPerformanceDetails = ({
       // 1단계: 로딩 화면
       setReservationFlow('loading');
       setCaptchaCompleted(false);
+      setCurrentRoundId(currentRound.roundId ?? null);
+      if (currentRound.roundId != null) {
+        window.localStorage.setItem('publicReservationRoundId', String(currentRound.roundId));
+      }
 
       // 2초 후 좌석 선택 화면으로 전환
       setTimeout(() => {
@@ -478,6 +494,8 @@ const PublicPerformanceDetails = ({
     setErrorModal({ ...errorModal, isOpen: false });
     window.localStorage.removeItem('publicBookingStartTime');
     window.localStorage.removeItem('publicBookingCloseTime');
+    window.localStorage.removeItem('publicReservationRoundId');
+    setCurrentRoundId(null);
   };
 
   // 좌석 선택 완료 핸들러
@@ -500,6 +518,8 @@ const PublicPerformanceDetails = ({
     setCaptchaCompleted(false);
     setSelectedSeatsForSuccess([]);
     window.localStorage.removeItem('reservationFlow');
+    window.localStorage.removeItem('publicReservationRoundId');
+    setCurrentRoundId(null);
     onGoMain?.();
   };
 
@@ -514,6 +534,7 @@ const PublicPerformanceDetails = ({
         <SeatSelection
           performanceData={performanceData}
           user={user}
+          roundId={currentRoundId}
           onSuccess={handleSeatSelectionSuccess}
           onGoMain={onGoMain}
         />

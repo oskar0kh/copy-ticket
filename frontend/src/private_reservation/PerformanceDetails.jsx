@@ -113,7 +113,7 @@ const PerformanceDetails = ({ user, performanceData, onGoMain, showTimerButton =
     if (bookingOpenAt == null) return null;
 
     const openAt = new Date(bookingOpenAt).getTime();
-    const closeAt = openAt + 10 * 60 * 1000;
+    const closeAt = openAt + 10 * 60 * 1000; // closeAt = openAt + 10분
     const currentAt = now.getTime();
 
     if (currentAt < openAt) {

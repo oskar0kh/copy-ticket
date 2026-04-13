@@ -80,7 +80,7 @@ public class PublicRoundRepositorySimpleTest {
         System.out.println("🔍 Query Time: " + now + " (Range 범위 내)");
 
         // When
-        Optional<PublicRound> result = publicRoundRepository.findOneBookableOpenRound(queryInstant(now));
+        Optional<PublicRound> result = publicRoundRepository.findOneBookableOpenRound();
 
         // Then
         System.out.println("📊 결과: " + (result.isPresent() ? "✅ Found" : "❌ Not Found"));
@@ -109,7 +109,7 @@ public class PublicRoundRepositorySimpleTest {
         System.out.println("🔍 Query Time: " + openAt + " (정확히 openAt)");
 
         // When: openAt 정확히 시점으로 조회
-        Optional<PublicRound> result = publicRoundRepository.findOneBookableOpenRound(queryInstant(openAt));
+        Optional<PublicRound> result = publicRoundRepository.findOneBookableOpenRound();
 
         // Then: openAt <= now 조건이므로 포함되어야 함
         System.out.println("📊 결과: " + (result.isPresent() ? "✅ Found" : "❌ Not Found"));
@@ -137,7 +137,7 @@ public class PublicRoundRepositorySimpleTest {
         System.out.println("🔍 Query Time: " + closeAt + " (정확히 closeAt)");
 
         // When: closeAt 정확히 시점으로 조회
-        Optional<PublicRound> result = publicRoundRepository.findOneBookableOpenRound(queryInstant(closeAt));
+        Optional<PublicRound> result = publicRoundRepository.findOneBookableOpenRound();
 
         // Then: close_at > :now 조건이므로 등호 제외
         System.out.println("📊 결과: " + (result.isPresent() ? "❌ Found (오류!)" : "✅ Not Found"));
@@ -168,7 +168,7 @@ public class PublicRoundRepositorySimpleTest {
         System.out.println("🔍 Query Time: " + now + " (openAt 이전)");
 
         // When
-        Optional<PublicRound> result = publicRoundRepository.findOneBookableOpenRound(queryInstant(now));
+        Optional<PublicRound> result = publicRoundRepository.findOneBookableOpenRound();
 
         // Then
         System.out.println("📊 결과: " + (result.isPresent() ? "❌ Found (오류!)" : "✅ Not Found"));
@@ -199,7 +199,7 @@ public class PublicRoundRepositorySimpleTest {
         System.out.println("🔍 Query Time: " + now + " (closeAt 이후)");
 
         // When
-        Optional<PublicRound> result = publicRoundRepository.findOneBookableOpenRound(queryInstant(now));
+        Optional<PublicRound> result = publicRoundRepository.findOneBookableOpenRound();
 
         // Then
         System.out.println("📊 결과: " + (result.isPresent() ? "❌ Found (오류!)" : "✅ Not Found"));
@@ -227,7 +227,7 @@ public class PublicRoundRepositorySimpleTest {
         System.out.println("   - CloseAt: " + round.getCloseAt());
 
         // When
-        Optional<PublicRound> result = publicRoundRepository.findOneBookableOpenRound(queryInstant(now));
+        Optional<PublicRound> result = publicRoundRepository.findOneBookableOpenRound();
 
         // Then
         System.out.println("📊 결과: " + (result.isPresent() ? "❌ Found (오류!)" : "✅ Not Found"));
@@ -274,7 +274,7 @@ public class PublicRoundRepositorySimpleTest {
         System.out.println("🔍 Query Time: " + now);
 
         // When
-        Optional<PublicRound> result = publicRoundRepository.findOneBookableOpenRound(queryInstant(now));
+        Optional<PublicRound> result = publicRoundRepository.findOneBookableOpenRound();
 
         // Then: Round 1을 반환해야 함
         System.out.println("📊 결과: " + (result.isPresent() ? result.get().getRoundId() + " (✅ Correct)" : "Not Found"));
