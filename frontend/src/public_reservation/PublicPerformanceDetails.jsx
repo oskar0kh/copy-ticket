@@ -24,6 +24,12 @@ const PublicPerformanceDetails = ({
   const captchaStorageKey = useMemo(() => (
     `captchaCompleted:${user?.id || 'default-user'}:${performanceKey}`
   ), [user, performanceKey]);
+  const seatHoldStorageKey = useMemo(() => (
+    `publicSeatHoldContext:${user?.id || 'default-user'}:${performanceKey}`
+  ), [user, performanceKey]);
+  const seatCheckSeatsStorageKey = useMemo(() => (
+    `publicSeatCheckSelectedSeats:${user?.id || 'default-user'}:${performanceKey}`
+  ), [user, performanceKey]);
   const previousPerformanceKeyRef = useRef(performanceKey);
   const [selectedDate, setSelectedDate] = useState(null);
   const [currentMonth, setCurrentMonth] = useState({ year: 2026, month: 6 });
@@ -41,7 +47,48 @@ const PublicPerformanceDetails = ({
   const [captchaCompleted, setCaptchaCompleted] = useState(() => {
     return window.sessionStorage.getItem(captchaStorageKey) === 'true';
   });
-  const [selectedSeatsForSuccess, setSelectedSeatsForSuccess] = useState([]);
+  const [selectedSeatsForSuccess, setSelectedSeatsForSuccess] = useState(() => {
+    const saved = window.localStorage.getItem(seatCheckSeatsStorageKey);
+    if (!saved) {
+      return [];
+    }
+
+    try {
+      const parsed = JSON.parse(saved);
+      if (!Array.isArray(parsed)) {
+        return [];
+      }
+
+      return parsed.filter((seat) => Number.isFinite(Number(seat?.id)));
+    } catch {
+      return [];
+    }
+  });
+  const [seatHoldContext, setSeatHoldContext] = useState(() => {
+    const saved = window.localStorage.getItem(seatHoldStorageKey);
+    if (!saved) {
+      return null;
+    }
+
+    try {
+      const parsed = JSON.parse(saved);
+      const hasRound = Number.isFinite(Number(parsed?.roundId));
+      const hasToken = typeof parsed?.holdToken === 'string' && parsed.holdToken.length > 0;
+      const hasSeatIds = Array.isArray(parsed?.seatIds) && parsed.seatIds.length > 0;
+      if (!hasRound || !hasToken || !hasSeatIds) {
+        return null;
+      }
+
+      return {
+        roundId: Number(parsed.roundId),
+        seatIds: parsed.seatIds,
+        holdToken: parsed.holdToken,
+        holdExpiresAt: parsed.holdExpiresAt || null
+      };
+    } catch {
+      return null;
+    }
+  });
   const [isTimerModalOpen, setIsTimerModalOpen] = useState(false);
   const [selectedTimerSeconds, setSelectedTimerSeconds] = useState('5');
   const [isReservationReady, setIsReservationReady] = useState(false);
@@ -60,6 +107,22 @@ const PublicPerformanceDetails = ({
       window.sessionStorage.removeItem(captchaStorageKey);
     }
   }, [captchaCompleted, captchaStorageKey]);
+
+  useEffect(() => {
+    if (seatHoldContext) {
+      window.localStorage.setItem(seatHoldStorageKey, JSON.stringify(seatHoldContext));
+    } else {
+      window.localStorage.removeItem(seatHoldStorageKey);
+    }
+  }, [seatHoldContext, seatHoldStorageKey]);
+
+  useEffect(() => {
+    if (Array.isArray(selectedSeatsForSuccess) && selectedSeatsForSuccess.length > 0) {
+      window.localStorage.setItem(seatCheckSeatsStorageKey, JSON.stringify(selectedSeatsForSuccess));
+    } else {
+      window.localStorage.removeItem(seatCheckSeatsStorageKey);
+    }
+  }, [selectedSeatsForSuccess, seatCheckSeatsStorageKey]);
 
   // reservationFlow를 localStorage에 저장
   useEffect(() => {
@@ -102,11 +165,15 @@ const PublicPerformanceDetails = ({
       setRemainingTimerSeconds(null);
       setTimerTargetAt(null);
       setCurrentRoundId(null);
+      setSeatHoldContext(null);
+        setSelectedSeatsForSuccess([]);
       window.localStorage.removeItem('publicReservationRoundId');
+      window.localStorage.removeItem(seatHoldStorageKey);
+        window.localStorage.removeItem(seatCheckSeatsStorageKey);
     }
 
     previousPerformanceKeyRef.current = performanceKey;
-  }, [performanceData, performanceKey]);
+  }, [performanceData, performanceKey, seatHoldStorageKey, seatCheckSeatsStorageKey]);
 
   useEffect(() => {
     return () => {
@@ -488,25 +555,98 @@ const PublicPerformanceDetails = ({
   };
 
   // 예매 플로우 종료 핸들러
-  const handleReservationClose = () => {
+  const handleReservationClose = async () => {
+    await releaseHeldSeatsIfExists();
     setReservationFlow(null);
     setCaptchaCompleted(false);
     setErrorModal({ ...errorModal, isOpen: false });
     window.localStorage.removeItem('publicBookingStartTime');
     window.localStorage.removeItem('publicBookingCloseTime');
     window.localStorage.removeItem('publicReservationRoundId');
+    window.localStorage.removeItem(seatHoldStorageKey);
+    window.localStorage.removeItem(seatCheckSeatsStorageKey);
     setCurrentRoundId(null);
   };
 
   // 좌석 선택 완료 핸들러
-  const handleSeatSelectionSuccess = (selectedSeats) => {
+  const handleSeatSelectionSuccess = (selectedSeats, holdMeta) => {
     setSelectedSeatsForSuccess(selectedSeats);
+    setSeatHoldContext({
+      roundId: currentRoundId,
+      seatIds: selectedSeats.map((seat) => seat.id),
+      holdToken: holdMeta?.holdToken || null,
+      holdExpiresAt: holdMeta?.holdExpiresAt || null
+    });
     setReservationFlow('seat-check');
   };
 
-  const handleSeatCheckBack = () => {
+  const releaseHeldSeatsIfExists = async () => {
+    if (!seatHoldContext?.roundId || !seatHoldContext?.holdToken || !Array.isArray(seatHoldContext?.seatIds) || seatHoldContext.seatIds.length === 0) {
+      return true;
+    }
+
+    try {
+      const response = await fetch('/api/public-seat/hold', {
+        method: 'DELETE',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          roundId: seatHoldContext.roundId,
+          seatIds: seatHoldContext.seatIds,
+          holdToken: seatHoldContext.holdToken
+        })
+      });
+
+      if (!response.ok && response.status !== 404) {
+        throw new Error('좌석 임시 선점 해제에 실패했습니다. 다시 시도해주세요.');
+      }
+
+      setSeatHoldContext(null);
+      setSelectedSeatsForSuccess([]);
+      return true;
+    } catch (error) {
+      console.error('홀드 좌석 해제 실패:', error);
+      return false;
+    }
+  };
+
+  const handleSeatCheckBack = async () => {
+    const released = await releaseHeldSeatsIfExists();
+    if (!released) {
+      setErrorModal({
+        isOpen: true,
+        title: '좌석 해제 실패',
+        message: '선택 좌석 해제에 실패했습니다. 잠시 후 다시 시도해주세요.',
+        onClose: () => setErrorModal({ ...errorModal, isOpen: false })
+      });
+      return;
+    }
     setReservationFlow('seats');
   };
+
+  useEffect(() => {
+    if (reservationFlow !== 'seat-check') return;
+
+    const handleSeatCheckPopState = async () => {
+      const released = await releaseHeldSeatsIfExists();
+      if (!released) {
+        window.history.pushState({ view: 'seat-check' }, '');
+        setErrorModal({
+          isOpen: true,
+          title: '좌석 해제 실패',
+          message: '선택 좌석 해제에 실패해 화면을 유지합니다. 다시 시도해주세요.',
+          onClose: () => setErrorModal({ ...errorModal, isOpen: false })
+        });
+        return;
+      }
+      setReservationFlow(null);
+    };
+
+    window.addEventListener('popstate', handleSeatCheckPopState);
+    return () => window.removeEventListener('popstate', handleSeatCheckPopState);
+  }, [reservationFlow, seatHoldContext]);
 
   const handleSeatCheckConfirm = () => {
     setReservationFlow('booking-success');
@@ -517,8 +657,11 @@ const PublicPerformanceDetails = ({
     setReservationFlow(null);
     setCaptchaCompleted(false);
     setSelectedSeatsForSuccess([]);
+    setSeatHoldContext(null);
     window.localStorage.removeItem('reservationFlow');
     window.localStorage.removeItem('publicReservationRoundId');
+    window.localStorage.removeItem(seatHoldStorageKey);
+    window.localStorage.removeItem(seatCheckSeatsStorageKey);
     setCurrentRoundId(null);
     onGoMain?.();
   };

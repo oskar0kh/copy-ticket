@@ -59,6 +59,7 @@ const PublicSeatSelection = ({ performanceData, roundId, onSuccess, onGoMain }) 
   const seatMap = useMemo(() => new Map(seats.map((seat) => [seat.id, seat])), [seats]);
   const [selectedSeatIds, setSelectedSeatIds] = useState([]);
   const [isLoadingSeats, setIsLoadingSeats] = useState(false);
+  const [isHoldingSeats, setIsHoldingSeats] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [modalMessage, setModalMessage] = useState('');
 
@@ -173,10 +174,52 @@ const PublicSeatSelection = ({ performanceData, roundId, onSuccess, onGoMain }) 
   const zoomIn = () => setZoomLevel((prev) => Math.min(1.5, Number((prev + 0.1).toFixed(2))));
   const zoomOut = () => setZoomLevel((prev) => Math.max(0.8, Number((prev - 0.1).toFixed(2))));
 
-  const handleComplete = () => {
-    if (selectedSeats.length === 0) return;
+  const handleComplete = async () => {
+    if (selectedSeats.length === 0 || !roundId || isHoldingSeats) return;
 
-    onSuccess?.(selectedSeats);
+    const seatIds = selectedSeats.map((seat) => seat.id).filter(Boolean);
+    if (seatIds.length === 0) return;
+
+    setIsHoldingSeats(true);
+
+    try {
+      const response = await fetch('/api/public-seat/hold', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          roundId,
+          seatIds
+        })
+      });
+
+      const contentType = response.headers.get('content-type') || '';
+      const payload = contentType.includes('application/json') ? await response.json() : null;
+
+      if (response.status === 401) {
+        throw new Error('좌석 선점을 진행하려면 로그인이 필요합니다.');
+      }
+
+      if (response.status === 409) {
+        throw new Error(payload?.message || '이미 선점되었거나 예매 완료된 좌석이 포함되어 있습니다.');
+      }
+
+      if (!response.ok) {
+        throw new Error(payload?.message || '좌석 임시 선점 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+      }
+
+      onSuccess?.(selectedSeats, {
+        holdToken: payload?.holdToken || null,
+        holdExpiresAt: payload?.holdExpiresAt || null
+      });
+    } catch (error) {
+      setModalMessage(error.message || '좌석 임시 선점 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+      setShowModal(true);
+    } finally {
+      setIsHoldingSeats(false);
+    }
   };
 
   const closeModal = () => {
@@ -310,8 +353,8 @@ const PublicSeatSelection = ({ performanceData, roundId, onSuccess, onGoMain }) 
               )}
             </div>
 
-            <button type="button" className="btn-seat-complete" disabled={selectedSeats.length === 0 || isLoadingSeats} onClick={handleComplete}>
-              선택 완료
+            <button type="button" className="btn-seat-complete" disabled={selectedSeats.length === 0 || isLoadingSeats || isHoldingSeats} onClick={handleComplete}>
+              {isHoldingSeats ? '좌석 임시 선점 중...' : '선택 완료'}
             </button>
           </section>
         </aside>

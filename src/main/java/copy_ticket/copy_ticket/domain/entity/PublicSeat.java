@@ -1,5 +1,6 @@
 package copy_ticket.copy_ticket.domain.entity;
 
+import copy_ticket.copy_ticket.config.time.KstDateTimeUtils;
 import copy_ticket.copy_ticket.domain.enums.SeatStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -57,9 +58,8 @@ public class PublicSeat {
     @Column(name = "locked_at")
     private Instant lockedAt;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "locked_by_user_id")
-    private User lockedByUser;
+    @Column(name = "locked_by_user_id", length = 255)
+    private String lockedByUserId;
 
     @Column(name = "hold_token", length = 120)
     private String holdToken;
@@ -67,11 +67,15 @@ public class PublicSeat {
     @Column(name = "hold_expires_at")
     private Instant holdExpiresAt;
 
+    @Column(name = "updated_at")
+    private Instant updatedAt;
+
     public static PublicSeat available(PublicRound round, String seatNumber) {
         PublicSeat seat = new PublicSeat();
         seat.setRound(round);
         seat.setSeatNumber(seatNumber);
         seat.setStatus(SeatStatus.AVAILABLE);
+        seat.setUpdatedAt(KstDateTimeUtils.nowInstant());
         return seat;
     }
 }

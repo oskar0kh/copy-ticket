@@ -24,6 +24,12 @@ services:
     volumes:
       - postgres_volume:/var/lib/postgresql/data
 
+  redis:
+    image: redis:7
+    container_name: copy_ticket_redis_container
+    ports:
+      - "6379:6379"
+
 # 위에서 참조한 'postgres_volume' 볼륨을 정의
 volumes:
   postgres_volume:

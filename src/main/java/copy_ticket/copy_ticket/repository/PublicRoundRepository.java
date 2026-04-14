@@ -33,4 +33,16 @@ public interface PublicRoundRepository extends JpaRepository<PublicRound, Long> 
         LIMIT 1
         """, nativeQuery = true)
     Optional<PublicRound> findOneBookableOpenRound();
+
+    // DB 서버 시각(KST) 기준으로 실제 예매 가능한 OPEN 라운드 중에서 round_id에 해당하는 라운드 조회
+    @Query(value = """
+        SELECT *
+        FROM public_rounds
+        WHERE round_id = :roundId
+          AND status = 'OPEN'
+          AND open_at <= (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Seoul')
+          AND close_at > (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Seoul')
+        LIMIT 1
+        """, nativeQuery = true)
+    Optional<PublicRound> findOneBookableOpenRoundById(@Param("roundId") Integer roundId);
 }

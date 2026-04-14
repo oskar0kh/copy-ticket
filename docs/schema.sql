@@ -68,8 +68,9 @@ CREATE TABLE public_seats (
     round_id            BIGINT NOT NULL REFERENCES public_rounds(id),
     seat_number         VARCHAR(20) NOT NULL,
     status              VARCHAR(20) NOT NULL,
+    updated_at          TIMESTAMP NOT NULL DEFAULT now(),
     locked_at           TIMESTAMP,
-    locked_by_user_id   BIGINT REFERENCES users(id),
+    locked_by_user_id   VARCHAR(255),
     hold_token          VARCHAR(120),
     hold_expires_at     TIMESTAMP,
     CONSTRAINT ck_public_seats_status
