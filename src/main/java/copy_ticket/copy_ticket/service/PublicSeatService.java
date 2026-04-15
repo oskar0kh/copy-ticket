@@ -212,4 +212,10 @@ public class PublicSeatService {
             stringRedisTemplate.delete(redisKey);
         }
     }
+
+    // 8. TTL 만료된 LOCKED 좌석을 AVAILABLE로 자동 복구 (배치 작업) (스케줄러에서 1초 단위로 해당 메서드 실행)
+    @Transactional
+    public int recoverExpiredLockedSeats() {
+        return publicSeatRepository.recoverExpiredLockedSeats();
+    }
 }

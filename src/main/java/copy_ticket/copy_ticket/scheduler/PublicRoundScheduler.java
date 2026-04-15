@@ -1,6 +1,7 @@
 package copy_ticket.copy_ticket.scheduler;
 
 import copy_ticket.copy_ticket.service.PublicRoundService;
+import copy_ticket.copy_ticket.service.PublicSeatService;
 import copy_ticket.copy_ticket.service.RoundEventPublisher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -13,6 +14,7 @@ import org.springframework.stereotype.Component;
 public class PublicRoundScheduler {
 
     private final PublicRoundService publicRoundService;
+    private final PublicSeatService publicSeatService;
     private final RoundEventPublisher roundEventPublisher;
 
     /**
@@ -50,6 +52,23 @@ public class PublicRoundScheduler {
             log.info("PublicRoundScheduler: closeExpiredRound completed");
         } catch (Exception e) {
             log.error("Error while closing expired round", e);
+        }
+    }
+
+    /**
+     * TTL 만료 좌석 자동 복구 배치
+     * 1초 주기로 hold_expires_at <= now()인 LOCKED 좌석을 AVAILABLE로 자동 복구
+     * cron: "0/1 * * * * *" = 1초마다 실행
+     */
+    @Scheduled(cron = "0/1 * * * * *")
+    public void recoverExpiredLockedSeats() {
+        try {
+            int recoveredCount = publicSeatService.recoverExpiredLockedSeats();
+            if (recoveredCount > 0) {
+                log.info("PublicRoundScheduler: recoverExpiredLockedSeats completed - {} seats recovered", recoveredCount);
+            }
+        } catch (Exception e) {
+            log.error("Error while recovering expired locked seats", e);
         }
     }
 }

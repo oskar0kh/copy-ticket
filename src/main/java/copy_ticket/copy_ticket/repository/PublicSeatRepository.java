@@ -127,4 +127,20 @@ public interface PublicSeatRepository extends JpaRepository<PublicSeat, Long> {
 			@Param("lockedByUserId") String lockedByUserId,
 			@Param("holdToken") String holdToken
 	);
+
+	// (TTL 만료 자동 복구 SQL) 모든 라운드에서 hold_expires_at <= now()인 LOCKED 좌석을 AVAILABLE로 자동 복구
+	@Modifying(clearAutomatically = true, flushAutomatically = true)
+	@Query(value = """
+		UPDATE public_seats
+		SET status = 'AVAILABLE',
+		    locked_at = NULL,
+		    locked_by_user_id = NULL,
+		    hold_token = NULL,
+		    hold_expires_at = NULL,
+		    updated_at = (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Seoul')
+		WHERE status = 'LOCKED'
+		  AND hold_expires_at IS NOT NULL
+		  AND hold_expires_at <= (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Seoul')
+		""", nativeQuery = true)
+	int recoverExpiredLockedSeats();
 }
