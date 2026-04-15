@@ -1,0 +1,169 @@
+.public-my-bookings-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.public-my-bookings-modal {
+  background: white;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 500px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+  max-height: 80vh;
+  overflow: hidden;
+}
+
+.public-my-bookings-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.public-my-bookings-header h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 20px;
+  color: #999;
+  cursor: pointer;
+  padding: 0;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.close-btn:hover {
+  background-color: #f5f5f5;
+  color: #333;
+}
+
+.public-my-bookings-content {
+  flex: 1;
+  padding: 20px 24px;
+  overflow-y: auto;
+}
+
+.public-my-bookings-info {
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.perf-name {
+  margin: 0 0 8px 0;
+  font-size: 16px;
+  font-weight: 500;
+  color: #333;
+  word-break: break-word;
+}
+
+.booked-time {
+  margin: 0;
+  font-size: 13px;
+  color: #666;
+}
+
+.public-my-bookings-seats {
+  margin-bottom: 16px;
+}
+
+.public-my-bookings-seats h3 {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+}
+
+.seats-list {
+  list-style: none;
+  margin: 0 0 12px 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.seat-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background-color: #f9f9f9;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.seat-label {
+  color: #999;
+  font-size: 11px;
+}
+
+.seat-number {
+  font-weight: 500;
+  color: #333;
+}
+
+.total-seats {
+  margin: 0;
+  font-size: 13px;
+  color: #666;
+  text-align: right;
+}
+
+.no-bookings {
+  text-align: center;
+  padding: 40px 20px;
+  color: #999;
+}
+
+.no-bookings p {
+  margin: 0;
+  font-size: 14px;
+}
+
+.public-my-bookings-footer {
+  padding: 16px 24px;
+  border-top: 1px solid #e0e0e0;
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.close-modal-btn {
+  padding: 8px 16px;
+  background-color: #f5f5f5;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #000;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.close-modal-btn:hover {
+  background-color: #efefef;
+}

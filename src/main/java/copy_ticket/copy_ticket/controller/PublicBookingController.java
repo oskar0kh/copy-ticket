@@ -2,11 +2,13 @@ package copy_ticket.copy_ticket.controller;
 
 import copy_ticket.copy_ticket.dto.PublicBookingConfirmRequestDto;
 import copy_ticket.copy_ticket.dto.PublicBookingConfirmResponseDto;
+import copy_ticket.copy_ticket.dto.PublicBookingMyListResponseDto;
 import copy_ticket.copy_ticket.service.PublicBookingService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -26,5 +28,13 @@ public class PublicBookingController {
             Authentication authentication
     ) {
         return ResponseEntity.ok(publicBookingService.confirmBooking(request, authentication));
+    }
+
+    // 나의 예매내역 조회 API
+    @GetMapping("/my-bookings")
+    public ResponseEntity<PublicBookingMyListResponseDto> getMyBookings(
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(publicBookingService.getMyBookings(authentication));
     }
 }

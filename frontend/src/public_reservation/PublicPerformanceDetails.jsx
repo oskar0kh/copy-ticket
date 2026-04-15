@@ -5,6 +5,7 @@ import CaptchaModal from './public_seat_selection/PublicCaptchaModal';
 import SeatSelection from './public_seat_selection/PublicSeatSelection';
 import PublicSeatCheck from './public_seat_selection/PublicSeatCheck';
 import BookingSuccess from './public_seat_selection/PublicBookingSuccess';
+import PublicMyBookings from './PublicMyBookings';
 import { formatRemaining, getNextRoundOpenTime } from './roundTime';
 
 const PublicPerformanceDetails = ({
@@ -100,6 +101,8 @@ const PublicPerformanceDetails = ({
   const timerIntervalRef = useRef(null);
   const [now, setNow] = useState(() => new Date());
   const [errorModal, setErrorModal] = useState({ isOpen: false, title: '', message: '', onClose: null });
+  const [isMyBookingsModalOpen, setIsMyBookingsModalOpen] = useState(false);
+  const [myBookings, setMyBookings] = useState(null);
 
   useEffect(() => {
     if (captchaCompleted) {
@@ -723,6 +726,35 @@ const PublicPerformanceDetails = ({
     onGoMain?.();
   };
 
+  // 나의 예매내역 조회 핸들러
+  const handleOpenMyBookings = async () => {
+    try {
+      const response = await fetch('/api/public-booking/my-bookings', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || '예매내역 조회에 실패했습니다.');
+      }
+
+      const data = await response.json();
+      setMyBookings(data);
+      setIsMyBookingsModalOpen(true);
+    } catch (error) {
+      setErrorModal({
+        isOpen: true,
+        title: '예매내역 조회 실패',
+        message: error.message || '예매내역 조회 중 오류가 발생했습니다.',
+        onClose: () => setErrorModal({ ...errorModal, isOpen: false })
+      });
+    }
+  };
+
   // 예매 플로우가 진행 중이면 해당 UI 표시
   if (reservationFlow === 'loading') {
     return <LoadingScreen />;
@@ -781,6 +813,15 @@ const PublicPerformanceDetails = ({
           </div>
         </div>
       )}
+
+      {/* 나의 예매내역 모달 */}
+      <PublicMyBookings
+        isOpen={isMyBookingsModalOpen}
+        onClose={() => setIsMyBookingsModalOpen(false)}
+        bookings={myBookings}
+        performanceName={performanceData?.goodsName || '공연명'}
+      />
+
       {/* 상단 네비게이션 배너 */}
       <nav className="perf-navbar">
         <div className="perf-navbar-inner">
@@ -802,6 +843,13 @@ const PublicPerformanceDetails = ({
           </div>
           <div className="perf-navbar-right">
             <span className="perf-navbar-user">{user?.name || '사용자'}</span>
+            <button
+              className="perf-navbar-btn perf-navbar-bookings-btn"
+              onClick={handleOpenMyBookings}
+              title="나의 예매내역 확인"
+            >
+              나의 예매내역
+            </button>
             {showTimerButton && (
               <button
                 className="perf-navbar-btn perf-navbar-timer-btn"

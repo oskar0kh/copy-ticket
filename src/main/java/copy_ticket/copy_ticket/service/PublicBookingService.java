@@ -7,6 +7,7 @@ import copy_ticket.copy_ticket.domain.entity.PublicSeat;
 import copy_ticket.copy_ticket.domain.entity.User;
 import copy_ticket.copy_ticket.dto.PublicBookingConfirmRequestDto;
 import copy_ticket.copy_ticket.dto.PublicBookingConfirmResponseDto;
+import copy_ticket.copy_ticket.dto.PublicBookingMyListResponseDto;
 import copy_ticket.copy_ticket.exception.PublicBookingConfirmationException;
 import copy_ticket.copy_ticket.repository.PublicBookingRepository;
 import copy_ticket.copy_ticket.repository.PublicRoundRepository;
@@ -183,5 +184,69 @@ public class PublicBookingService {
     // 6. Redis 홀드 키 생성 메서드
     private String buildSeatHoldKey(Integer roundId, Long seatId) {
         return "public-seat:hold:" + roundId + ":" + seatId;
+    }
+
+    // 7. 나의 예매내역 조회 메서드
+    @Transactional(readOnly = true)
+    public PublicBookingMyListResponseDto getMyBookings(Authentication authentication) {
+
+        // 1) 인증 정보 검증
+        if (authentication == null || authentication.getName() == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "로그인이 필요합니다.");
+        }
+
+        String userId = authentication.getName();
+
+        // 2) 사용자 존재 여부 검증
+        userRepository.findUserByUserIdWithoutSoftDeleted(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "사용자 정보를 찾을 수 없습니다."));
+
+        // 3) 현재 OPEN 라운드 조회
+        PublicRound currentRound = publicRoundRepository.findOneBookableOpenRound()
+                .orElse(null);
+
+        // OPEN 라운드가 없으면 빈 결과 반환
+        if (currentRound == null) {
+            return PublicBookingMyListResponseDto.builder()
+                    .roundId(null)
+                    .seatIds(new ArrayList<>())
+                    .seatNumbers(new ArrayList<>())
+                    .bookingCount(0)
+                    .bookedAt(null)
+                    .build();
+        }
+
+        // 4) 사용자의 현재 라운드 예매 내역 조회
+        List<PublicBooking> bookings = publicBookingRepository.findByUserIdAndRoundId(userId, currentRound.getRoundId());
+
+        // 예매 내역이 없으면 빈 결과 반환
+        if (bookings.isEmpty()) {
+            return PublicBookingMyListResponseDto.builder()
+                    .roundId(currentRound.getRoundId())
+                    .seatIds(new ArrayList<>())
+                    .seatNumbers(new ArrayList<>())
+                    .bookingCount(0)
+                    .bookedAt(null)
+                    .build();
+        }
+
+        // 5) 예매 내역에서 좌석 ID와 좌석 번호 추출
+        List<Long> seatIds = bookings.stream()
+                .map(b -> b.getSeat().getId())
+                .toList();
+
+        List<String> seatNumbers = bookings.stream()
+                .map(PublicBooking::getSeatNumber)
+                .toList();
+
+        Instant bookedAt = bookings.get(0).getBookedAt();
+
+        // 6) 응답 DTO 생성 및 반환
+        return PublicBookingMyListResponseDto.from(
+                currentRound.getRoundId(),
+                seatIds,
+                seatNumbers,
+                bookedAt
+        );
     }
 }
