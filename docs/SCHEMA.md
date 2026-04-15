@@ -128,7 +128,7 @@
 
 **예매 내역 (마이페이지용 + 좌석 확정 확인용)**
 
-- "좌석 확정하기" 클릭 시 트랜잭션: 좌석 BOOKED, `public_bookings`에 COMPLETED 기록, Redis hold 해제
+- "좌석 확정하기" 클릭 시 트랜잭션: 좌석 BOOKED, `public_bookings`에 BOOKED 기록, Redis hold 해제
 - 마이페이지에서 [예매 내역 = `user_id`]로 `public_bookings` 조회 (좌석, 예매 시각, 라운드 정보 등)
 
 **정합성**
@@ -147,9 +147,10 @@
 | user_id | BIGINT | NOT NULL, FK → users(id) | 예매한 회원 |
 | round_id | BIGINT | NOT NULL, FK → public_rounds(id) | 공개 라운드 |
 | seat_id | BIGINT | NOT NULL, FK → public_seats(id) | 좌석 |
-| status | VARCHAR(20) | NOT NULL | PENDING_PAYMENT / COMPLETED / CANCELLED |
+| seat_number | VARCHAR(20) | NOT NULL | 좌석 번호 |
+| status | VARCHAR(20) | NOT NULL | PENDING / BOOKED / CANCELLED |
 | created_at | TIMESTAMP | NOT NULL, DEFAULT now() | 예매(선점) 시각 |
-| completed_at | TIMESTAMP | NULL | 결제 완료 시각 (status=COMPLETED일 때) |
+| booked_at | TIMESTAMP | NOT NULL | 예매 확정 시각 (status=BOOKED일 때) |
 
 ---
 
@@ -186,7 +187,7 @@
 6. **좌석 선택 페이지** → `public_seats` 조회 및 선택
 7. **대기열** → Redis
 8. **선택 완료(임시 선점)** → Redis hold + `public_seats.status` = LOCKED + `locked_by_user_id/hold_token/hold_expires_at` 저장
-9. **좌석 확정** → `public_seats.status` = BOOKED, `public_bookings` COMPLETED, Redis hold 해제
+9. **좌석 확정** → `public_seats.status` = BOOKED, `public_bookings` BOOKED, Redis hold 해제
 10. **비정상 종료/만료** → Redis TTL 만료; 필요 시 스케줄로 `public_seats` LOCKED → AVAILABLE
 11. **마이페이지** → `public_bookings` + `public_seats` 조인
 
@@ -326,12 +327,13 @@ WITH requested_seats AS (
     SELECT unnest(:seatIds) as seat_id
 ),
 inserted_bookings AS (
-    INSERT INTO public_bookings (user_id, round_id, seat_id, status, created_at, completed_at)
+    INSERT INTO public_bookings (user_id, round_id, seat_id, seat_number, status, created_at, booked_at)
     SELECT
         :userId,
         :roundId,
         s.id,
-        'COMPLETED',
+        s.seat_number,
+        'BOOKED',
         now(),
         now()
     FROM public_seats s
@@ -357,7 +359,7 @@ ORDER BY seat_id;
 1) **만약 'UPDATE된 개수 == 요청 컬럼 개수' : 트랜잭션 성공, `status=BOOKED` 확정**
    - `result = SUCCESS`: 예매 내역 저장 완료
    - `public_seats` : 선택한 좌석들의 status 전부 LOCKED → BOOKED로 UPDATE
-   - `public_bookings` : BOOKED로 바뀐 좌석들만 테이블에 기록
+    - `public_bookings` : BOOKED로 바뀐 좌석들만 테이블에 기록 (seat_number, booked_at 포함)
 
 2) **만약 'UPDATE된 개수 ≠ 요청 컬럼 개수' : 트랜잭션 실패, `status=LOCKED` 유지 & 실패한 seat_id 반환**
    - `result = FAILED`: 실패한 seat_id (상태 불일치, 중복 예매, 등)

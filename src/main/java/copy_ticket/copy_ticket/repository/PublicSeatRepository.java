@@ -19,7 +19,7 @@ public interface PublicSeatRepository extends JpaRepository<PublicSeat, Long> {
 		""", nativeQuery = true)
 	List<PublicSeat> findSeatNumberAscByRoundId(@Param("roundId") Long roundId);
 
-	// 특정 라운드에서 좌석 ID 리스트에 해당하는 좌석 정보 조회
+	// 요청한 seatIds 중 현재 라운드에 존재하는 좌석 조회
 	@Query(value = """
 		SELECT *
 		FROM public_seats
@@ -58,6 +58,51 @@ public interface PublicSeatRepository extends JpaRepository<PublicSeat, Long> {
 			@Param("lockedByUserId") String lockedByUserId,
 			@Param("holdToken") String holdToken,
 			@Param("holdTtlSeconds") long holdTtlSeconds
+	);
+
+	// 특정 라운드 좌석 리스트 내부의 확정 불가 좌석 Id 조회
+	@Query(value = """
+		SELECT id
+		FROM public_seats
+		WHERE round_id = :roundId
+		  AND id IN (:seatIds)
+		  AND (
+			status <> 'LOCKED'
+			OR COALESCE(locked_by_user_id, '') <> :lockedByUserId
+			OR COALESCE(hold_token, '') <> :holdToken
+			OR hold_expires_at IS NULL
+			OR hold_expires_at <= (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Seoul')
+		  )
+		""", nativeQuery = true)
+	List<Long> findInvalidSeatIdsForBooking(
+			@Param("roundId") Long roundId,
+			@Param("seatIds") List<Long> seatIds,
+			@Param("lockedByUserId") String lockedByUserId,
+			@Param("holdToken") String holdToken
+	);
+
+	// 좌석 확정 시 'LOCKED' -> 'BOOKED' 상태로 일괄 업데이트
+	@Modifying(clearAutomatically = true, flushAutomatically = true)
+	@Query(value = """
+		UPDATE public_seats
+		SET status = 'BOOKED',
+		    locked_at = NULL,
+		    locked_by_user_id = NULL,
+		    hold_token = NULL,
+		    hold_expires_at = NULL,
+		    updated_at = (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Seoul')
+		WHERE round_id = :roundId
+		  AND id IN (:seatIds)
+		  AND status = 'LOCKED'
+		  AND locked_by_user_id = :lockedByUserId
+		  AND hold_token = :holdToken
+		  AND hold_expires_at > (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Seoul')
+		""", nativeQuery = true)
+	int confirmBookedSeats(
+			@Param("roundId") Long roundId,
+			@Param("seatIds") List<Long> seatIds,
+			@Param("lockedByUserId") String lockedByUserId,
+			@Param("holdToken") String holdToken
 	);
 
 	// (임시 선점 해제 SQL) 특정 라운드에서 좌석 ID 리스트에 해당하는 좌석을 'LOCKED' -> 'AVAILABLE' 상태로 일괄 업데이트 (실제 홀드 해제 처리)

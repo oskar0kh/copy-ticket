@@ -118,7 +118,7 @@ public class PublicRoundService {
                 .roundId(nextRoundId)
                 .status(RoundStatus.OPEN)
                 .openAt(slotOpenAt)
-                .closeAt(slotOpenAt.plus(10, ChronoUnit.MINUTES)) // closeAt = openAt + 10분
+                .closeAt(slotOpenAt.plus(29, ChronoUnit.MINUTES)) // closeAt = openAt + 10분
                 .createdAt(now)
                 .updatedAt(now)
                 .build();

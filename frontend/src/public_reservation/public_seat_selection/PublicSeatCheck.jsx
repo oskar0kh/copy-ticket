@@ -1,7 +1,7 @@
 import React from 'react';
 import './css/SeatSelection.css';
 
-const PublicSeatCheck = ({ selectedSeats, onBack, onConfirm }) => {
+const PublicSeatCheck = ({ selectedSeats, onBack, onConfirm, holdExpiresAt, isConfirming = false }) => {
   const hasSeats = Array.isArray(selectedSeats) && selectedSeats.length > 0;
 
   return (
@@ -10,6 +10,11 @@ const PublicSeatCheck = ({ selectedSeats, onBack, onConfirm }) => {
         <div className="public-seat-check-card">
           <h1 className="public-seat-check-title">선택 좌석 확인</h1>
           <p className="public-seat-check-message">아래 좌석으로 예매를 진행할까요?</p>
+          {holdExpiresAt && (
+            <p className="public-seat-check-message">
+              임시 선점 만료 시각: {new Date(holdExpiresAt).toLocaleTimeString('ko-KR', { hour12: false })}
+            </p>
+          )}
 
           <div className="public-seat-check-list" role="list" aria-label="선택 좌석 목록">
             {hasSeats ? (
@@ -32,9 +37,9 @@ const PublicSeatCheck = ({ selectedSeats, onBack, onConfirm }) => {
               type="button"
               className="public-seat-check-btn primary"
               onClick={onConfirm}
-              disabled={!hasSeats}
+              disabled={!hasSeats || isConfirming}
             >
-              좌석 확정하기
+              {isConfirming ? '좌석 확정 중...' : '좌석 확정하기'}
             </button>
           </div>
         </div>

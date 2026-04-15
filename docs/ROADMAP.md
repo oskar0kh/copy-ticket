@@ -160,6 +160,7 @@ Phase 7  라운드 관리 및 데이터 정리
 | 5-8 | 소유권/토큰 검증 | LOCKED 좌석은 `locked_by_user_id + hold_token + hold_expires_at > now()` 모두 일치해야만 BOOKED 전환 허용 |
 | 5-9 | 다건 원자성 보장 | 좌석 여러 개 선점/확정 시 전부 성공만 허용, 일부 실패 시 전체 롤백. 실패한 seat_id를 응답으로 반환 |
 | 5-10 | 확정 트랜잭션 구조 | 1) 라운드 유효성 검증 2) LOCKED→BOOKED 조건부 UPDATE 3) updatedCount 검증 4) public_bookings INSERT 5) 커밋 후 Redis hold 삭제 |
+
 | 5-11 | TTL 만료 자동 복구 배치 | 1~5초 주기로 LOCKED 좌석 중 hold_expires_at <= now() 인 것을 AVAILABLE로 자동 복구 (스케줄러 실행) |
 
 | 5-12 | Redis 대기열/진입 제한 | "예매하기" 버튼 클릭 → Redis Queue에 요청 저장, 토큰 기반 진입량 제한(라운드당 예: 1000명 동시 진입) |

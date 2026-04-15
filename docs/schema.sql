@@ -109,9 +109,10 @@ CREATE TABLE public_bookings (
     user_id         BIGINT NOT NULL REFERENCES users(id),
     round_id        BIGINT NOT NULL REFERENCES public_rounds(id),
     seat_id         BIGINT NOT NULL REFERENCES public_seats(id),
+    seat_number     VARCHAR(20) NOT NULL,
     status          VARCHAR(20) NOT NULL,
     created_at      TIMESTAMP NOT NULL DEFAULT now(),
-    completed_at    TIMESTAMP,
+    booked_at       TIMESTAMP NOT NULL,
     CONSTRAINT uq_public_booking_round_seat UNIQUE (round_id, seat_id)
 );
 

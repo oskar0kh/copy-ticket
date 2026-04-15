@@ -23,7 +23,7 @@ import java.time.Instant;
 
 /**
  * 예매 내역 — 마이페이지용 + 예매 확정 확인용
- * "결제하기" 클릭 시 트랜잭션: 좌석 BOOKED, bookings에 COMPLETED 기록, Redis 락 해제
+ * "좌석 확정하기" 클릭 시 트랜잭션: 좌석 BOOKED, bookings에 BOOKED 기록, Redis 락 해제
  */
 @Entity
 @Table(name = "public_bookings",
@@ -50,6 +50,9 @@ public class PublicBooking {
     @JoinColumn(name = "seat_id", nullable = false)
     private PublicSeat seat;
 
+    @Column(name = "seat_number", nullable = false, length = 20)
+    private String seatNumber;
+
     @Column(nullable = false, length = 20)
     @Enumerated(EnumType.STRING)
     private BookingStatus status;
@@ -57,6 +60,18 @@ public class PublicBooking {
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
-    @Column(name = "completed_at")
-    private Instant completedAt;
+    @Column(name = "booked_at", nullable = false)
+    private Instant bookedAt;
+
+    public static PublicBooking booked(User user, PublicRound round, PublicSeat seat, Instant now) {
+        PublicBooking booking = new PublicBooking();
+        booking.setUser(user);
+        booking.setRound(round);
+        booking.setSeat(seat);
+        booking.setSeatNumber(seat.getSeatNumber());
+        booking.setStatus(BookingStatus.BOOKED);
+        booking.setCreatedAt(now);
+        booking.setBookedAt(now);
+        return booking;
+    }
 }

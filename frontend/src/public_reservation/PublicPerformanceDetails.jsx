@@ -89,6 +89,7 @@ const PublicPerformanceDetails = ({
       return null;
     }
   });
+  const [isConfirmingBooking, setIsConfirmingBooking] = useState(false);
   const [isTimerModalOpen, setIsTimerModalOpen] = useState(false);
   const [selectedTimerSeconds, setSelectedTimerSeconds] = useState('5');
   const [isReservationReady, setIsReservationReady] = useState(false);
@@ -648,8 +649,64 @@ const PublicPerformanceDetails = ({
     return () => window.removeEventListener('popstate', handleSeatCheckPopState);
   }, [reservationFlow, seatHoldContext]);
 
-  const handleSeatCheckConfirm = () => {
-    setReservationFlow('booking-success');
+  const handleSeatCheckConfirm = async () => {
+    if (!seatHoldContext?.roundId || !seatHoldContext?.holdToken || !Array.isArray(seatHoldContext?.seatIds) || seatHoldContext.seatIds.length === 0) {
+      setErrorModal({
+        isOpen: true,
+        title: '확정 정보 없음',
+        message: '좌석 확정 정보를 찾을 수 없습니다. 다시 좌석을 선택해주세요.',
+        onClose: () => setErrorModal({ ...errorModal, isOpen: false })
+      });
+      return;
+    }
+
+    setIsConfirmingBooking(true);
+
+    try {
+      const response = await fetch('/api/public-booking/confirm', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          roundId: seatHoldContext.roundId,
+          seatIds: seatHoldContext.seatIds,
+          holdToken: seatHoldContext.holdToken
+        })
+      });
+
+      const contentType = response.headers.get('content-type') || '';
+      const payload = contentType.includes('application/json') ? await response.json() : null;
+
+      if (response.status === 401) {
+        throw new Error('좌석 확정을 진행하려면 로그인이 필요합니다.');
+      }
+
+      if (response.status === 409) {
+        const failedSeatIds = Array.isArray(payload?.failedSeatIds) ? payload.failedSeatIds.join(', ') : null;
+        throw new Error(failedSeatIds
+          ? `확정할 수 없는 좌석이 있습니다: ${failedSeatIds}`
+          : (payload?.message || '좌석 확정에 실패했습니다.'));
+      }
+
+      if (!response.ok) {
+        throw new Error(payload?.message || '좌석 확정 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+      }
+
+      setSeatHoldContext(null);
+      window.localStorage.removeItem(seatHoldStorageKey);
+      setReservationFlow('booking-success');
+    } catch (error) {
+      setErrorModal({
+        isOpen: true,
+        title: '좌석 확정 실패',
+        message: error.message || '좌석 확정 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.',
+        onClose: () => setErrorModal({ ...errorModal, isOpen: false })
+      });
+    } finally {
+      setIsConfirmingBooking(false);
+    }
   };
 
   // 예매 성공 후 돌아가기 핸들러
@@ -701,6 +758,8 @@ const PublicPerformanceDetails = ({
         selectedSeats={selectedSeatsForSuccess}
         onBack={handleSeatCheckBack}
         onConfirm={handleSeatCheckConfirm}
+        holdExpiresAt={seatHoldContext?.holdExpiresAt || null}
+        isConfirming={isConfirmingBooking}
       />
     );
   }
