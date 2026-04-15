@@ -107,6 +107,7 @@ CREATE INDEX idx_public_seats_lock_owner_token ON public_seats(locked_by_user_id
 CREATE TABLE public_bookings (
     id              BIGSERIAL PRIMARY KEY,
     user_id         BIGINT NOT NULL REFERENCES users(id),
+    booked_by_user_id VARCHAR(255) NOT NULL,
     round_id        BIGINT NOT NULL REFERENCES public_rounds(id),
     seat_id         BIGINT NOT NULL REFERENCES public_seats(id),
     seat_number     VARCHAR(20) NOT NULL,

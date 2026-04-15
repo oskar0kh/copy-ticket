@@ -145,6 +145,7 @@
 |--------|------|------|------|
 | id | BIGSERIAL | PK | 예매 식별자 |
 | user_id | BIGINT | NOT NULL, FK → users(id) | 예매한 회원 |
+| booked_by_user_id | VARCHAR(255) | NOT NULL | 예매 시점 사용자 아이디(user_id) 스냅샷 |
 | round_id | BIGINT | NOT NULL, FK → public_rounds(id) | 공개 라운드 |
 | seat_id | BIGINT | NOT NULL, FK → public_seats(id) | 좌석 |
 | seat_number | VARCHAR(20) | NOT NULL | 좌석 번호 |
@@ -327,9 +328,10 @@ WITH requested_seats AS (
     SELECT unnest(:seatIds) as seat_id
 ),
 inserted_bookings AS (
-    INSERT INTO public_bookings (user_id, round_id, seat_id, seat_number, status, created_at, booked_at)
+    INSERT INTO public_bookings (user_id, booked_by_user_id, round_id, seat_id, seat_number, status, created_at, booked_at)
     SELECT
         :userId,
+        :bookedByUserId,
         :roundId,
         s.id,
         s.seat_number,
@@ -359,7 +361,7 @@ ORDER BY seat_id;
 1) **만약 'UPDATE된 개수 == 요청 컬럼 개수' : 트랜잭션 성공, `status=BOOKED` 확정**
    - `result = SUCCESS`: 예매 내역 저장 완료
    - `public_seats` : 선택한 좌석들의 status 전부 LOCKED → BOOKED로 UPDATE
-    - `public_bookings` : BOOKED로 바뀐 좌석들만 테이블에 기록 (seat_number, booked_at 포함)
+    - `public_bookings` : BOOKED로 바뀐 좌석들만 테이블에 기록 (booked_by_user_id, seat_number, booked_at 포함)
 
 2) **만약 'UPDATE된 개수 ≠ 요청 컬럼 개수' : 트랜잭션 실패, `status=LOCKED` 유지 & 실패한 seat_id 반환**
    - `result = FAILED`: 실패한 seat_id (상태 불일치, 중복 예매, 등)

@@ -50,6 +50,9 @@ public class PublicBooking {
     @JoinColumn(name = "seat_id", nullable = false)
     private PublicSeat seat;
 
+    @Column(name = "booked_by_user_id", nullable = false, length = 255)
+    private String bookedByUserId;
+
     @Column(name = "seat_number", nullable = false, length = 20)
     private String seatNumber;
 
@@ -68,6 +71,7 @@ public class PublicBooking {
         booking.setUser(user);
         booking.setRound(round);
         booking.setSeat(seat);
+        booking.setBookedByUserId(user.getUserId());
         booking.setSeatNumber(seat.getSeatNumber());
         booking.setStatus(BookingStatus.BOOKED);
         booking.setCreatedAt(now);
