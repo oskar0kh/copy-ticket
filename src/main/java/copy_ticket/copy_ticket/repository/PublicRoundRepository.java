@@ -12,6 +12,16 @@ public interface PublicRoundRepository extends JpaRepository<PublicRound, Long> 
     // round_id에 해당하는 라운드 조회
     Optional<PublicRound> findByRoundId(Integer roundId);
 
+    // 현재 round_id보다 작은 라운드들 중에서, round_id가 가장 큰 라운드 조회 -> 해당 라운드의 round_id 찾기 (이전 라운드의 round_id 조회용)
+    @Query(value = """
+        SELECT *
+        FROM public_rounds
+        WHERE round_id < :roundId
+        ORDER BY round_id DESC
+        LIMIT 1
+        """, nativeQuery = true)
+    Optional<PublicRound> findLatestRoundBeforeCurrentRoundId(@Param("roundId") Integer roundId);
+
     // 현재 OPEN 상태인 라운드 조회
     @Query(value = """
         SELECT *

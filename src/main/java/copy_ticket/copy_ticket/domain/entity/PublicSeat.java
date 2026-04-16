@@ -70,12 +70,16 @@ public class PublicSeat {
     @Column(name = "updated_at")
     private Instant updatedAt;
 
+    @Column(name = "deleted_at")
+    private Instant deletedAt;
+
     public static PublicSeat available(PublicRound round, String seatNumber) {
         PublicSeat seat = new PublicSeat();
         seat.setRound(round);
         seat.setSeatNumber(seatNumber);
         seat.setStatus(SeatStatus.AVAILABLE);
         seat.setUpdatedAt(KstDateTimeUtils.nowInstant());
+        seat.setDeletedAt(null);
         return seat;
     }
 }

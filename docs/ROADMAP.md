@@ -198,8 +198,8 @@ Phase 8  Redis 대기열/진입 제한 + 트래픽 테스트
 
 | 순서 | 작업 | 설명 |
 |------|------|------|
-| 8-1 | 라운드 종료 정책 | 라운드 closeAt 시각 도달 시 라운드 상태를 CLOSED로 변경, 신규 진입 차단 |
-| 8-2 | 데이터 정리 Scheduler | 새 라운드 생성 시, 이전 라운드의 모든 public_bookings/public_seats 레코드 soft delete |
+| 7-1 | 라운드 종료 정책 | 라운드 closeAt 시각 도달 시 라운드 상태를 CLOSED로 변경, 신규 진입 차단 |
+| 7-2 | 데이터 정리 Scheduler | 새 라운드 생성 시, 이전 라운드의 모든 public_bookings/public_seats 레코드 soft delete |
 
 **산출물:** 라운드 종료 및 데이터 정리 로직
 
@@ -229,7 +229,7 @@ Phase 8  Redis 대기열/진입 제한 + 트래픽 테스트
 | **4** | PublicRound 엔티티, OPEN/CLOSED 전환, SSE, 10분 버튼 활성화 | ✅ (핵심 흐름) / ⏳ (실서비스 연동 보강) |
 | **5** | 좌석 조회/선택, 임시 선점(LOCKED), 좌석 확정(BOOKED), public_bookings 저장 | ⏳ |
 | **6** | 나의 예매내역 (마이페이지) | ⏳ |
-| **7** | 라운드 관리, 데이터 정리 (soft delete) | ⏳ |
+| **7** | 라운드 관리, 데이터 정리 (soft delete) | ✅ |
 | **8** | Redis 대기열/진입 제한, 트래픽 테스트 | ⏳ |
 
 ---
@@ -248,7 +248,7 @@ Phase 8  Redis 대기열/진입 제한 + 트래픽 테스트
 
 **DB 테이블:**
 - `public_rounds`: id, roundId, status, openAt, closeAt, createdAt, updatedAt
-- `public_seats`: id, roundId, seatNumber, status, lockedAt, lockedByUserId
-- `public_bookings`: id, userId, roundId, seatId, status, createdAt, completedAt
+- `public_seats`: id, roundId, seatNumber, status, lockedAt, lockedByUserId, holdToken, holdExpiresAt, updatedAt, deletedAt
+- `public_bookings`: id, userId, roundId, seatId, seatNumber, status, createdAt, bookedAt, deletedAt
 
 상세 테이블·ER 다이어그램은 `docs/SCHEMA.md` 참고.

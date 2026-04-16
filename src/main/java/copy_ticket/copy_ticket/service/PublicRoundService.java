@@ -4,6 +4,7 @@ import copy_ticket.copy_ticket.domain.entity.PublicRound;
 import copy_ticket.copy_ticket.domain.entity.PublicRound.RoundStatus;
 import copy_ticket.copy_ticket.domain.entity.PublicSeat;
 import copy_ticket.copy_ticket.config.time.KstDateTimeUtils;
+import copy_ticket.copy_ticket.repository.PublicBookingRepository;
 import copy_ticket.copy_ticket.repository.PublicRoundRepository;
 import copy_ticket.copy_ticket.repository.PublicSeatRepository;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +30,7 @@ public class PublicRoundService {
 
     private final PublicRoundRepository publicRoundRepository;
     private final PublicSeatRepository publicSeatRepository;
+    private final PublicBookingRepository publicBookingRepository;
 
     // 1. 매시 00/30분에 OPEN 라운드 생성
     @Transactional
@@ -126,12 +128,34 @@ public class PublicRoundService {
         // 라운드 저장 후, 해당 라운드에 대한 좌석도 함께 생성
         PublicRound savedRound = publicRoundRepository.save(newRound);
         createSeatsForRound(savedRound);
+        softDeletePreviousRoundData(savedRound);
 
         // 저장된 라운드 반환
         return savedRound;
     }
 
-    // 7. 라운드 생성 시, 해당 라운드에 대한 좌석도 함께 생성 (400석)
+    // 7. 새 라운드 생성 시 이전 라운드 데이터를 soft delete 처리
+    private void softDeletePreviousRoundData(PublicRound currentRound) {
+
+        // 이전 라운드의 round_id 조회
+        publicRoundRepository.findLatestRoundBeforeCurrentRoundId(currentRound.getRoundId())
+                .ifPresent(previousRound -> {
+                    
+                    // 이전 라운드의 booking과 seat 데이터를 soft delete 처리
+                    int deletedBookings = publicBookingRepository.softDeleteByRoundId(previousRound.getId());
+                    int deletedSeats = publicSeatRepository.softDeleteByRoundId(previousRound.getId());
+
+                    // 삭제한 데이터들을 로그 기록으로 남김
+                    log.info(
+                            "Soft deleted previous round data: previousRoundId={}, deletedBookings={}, deletedSeats={}",
+                            previousRound.getRoundId(),
+                            deletedBookings,
+                            deletedSeats
+                    );
+                });
+    }
+
+    // 8. 라운드 생성 시, 해당 라운드에 대한 좌석도 함께 생성 (400석)
     private void createSeatsForRound(PublicRound round) {
 
         // 좌석 번호는 S001, S002, ..., S400 형식으로 생성

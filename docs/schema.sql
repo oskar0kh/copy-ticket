@@ -73,6 +73,7 @@ CREATE TABLE public_seats (
     locked_by_user_id   VARCHAR(255),
     hold_token          VARCHAR(120),
     hold_expires_at     TIMESTAMP,
+    deleted_at          TIMESTAMP,
     CONSTRAINT ck_public_seats_status
         CHECK (status IN ('AVAILABLE', 'LOCKED', 'BOOKED')),
     CONSTRAINT ck_public_seats_lock_consistency
@@ -114,6 +115,7 @@ CREATE TABLE public_bookings (
     status          VARCHAR(20) NOT NULL,
     created_at      TIMESTAMP NOT NULL DEFAULT now(),
     booked_at       TIMESTAMP NOT NULL,
+    deleted_at      TIMESTAMP,
     CONSTRAINT uq_public_booking_round_seat UNIQUE (round_id, seat_id)
 );
 

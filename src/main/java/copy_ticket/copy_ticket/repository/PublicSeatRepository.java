@@ -15,6 +15,7 @@ public interface PublicSeatRepository extends JpaRepository<PublicSeat, Long> {
 		SELECT *
 		FROM public_seats
 		WHERE round_id = :roundId
+		  AND deleted_at IS NULL
 		ORDER BY seat_number ASC
 		""", nativeQuery = true)
 	List<PublicSeat> findSeatNumberAscByRoundId(@Param("roundId") Long roundId);
@@ -25,6 +26,7 @@ public interface PublicSeatRepository extends JpaRepository<PublicSeat, Long> {
 		FROM public_seats
 		WHERE round_id = :roundId
 		  AND id IN (:seatIds)
+		  AND deleted_at IS NULL
 		""", nativeQuery = true)
 	List<PublicSeat> findSeatIdsByRoundId(@Param("roundId") Long roundId, @Param("seatIds") List<Long> seatIds);
 
@@ -35,6 +37,7 @@ public interface PublicSeatRepository extends JpaRepository<PublicSeat, Long> {
 		WHERE round_id = :roundId
 		  AND id IN (:seatIds)
 		  AND status <> 'AVAILABLE'
+		  AND deleted_at IS NULL
 		""", nativeQuery = true)
 	List<Long> findUnavailableSeatIds(@Param("roundId") Long roundId, @Param("seatIds") List<Long> seatIds);
 
@@ -51,6 +54,7 @@ public interface PublicSeatRepository extends JpaRepository<PublicSeat, Long> {
 		WHERE round_id = :roundId
 		  AND id IN (:seatIds)
 		  AND status = 'AVAILABLE'
+		  AND deleted_at IS NULL
 		""", nativeQuery = true)
 	int lockAvailableSeats(
 			@Param("roundId") Long roundId,
@@ -66,6 +70,7 @@ public interface PublicSeatRepository extends JpaRepository<PublicSeat, Long> {
 		FROM public_seats
 		WHERE round_id = :roundId
 		  AND id IN (:seatIds)
+		  AND deleted_at IS NULL
 		  AND (
 			status <> 'LOCKED'
 			OR COALESCE(locked_by_user_id, '') <> :lockedByUserId
@@ -94,6 +99,7 @@ public interface PublicSeatRepository extends JpaRepository<PublicSeat, Long> {
 		WHERE round_id = :roundId
 		  AND id IN (:seatIds)
 		  AND status = 'LOCKED'
+		  AND deleted_at IS NULL
 		  AND locked_by_user_id = :lockedByUserId
 		  AND hold_token = :holdToken
 		  AND hold_expires_at > (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Seoul')
@@ -118,6 +124,7 @@ public interface PublicSeatRepository extends JpaRepository<PublicSeat, Long> {
 		WHERE round_id = :roundId
 		  AND id IN (:seatIds)
 		  AND status = 'LOCKED'
+		  AND deleted_at IS NULL
 		  AND locked_by_user_id = :lockedByUserId
 		  AND hold_token = :holdToken
 		""", nativeQuery = true)
@@ -140,7 +147,19 @@ public interface PublicSeatRepository extends JpaRepository<PublicSeat, Long> {
 		    updated_at = (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Seoul')
 		WHERE status = 'LOCKED'
 		  AND hold_expires_at IS NOT NULL
+		  AND deleted_at IS NULL
 		  AND hold_expires_at <= (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Seoul')
 		""", nativeQuery = true)
 	int recoverExpiredLockedSeats();
+
+	// 라운드 ID에 해당하는 좌석 내역 soft delete (deleted_at 컬럼에 삭제 시각 기록)
+	@Modifying(clearAutomatically = true, flushAutomatically = true)
+	@Query(value = """
+		UPDATE public_seats
+		SET deleted_at = (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Seoul'),
+		    updated_at = (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Seoul')
+		WHERE round_id = :roundId
+		  AND deleted_at IS NULL
+		""", nativeQuery = true)
+	int softDeleteByRoundId(@Param("roundId") Long roundId);
 }

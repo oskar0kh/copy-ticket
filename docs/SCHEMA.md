@@ -110,9 +110,10 @@
 | seat_number | VARCHAR(20) | NOT NULL | 좌석 번호 |
 | status | VARCHAR(20) | NOT NULL | AVAILABLE / LOCKED / BOOKED |
 | locked_at | TIMESTAMP | NULL | 선점 시각 (status=LOCKED일 때) |
-| locked_by_user_id | BIGINT | NULL, FK → users(id) | 선점한 사용자 (status=LOCKED일 때) |
+| locked_by_user_id | VARCHAR(255) | NULL | 선점한 사용자 아이디(user_id) |
 | hold_token | VARCHAR(120) | NULL | 선점 토큰 (status=LOCKED일 때) |
 | hold_expires_at | TIMESTAMP | NULL | 선점 만료 시각 (status=LOCKED일 때) |
+| deleted_at | TIMESTAMP | NULL | 다음 라운드 시작 시 soft delete 시각 |
 
 **status**
 
@@ -152,6 +153,7 @@
 | status | VARCHAR(20) | NOT NULL | PENDING / BOOKED / CANCELLED |
 | created_at | TIMESTAMP | NOT NULL, DEFAULT now() | 예매(선점) 시각 |
 | booked_at | TIMESTAMP | NOT NULL | 예매 확정 시각 (status=BOOKED일 때) |
+| deleted_at | TIMESTAMP | NULL | 다음 라운드 시작 시 soft delete 시각 |
 
 ---
 
@@ -200,6 +202,8 @@
 |------|------|------|
 | **performances.goods_code** | UNIQUE (이미 적용) | 같은 공연을 중복으로 저장하지 않기 위해 인터파크 상품 코드로 유일성 보장 |
 | **performances.deleted_at** | soft delete (이미 적용) | 사용자당 5개 초과 시 가장 오래된 공연을 삭제하되, 히스토리 유지 가능 |
+| **public_seats.deleted_at** | soft delete (Phase 7) | 새 라운드 시작 시 이전 라운드 좌석 데이터를 soft delete 처리 |
+| **public_bookings.deleted_at** | soft delete (Phase 7) | 새 라운드 시작 시 이전 라운드 예매 데이터를 soft delete 처리 |
 | **bookings** | `cancelled_at` (TIMESTAMP NULL) | CANCELLED 상태일 때 취소 시각을 남기면 이후 통계/이력 분석에 유리. 필수는 아님. |
 
 ---
@@ -223,9 +227,10 @@ CREATE TABLE public_seats (
     seat_number         VARCHAR(20) NOT NULL,
     status              VARCHAR(20) NOT NULL,
     locked_at           TIMESTAMP,
-    locked_by_user_id   BIGINT REFERENCES users(id),
+    locked_by_user_id   VARCHAR(255),
     hold_token          VARCHAR(120),
     hold_expires_at     TIMESTAMP,
+    deleted_at          TIMESTAMP,
     CONSTRAINT ck_public_seats_status
         CHECK (status IN ('AVAILABLE', 'LOCKED', 'BOOKED')),
     CONSTRAINT ck_public_seats_lock_consistency
@@ -254,6 +259,11 @@ CREATE INDEX idx_public_seats_status ON public_seats(round_id, status);
 CREATE INDEX idx_public_seats_round_status_expires ON public_seats(round_id, status, hold_expires_at);
 CREATE INDEX idx_public_seats_lock_owner_token ON public_seats(locked_by_user_id, hold_token);
 ```
+
+### 1-1. Phase 7 데이터 정리 정책
+
+- 새 OPEN 라운드 생성 시, 직전 라운드의 `public_bookings`, `public_seats` 데이터를 hard delete하지 않고 `deleted_at`만 설정한다.
+- 조회/업데이트 쿼리는 `deleted_at IS NULL` 조건을 포함해 활성 데이터만 대상으로 처리한다.
 
 ---
 

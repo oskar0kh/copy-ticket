@@ -66,6 +66,9 @@ public class PublicBooking {
     @Column(name = "booked_at", nullable = false)
     private Instant bookedAt;
 
+    @Column(name = "deleted_at")
+    private Instant deletedAt;
+
     public static PublicBooking booked(User user, PublicRound round, PublicSeat seat, Instant now) {
         PublicBooking booking = new PublicBooking();
         booking.setUser(user);
@@ -76,6 +79,7 @@ public class PublicBooking {
         booking.setStatus(BookingStatus.BOOKED);
         booking.setCreatedAt(now);
         booking.setBookedAt(now);
+        booking.setDeletedAt(null);
         return booking;
     }
 }
