@@ -21,8 +21,8 @@ import java.util.UUID;
 @Slf4j
 public class PublicQueueService {
 
-    // Redis 키 TTL : READY 상태일때 발급하는 입장 토큰의 유효시간 (60초)
-    private static final Duration ENTRY_TOKEN_TTL = Duration.ofSeconds(60);
+    // Redis 키 TTL : READY 상태일때 발급하는 입장 토큰의 유효시간 (5분)
+    private static final Duration ENTRY_TOKEN_TTL = Duration.ofMinutes(5);
 
     // 활성 사용자 정보 : READY 상태로 진입한 사용자의 정보를 일정 시간 동안 보관 (예: 2초) -> 스케줄러가 정상적으로 토큰을 발급했는지 확인하는 용도
     private static final Duration ACTIVE_USER_TTL = Duration.ofSeconds(2);

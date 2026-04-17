@@ -61,6 +61,34 @@ export default function MainPage({ user, loading, lastInputUrl, onSubmitUrl, onL
   const [savedPerformances, setSavedPerformances] = useState([]);
   const [loadingSavedPerformances, setLoadingSavedPerformances] = useState(false);
 
+  const clearPublicReservationArtifacts = () => {
+    window.localStorage.removeItem('reservationFlow');
+    window.localStorage.removeItem('publicBookingStartTime');
+    window.localStorage.removeItem('publicBookingCloseTime');
+    window.localStorage.removeItem('publicReservationRoundId');
+
+    for (let index = window.localStorage.length - 1; index >= 0; index -= 1) {
+      const key = window.localStorage.key(index);
+      if (
+        key && (
+          key.startsWith('publicQueueContext:')
+          || key.startsWith('publicSeatHoldContext:')
+          || key.startsWith('publicSeatCheckSelectedSeats:')
+          || key.startsWith('publicSeatSelection:selectedSeats:')
+        )
+      ) {
+        window.localStorage.removeItem(key);
+      }
+    }
+
+    for (let index = window.sessionStorage.length - 1; index >= 0; index -= 1) {
+      const key = window.sessionStorage.key(index);
+      if (key && key.startsWith('captchaCompleted:')) {
+        window.sessionStorage.removeItem(key);
+      }
+    }
+  };
+
   useEffect(() => {
     const currentView = window.history.state?.view;
     if (!currentView) {
@@ -160,6 +188,7 @@ export default function MainPage({ user, loading, lastInputUrl, onSubmitUrl, onL
   }
 
   function handleBackFromPublicPerformanceDetails() {
+    clearPublicReservationArtifacts();
     setShowPublicPerformanceDetails(false);
     // 공개 티켓팅 종료 시 예매 시작 시간 정리
     window.localStorage.removeItem('publicBookingStartTime');
@@ -168,8 +197,7 @@ export default function MainPage({ user, loading, lastInputUrl, onSubmitUrl, onL
 
   function handleNavigateBackFromPublicPerformanceDetails() {
     // 뒤로가기 시에만 reservationFlow 정리
-    window.localStorage.removeItem('reservationFlow');
-    window.localStorage.removeItem('publicBookingStartTime');
+    clearPublicReservationArtifacts();
     window.history.back();
   }
 

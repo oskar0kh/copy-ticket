@@ -142,6 +142,43 @@ const PublicPerformanceDetails = ({
   const [isMyBookingsModalOpen, setIsMyBookingsModalOpen] = useState(false);
   const [myBookings, setMyBookings] = useState(null);
 
+  const clearPublicReservationArtifacts = () => {
+    window.sessionStorage.removeItem(captchaStorageKey);
+    window.localStorage.removeItem('reservationFlow');
+    window.localStorage.removeItem('publicBookingStartTime');
+    window.localStorage.removeItem('publicBookingCloseTime');
+    window.localStorage.removeItem('publicReservationRoundId');
+    window.localStorage.removeItem(queueStorageKey);
+    window.localStorage.removeItem(seatHoldStorageKey);
+    window.localStorage.removeItem(seatCheckSeatsStorageKey);
+
+    for (let index = window.localStorage.length - 1; index >= 0; index -= 1) {
+      const key = window.localStorage.key(index);
+      if (key && key.startsWith('publicSeatSelection:selectedSeats:')) {
+        window.localStorage.removeItem(key);
+      }
+    }
+  };
+
+  const resetPublicReservationState = () => {
+    clearPublicReservationArtifacts();
+    setReservationFlow(null);
+    setCaptchaCompleted(false);
+    setSelectedSeatsForSuccess([]);
+    setSeatHoldContext(null);
+    setQueueSessionToken(null);
+    setCurrentRoundId(null);
+    setIsReservationReady(false);
+    setRemainingTimerSeconds(null);
+    setTimerTargetAt(null);
+    setIsConfirmingBooking(false);
+  };
+
+  const handleGoMain = () => {
+    resetPublicReservationState();
+    onGoMain?.();
+  };
+
   useEffect(() => {
     if (captchaCompleted) {
       window.sessionStorage.setItem(captchaStorageKey, 'true');
@@ -201,18 +238,7 @@ const PublicPerformanceDetails = ({
 
     // 동일 공연의 새로고침에서는 현재 화면(flow)을 유지하고, 다른 공연으로 바뀔 때만 초기화
     if (previousPerformanceKeyRef.current !== performanceKey) {
-      setReservationFlow(null);
-      setCaptchaCompleted(false);
-      setQueueSessionToken(null);
-      setIsReservationReady(false);
-      setRemainingTimerSeconds(null);
-      setTimerTargetAt(null);
-      setCurrentRoundId(null);
-      setSeatHoldContext(null);
-        setSelectedSeatsForSuccess([]);
-      window.localStorage.removeItem('publicReservationRoundId');
-      window.localStorage.removeItem(seatHoldStorageKey);
-        window.localStorage.removeItem(seatCheckSeatsStorageKey);
+      resetPublicReservationState();
     }
 
     previousPerformanceKeyRef.current = performanceKey;
@@ -608,7 +634,7 @@ const PublicPerformanceDetails = ({
     const handleSeatSelectionBack = (event) => {
       // 뒤로가기로 인한 popstate만 처리 (새로고침 시 popstate는 무시)
       if (event.state?.view !== 'seat-selection') {
-        setReservationFlow(null);
+        resetPublicReservationState();
       }
     };
 
@@ -624,17 +650,8 @@ const PublicPerformanceDetails = ({
   // 예매 플로우 종료 핸들러
   const handleReservationClose = async () => {
     await releaseHeldSeatsIfExists();
-    setReservationFlow(null);
-    setCaptchaCompleted(false);
+    resetPublicReservationState();
     setErrorModal({ ...errorModal, isOpen: false });
-    window.localStorage.removeItem('publicBookingStartTime');
-    window.localStorage.removeItem('publicBookingCloseTime');
-    window.localStorage.removeItem('publicReservationRoundId');
-    window.localStorage.removeItem(queueStorageKey);
-    window.localStorage.removeItem(seatHoldStorageKey);
-    window.localStorage.removeItem(seatCheckSeatsStorageKey);
-    setQueueSessionToken(null);
-    setCurrentRoundId(null);
   };
 
   // 좌석 선택 완료 핸들러
@@ -700,18 +717,8 @@ const PublicPerformanceDetails = ({
     if (reservationFlow !== 'seat-check') return;
 
     const handleSeatCheckPopState = async () => {
-      const released = await releaseHeldSeatsIfExists();
-      if (!released) {
-        window.history.pushState({ view: 'seat-check' }, '');
-        setErrorModal({
-          isOpen: true,
-          title: '좌석 해제 실패',
-          message: '선택 좌석 해제에 실패해 화면을 유지합니다. 다시 시도해주세요.',
-          onClose: () => setErrorModal({ ...errorModal, isOpen: false })
-        });
-        return;
-      }
-      setReservationFlow(null);
+      await releaseHeldSeatsIfExists();
+      resetPublicReservationState();
     };
 
     window.addEventListener('popstate', handleSeatCheckPopState);
@@ -781,18 +788,7 @@ const PublicPerformanceDetails = ({
 
   // 예매 성공 후 돌아가기 핸들러
   const handleBookingReturn = () => {
-    setReservationFlow(null);
-    setCaptchaCompleted(false);
-    setSelectedSeatsForSuccess([]);
-    setSeatHoldContext(null);
-    window.localStorage.removeItem('reservationFlow');
-    window.localStorage.removeItem('publicReservationRoundId');
-    window.localStorage.removeItem(queueStorageKey);
-    window.localStorage.removeItem(seatHoldStorageKey);
-    window.localStorage.removeItem(seatCheckSeatsStorageKey);
-    setQueueSessionToken(null);
-    setCurrentRoundId(null);
-    onGoMain?.();
+    handleGoMain();
   };
 
   // 나의 예매내역 조회 핸들러
@@ -846,7 +842,7 @@ const PublicPerformanceDetails = ({
           roundId={currentRoundId}
           queueSessionToken={queueSessionToken}
           onSuccess={handleSeatSelectionSuccess}
-          onGoMain={onGoMain}
+          onGoMain={handleGoMain}
         />
         {!captchaCompleted && (
           <CaptchaModal
@@ -906,13 +902,13 @@ const PublicPerformanceDetails = ({
           <div className="perf-navbar-left">
             <p
               className="perf-navbar-logo"
-              onClick={onGoMain}
+              onClick={handleGoMain}
               role="button"
               tabIndex={0}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
                   e.preventDefault();
-                  onGoMain?.();
+                  handleGoMain();
                 }
               }}
             >
