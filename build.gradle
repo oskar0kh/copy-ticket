@@ -46,4 +46,21 @@ dependencies {
 
 tasks.named('test') {
 	useJUnitPlatform()
+
+	// 테스트는 항상 재실행 (캐시 무시)
+	outputs.upToDateWhen { false }
+
+	testLogging {
+		events "passed", "skipped", "failed"
+		exceptionFormat "short"
+		showStandardStreams true
+		showCauses true
+	}
+
+	// 테스트 실행 후 결과 출력
+	doLast {
+		println "\n" + "=".repeat(50)
+		println "✅ 테스트 완료"
+		println "=".repeat(50)
+	}
 }
