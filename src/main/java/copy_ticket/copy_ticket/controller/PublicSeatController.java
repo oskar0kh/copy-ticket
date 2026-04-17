@@ -5,6 +5,7 @@ import copy_ticket.copy_ticket.dto.PublicSeatHoldReleaseRequestDto;
 import copy_ticket.copy_ticket.dto.PublicSeatHoldResponseDto;
 import copy_ticket.copy_ticket.dto.PublicSeatResponseDto;
 import jakarta.validation.Valid;
+import copy_ticket.copy_ticket.service.PublicQueueTokenValidator;
 import copy_ticket.copy_ticket.service.PublicSeatService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -25,10 +27,17 @@ import java.util.List;
 public class PublicSeatController {
 
     private final PublicSeatService publicSeatService;
+    private final PublicQueueTokenValidator publicQueueTokenValidator;
 
     // 라운드 ID에 해당하는 좌석 정보 조회
     @GetMapping("/{roundId}")
-    public ResponseEntity<List<PublicSeatResponseDto>> getSeatsByRoundId(@PathVariable Integer roundId) {
+    public ResponseEntity<List<PublicSeatResponseDto>> getSeatsByRoundId(
+            @PathVariable Integer roundId,
+            Authentication authentication,
+            @RequestHeader(name = PublicQueueTokenValidator.QUEUE_SESSION_TOKEN_HEADER, required = false) String queueSessionToken
+    ) {
+        // // READY 토큰 검증 로직 추가
+        publicQueueTokenValidator.validate(roundId, authentication, queueSessionToken);
         return ResponseEntity.ok(publicSeatService.getSeatsByRoundId(roundId));
     }
 
@@ -36,8 +45,11 @@ public class PublicSeatController {
     @PostMapping("/hold")
     public ResponseEntity<PublicSeatHoldResponseDto> holdSeats(
             @Valid @RequestBody PublicSeatHoldRequestDto request,
-            Authentication authentication
+            Authentication authentication,
+            @RequestHeader(name = PublicQueueTokenValidator.QUEUE_SESSION_TOKEN_HEADER, required = false) String queueSessionToken
     ) {
+        // // READY 토큰 검증 로직 추가
+        publicQueueTokenValidator.validate(request.getRoundId(), authentication, queueSessionToken);
         return ResponseEntity.ok(publicSeatService.holdSeats(request, authentication));
     }
 
@@ -45,8 +57,11 @@ public class PublicSeatController {
     @DeleteMapping("/hold")
     public ResponseEntity<Void> releaseHeldSeats(
             @Valid @RequestBody PublicSeatHoldReleaseRequestDto request,
-            Authentication authentication
+            Authentication authentication,
+            @RequestHeader(name = PublicQueueTokenValidator.QUEUE_SESSION_TOKEN_HEADER, required = false) String queueSessionToken
     ) {
+        // READY 토큰 검증 로직 추가
+        publicQueueTokenValidator.validate(request.getRoundId(), authentication, queueSessionToken);
         publicSeatService.releaseHeldSeats(request, authentication);
         return ResponseEntity.noContent().build();
     }

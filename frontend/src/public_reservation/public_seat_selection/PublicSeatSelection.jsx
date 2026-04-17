@@ -28,7 +28,7 @@ const parseStoredSeatIds = (value) => {
   }
 };
 
-const PublicSeatSelection = ({ performanceData, roundId, onSuccess, onGoMain }) => {
+const PublicSeatSelection = ({ performanceData, roundId, queueSessionToken, onSuccess, onGoMain }) => {
   const performanceKey = useMemo(() => (
     performanceData?.goodsCode
       || performanceData?.goodsName
@@ -87,7 +87,12 @@ const PublicSeatSelection = ({ performanceData, roundId, onSuccess, onGoMain }) 
       try {
         const response = await fetch(`/api/public-seat/${roundId}`, {
           method: 'GET',
-          credentials: 'include'
+          credentials: 'include',
+          headers: queueSessionToken
+            ? {
+              'X-Public-Queue-Token': queueSessionToken
+            }
+            : undefined
         });
 
         if (response.status === 404) {
@@ -187,7 +192,8 @@ const PublicSeatSelection = ({ performanceData, roundId, onSuccess, onGoMain }) 
         method: 'POST',
         credentials: 'include',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          ...(queueSessionToken ? { 'X-Public-Queue-Token': queueSessionToken } : {})
         },
         body: JSON.stringify({
           roundId,

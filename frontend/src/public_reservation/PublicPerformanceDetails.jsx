@@ -28,6 +28,38 @@ const PublicPerformanceDetails = ({
   const queueStorageKey = useMemo(() => (
     `publicQueueContext:${user?.id || 'default-user'}:${performanceKey}`
   ), [user, performanceKey]);
+  const readStoredQueueContext = () => {
+    const saved = window.localStorage.getItem(queueStorageKey);
+    if (!saved) {
+      return null;
+    }
+
+    try {
+      const parsed = JSON.parse(saved);
+      if (Number(parsed?.roundId) !== Number(window.localStorage.getItem('publicReservationRoundId'))) {
+        return null;
+      }
+
+      const tokenExpiresAt = typeof parsed?.tokenExpiresAt === 'number'
+        ? parsed.tokenExpiresAt
+        : Date.parse(parsed?.tokenExpiresAt || '');
+      if (!parsed?.sessionToken || !tokenExpiresAt || Number.isNaN(tokenExpiresAt)) {
+        return null;
+      }
+
+      if (Date.now() >= tokenExpiresAt) {
+        return null;
+      }
+
+      return {
+        roundId: Number(parsed.roundId),
+        sessionToken: parsed.sessionToken,
+        tokenExpiresAt,
+      };
+    } catch {
+      return null;
+    }
+  };
   const seatHoldStorageKey = useMemo(() => (
     `publicSeatHoldContext:${user?.id || 'default-user'}:${performanceKey}`
   ), [user, performanceKey]);
@@ -50,6 +82,9 @@ const PublicPerformanceDetails = ({
   });
   const [captchaCompleted, setCaptchaCompleted] = useState(() => {
     return window.sessionStorage.getItem(captchaStorageKey) === 'true';
+  });
+  const [queueSessionToken, setQueueSessionToken] = useState(() => {
+    return readStoredQueueContext()?.sessionToken || null;
   });
   const [selectedSeatsForSuccess, setSelectedSeatsForSuccess] = useState(() => {
     const saved = window.localStorage.getItem(seatCheckSeatsStorageKey);
@@ -168,6 +203,7 @@ const PublicPerformanceDetails = ({
     if (previousPerformanceKeyRef.current !== performanceKey) {
       setReservationFlow(null);
       setCaptchaCompleted(false);
+      setQueueSessionToken(null);
       setIsReservationReady(false);
       setRemainingTimerSeconds(null);
       setTimerTargetAt(null);
@@ -543,13 +579,19 @@ const PublicPerformanceDetails = ({
       window.localStorage.setItem('publicReservationRoundId', String(queuePayload.roundId));
     }
 
+    if (queuePayload?.sessionToken) {
+      setQueueSessionToken(queuePayload.sessionToken);
+    }
+
     const queueContext = {
       roundId: queuePayload?.roundId ?? currentRoundId,
       state: queuePayload?.state || 'READY',
       position: queuePayload?.position ?? null,
       peopleAhead: queuePayload?.peopleAhead ?? null,
       sessionToken: queuePayload?.sessionToken || null,
-      tokenExpiresAt: queuePayload?.tokenExpiresAt || null,
+      tokenExpiresAt: typeof queuePayload?.tokenExpiresAt === 'number'
+        ? queuePayload.tokenExpiresAt
+        : Date.parse(queuePayload?.tokenExpiresAt || ''),
       updatedAt: Date.now(),
     };
 
@@ -591,6 +633,7 @@ const PublicPerformanceDetails = ({
     window.localStorage.removeItem(queueStorageKey);
     window.localStorage.removeItem(seatHoldStorageKey);
     window.localStorage.removeItem(seatCheckSeatsStorageKey);
+    setQueueSessionToken(null);
     setCurrentRoundId(null);
   };
 
@@ -616,7 +659,8 @@ const PublicPerformanceDetails = ({
         method: 'DELETE',
         credentials: 'include',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          ...(queueSessionToken ? { 'X-Public-Queue-Token': queueSessionToken } : {})
         },
         body: JSON.stringify({
           roundId: seatHoldContext.roundId,
@@ -692,7 +736,8 @@ const PublicPerformanceDetails = ({
         method: 'POST',
         credentials: 'include',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          ...(queueSessionToken ? { 'X-Public-Queue-Token': queueSessionToken } : {})
         },
         body: JSON.stringify({
           roundId: seatHoldContext.roundId,
@@ -745,6 +790,7 @@ const PublicPerformanceDetails = ({
     window.localStorage.removeItem(queueStorageKey);
     window.localStorage.removeItem(seatHoldStorageKey);
     window.localStorage.removeItem(seatCheckSeatsStorageKey);
+    setQueueSessionToken(null);
     setCurrentRoundId(null);
     onGoMain?.();
   };
@@ -798,6 +844,7 @@ const PublicPerformanceDetails = ({
           performanceData={performanceData}
           user={user}
           roundId={currentRoundId}
+          queueSessionToken={queueSessionToken}
           onSuccess={handleSeatSelectionSuccess}
           onGoMain={onGoMain}
         />

@@ -54,7 +54,6 @@ const PublicLoadingScreen = ({
     let isMounted = true;
     let pollTimerId = null;
     let readyHandled = false;
-    let joinRequestAborted = false;
 
     const readStoredQueueContext = () => {
       if (!queueStorageKey) {
@@ -72,7 +71,9 @@ const PublicLoadingScreen = ({
           return null;
         }
 
-        const expiresAt = parsed?.tokenExpiresAt ? Number(parsed.tokenExpiresAt) : null;
+        const expiresAt = typeof parsed?.tokenExpiresAt === 'number'
+          ? parsed.tokenExpiresAt
+          : Date.parse(parsed?.tokenExpiresAt || '');
         if (parsed?.state !== 'READY' || !parsed?.sessionToken || !expiresAt || Number.isNaN(expiresAt)) {
           return null;
         }
@@ -93,14 +94,16 @@ const PublicLoadingScreen = ({
         return;
       }
 
-      const expiresAt = payload?.tokenExpiresAt ? Number(payload.tokenExpiresAt) : null;
+      const parsedExpiresAt = typeof payload?.tokenExpiresAt === 'number'
+        ? payload.tokenExpiresAt
+        : Date.parse(payload?.tokenExpiresAt || '');
       const queueContext = {
         roundId: payload?.roundId ?? roundId,
         state: payload?.state || 'JOINING',
         position: payload?.position ?? null,
         peopleAhead: payload?.peopleAhead ?? null,
         sessionToken: payload?.sessionToken || null,
-        tokenExpiresAt: expiresAt,
+        tokenExpiresAt: parsedExpiresAt,
         updatedAt: Date.now(),
       };
 
@@ -132,7 +135,9 @@ const PublicLoadingScreen = ({
         position: payload.position ?? null,
         peopleAhead: payload.peopleAhead ?? null,
         sessionToken: payload.sessionToken || null,
-        tokenExpiresAt: payload.tokenExpiresAt || null,
+          tokenExpiresAt: typeof payload.tokenExpiresAt === 'number'
+            ? payload.tokenExpiresAt
+            : Date.parse(payload.tokenExpiresAt || ''),
       });
       persistQueueContext(payload);
 
@@ -259,7 +264,6 @@ const PublicLoadingScreen = ({
       if (pollTimerId) {
         window.clearInterval(pollTimerId);
       }
-      joinRequestAborted = true;
     };
   }, [roundId, queueStorageKey]);
 
