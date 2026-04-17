@@ -152,7 +152,17 @@ public interface PublicSeatRepository extends JpaRepository<PublicSeat, Long> {
 		""", nativeQuery = true)
 	int recoverExpiredLockedSeats();
 
-	// 라운드 ID에 해당하는 좌석 내역 soft delete (deleted_at 컬럼에 삭제 시각 기록)
+	// 특정 라운드에 해당하는 AVAILABLE 좌석 조회 (테스트용)
+	@Query(value = """
+		SELECT *
+		FROM public_seats
+		WHERE round_id = :roundId
+		  AND status = 'AVAILABLE'
+		  AND deleted_at IS NULL
+		ORDER BY RANDOM()
+		LIMIT 1
+		""", nativeQuery = true)
+	List<PublicSeat> findRandomAvailableSeat(@Param("roundId") Long roundId);
 	@Modifying(clearAutomatically = true, flushAutomatically = true)
 	@Query(value = """
 		UPDATE public_seats
