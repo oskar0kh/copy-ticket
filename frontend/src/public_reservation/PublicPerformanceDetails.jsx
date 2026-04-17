@@ -25,6 +25,9 @@ const PublicPerformanceDetails = ({
   const captchaStorageKey = useMemo(() => (
     `captchaCompleted:${user?.id || 'default-user'}:${performanceKey}`
   ), [user, performanceKey]);
+  const queueStorageKey = useMemo(() => (
+    `publicQueueContext:${user?.id || 'default-user'}:${performanceKey}`
+  ), [user, performanceKey]);
   const seatHoldStorageKey = useMemo(() => (
     `publicSeatHoldContext:${user?.id || 'default-user'}:${performanceKey}`
   ), [user, performanceKey]);
@@ -520,12 +523,6 @@ const PublicPerformanceDetails = ({
       if (currentRound.roundId != null) {
         window.localStorage.setItem('publicReservationRoundId', String(currentRound.roundId));
       }
-
-      // 2초 후 좌석 선택 화면으로 전환
-      setTimeout(() => {
-        window.history.pushState({ view: 'seat-selection' }, '');
-        setReservationFlow('seats');
-      }, 2000);
     } catch (error) {
       console.error('현재 라운드 조회 실패:', error);
       setErrorModal({
@@ -537,6 +534,30 @@ const PublicPerformanceDetails = ({
     } finally {
       setIsCheckingRound(false);
     }
+  };
+
+  // 대기열 상태 조회 및 처리 함수
+  const handleQueueReady = (queuePayload) => {
+    if (queuePayload?.roundId != null) {
+      setCurrentRoundId(queuePayload.roundId);
+      window.localStorage.setItem('publicReservationRoundId', String(queuePayload.roundId));
+    }
+
+    const queueContext = {
+      roundId: queuePayload?.roundId ?? currentRoundId,
+      state: queuePayload?.state || 'READY',
+      position: queuePayload?.position ?? null,
+      peopleAhead: queuePayload?.peopleAhead ?? null,
+      sessionToken: queuePayload?.sessionToken || null,
+      tokenExpiresAt: queuePayload?.tokenExpiresAt || null,
+      updatedAt: Date.now(),
+    };
+
+    window.localStorage.setItem(queueStorageKey, JSON.stringify(queueContext));
+
+    setCaptchaCompleted(false);
+    window.history.pushState({ view: 'seat-selection' }, '');
+    setReservationFlow('seats');
   };
 
   useEffect(() => {
@@ -567,6 +588,7 @@ const PublicPerformanceDetails = ({
     window.localStorage.removeItem('publicBookingStartTime');
     window.localStorage.removeItem('publicBookingCloseTime');
     window.localStorage.removeItem('publicReservationRoundId');
+    window.localStorage.removeItem(queueStorageKey);
     window.localStorage.removeItem(seatHoldStorageKey);
     window.localStorage.removeItem(seatCheckSeatsStorageKey);
     setCurrentRoundId(null);
@@ -720,6 +742,7 @@ const PublicPerformanceDetails = ({
     setSeatHoldContext(null);
     window.localStorage.removeItem('reservationFlow');
     window.localStorage.removeItem('publicReservationRoundId');
+    window.localStorage.removeItem(queueStorageKey);
     window.localStorage.removeItem(seatHoldStorageKey);
     window.localStorage.removeItem(seatCheckSeatsStorageKey);
     setCurrentRoundId(null);
@@ -757,7 +780,15 @@ const PublicPerformanceDetails = ({
 
   // 예매 플로우가 진행 중이면 해당 UI 표시
   if (reservationFlow === 'loading') {
-    return <LoadingScreen />;
+    return (
+      <LoadingScreen
+        roundId={currentRoundId}
+        performanceName={performanceData?.goodsName || '공연'}
+        queueStorageKey={queueStorageKey}
+        onReady={handleQueueReady}
+        onCancel={handleReservationClose}
+      />
+    );
   }
 
   if (reservationFlow === 'seats') {
